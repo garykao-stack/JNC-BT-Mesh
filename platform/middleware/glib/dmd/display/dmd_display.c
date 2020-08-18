@@ -185,7 +185,8 @@ EMSTATUS DMD_setClippingArea(uint16_t xStart, uint16_t yStart,
 *  Y coordinate of the first pixel to be written, relative to the clipping area
 *  @param data
 *  Array containing the pixel data.
-*  For monochrome displays, each 8-bit element contains 8 pixels values.
+*  For monochrome displays, each 8-bit element contains 8 pixels values. A
+*  pixel value of 1 means white, while a value of 0 means black.
 *  For RGB displays, each bit in the array are one color component of the pixel,
 *  so that 3 bits represent one pixel. The pixels are ordered by increasing x
 *  coordinate, after the last pixel of a row, the next pixel will be the first
@@ -329,8 +330,9 @@ EMSTATUS DMD_writeData(uint16_t x, uint16_t y, const uint8_t data[],
           case DISPLAY_COLOUR_MODE_MONOCHROME_INVERSE:
 
             /* If the start pixel (x) or the corresponding data bit
-               (pixelBit) are not aligned on a 8-bit boundary or we there are
-               less than 8 bits to copy to the current row we copy pixel by pixel.*/
+               (pixelBit) are not aligned on a 8-bit boundary or there are
+               less than 8 bits to copy to the current row we copy pixel by
+               pixel. */
             if ( (0 != (x & 0x7))
                  || (0 != (pixelBit & 0x7))
                  || (rowPixels < 8) ) {
@@ -338,32 +340,45 @@ EMSTATUS DMD_writeData(uint16_t x, uint16_t y, const uint8_t data[],
               for (; x < rowPixels; x++, pixelBit++) {
                 pixelData = (data[pixelBit >> 3] >> (pixelBit & 0x7)) & 0x1;
                 /* Write pixel data to the pixelMatrix buffer. */
-                if ( ( (displayDevice.colourMode == DISPLAY_COLOUR_MODE_MONOCHROME)
-                       && pixelData)
-                     ||
-                     ( (displayDevice.colourMode
+                if ( ( (displayDevice.colourMode
                         == DISPLAY_COLOUR_MODE_MONOCHROME_INVERSE)
-                       && (0 == pixelData) ) ) {
+                       && pixelData)
+                     || ( (displayDevice.colourMode
+                           == DISPLAY_COLOUR_MODE_MONOCHROME)
+                          && (0 == pixelData) ) ) {
                   pDst[x >> 3] |= 1 << (x & 0x7);
                 } else {
                   pDst[x >> 3] &= ~(1 << (x & 0x7));
                 }
               }
             } else {
-              /* The start pixel and it's corresponding data bit are aligned on an
-                 8-bit boundary and there are more than 8 bits to copy.
-                 Use memcpy to copy pixel bits to the current row, and take special
-                 care of potential remaining bits in the last byte on the row. */
+              /* The start pixel and it's corresponding data bit are aligned on
+                 an 8-bit boundary and there are more than 8 bits to copy.
+                 Use memcpy to copy pixel bits to the current row if the display
+                 is not MONOCHROME, and copy byte-by-byte if the display is
+                 MONOCHROME_INVERSE. Take special care of potential remaining
+                 bits in the last byte on the row. */
 
               pDst += x >> 3;
 
               numBytesToCopy = rowPixels >> 3;
 
               if (numBytesToCopy) {
-                /* We can copy data continuosly from start to end. */
-                memcpy(pDst, &data[pixelBit >> 3], numBytesToCopy);
+                if (displayDevice.colourMode
+                    == DISPLAY_COLOUR_MODE_MONOCHROME_INVERSE) {
+                  /* We can copy data continuosly from start to end. */
+                  memcpy(pDst, &data[pixelBit >> 3], numBytesToCopy);
+                  pixelBit  += numBytesToCopy << 3;
+                } else {
+                  /* Inverse display. We can copy byte by byte, since each bit
+                     must be flipped */
+                  for (; x <= rowPixels - 8; x += 8, pixelBit += 8) {
+                    pixelData = data[pixelBit >> 3];
+                    pDst[x >> 3] = ~pixelData;
+                  }
+                }
+
                 rowPixels -= numBytesToCopy << 3;
-                pixelBit  += numBytesToCopy << 3;
                 pDst      += numBytesToCopy;
               }
 
@@ -373,8 +388,14 @@ EMSTATUS DMD_writeData(uint16_t x, uint16_t y, const uint8_t data[],
                 /* Copy the remaining pixels into last byte of pixel buffer. */
                 matrixByte = *pDst;
                 pixelMask = (1 << rowPixels) - 1;
-                matrixByte &= ~pixelMask;
-                matrixByte |= data[pixelBit >> 3] & pixelMask;
+                if (displayDevice.colourMode
+                    == DISPLAY_COLOUR_MODE_MONOCHROME_INVERSE) {
+                  matrixByte &= ~pixelMask;  /* Set selected bits to 0 */
+                  matrixByte |= data[pixelBit >> 3] & pixelMask;
+                } else {
+                  matrixByte |= pixelMask;  /* Set selected bits to 1 */
+                  matrixByte &= ~(data[pixelBit >> 3] & pixelMask);
+                }
                 *pDst = matrixByte;
                 pixelBit += rowPixels;
               }
@@ -691,7 +712,7 @@ EMSTATUS DMD_wakeUp(void)
 *  Set to flip display vertically
 *
 *  @return
-*  Returns DMD_OK is successful, error otherwise.
+*  Returns DMD_OK if successful, error otherwise.
 ******************************************************************************/
 EMSTATUS DMD_flipDisplay(int horizontal, int vertical)
 {
@@ -709,7 +730,7 @@ EMSTATUS DMD_flipDisplay(int horizontal, int vertical)
 *  Pointer to void* pointer where the framebuffer pointer will be returned.
 *
 *  @return
-*  Returns DMD_OK is successful, error otherwise.
+*  Returns DMD_OK if successful, error otherwise.
 ******************************************************************************/
 EMSTATUS DMD_allocateFramebuffer(void **framebuffer)
 {
@@ -743,7 +764,7 @@ EMSTATUS DMD_allocateFramebuffer(void **framebuffer)
 *  Pointer to the framebuffer to be deallocated.
 *
 *  @return
-*  Returns DMD_OK is successful, error otherwise.
+*  Returns DMD_OK if successful, error otherwise.
 ******************************************************************************/
 EMSTATUS DMD_freeFramebuffer(void *framebuffer)
 {
@@ -759,7 +780,7 @@ EMSTATUS DMD_freeFramebuffer(void *framebuffer)
 *  Pointer to the framebuffer to be selected as active framebuffer.
 *
 *  @return
-*  Returns DMD_OK is successful, error otherwise.
+*  Returns DMD_OK if successful, error otherwise.
 ******************************************************************************/
 EMSTATUS DMD_selectFramebuffer(void *framebuffer)
 {
@@ -784,7 +805,7 @@ EMSTATUS DMD_selectFramebuffer(void *framebuffer)
 *  Pointer to the source framebuffer.
 *
 *  @return
-*  Returns DMD_OK is successful, error otherwise.
+*  Returns DMD_OK if successful, error otherwise.
 ******************************************************************************/
 EMSTATUS DMD_copyFramebuffer(void *dst, void *src)
 {
@@ -811,7 +832,7 @@ EMSTATUS DMD_copyFramebuffer(void *dst, void *src)
 *  new active framebuffer is selected, all lines/rows will be marked as dirty.
 *
 *  @return
-*  Returns DMD_OK is successful, error otherwise.
+*  Returns DMD_OK if successful, error otherwise.
 ******************************************************************************/
 EMSTATUS DMD_updateDisplay(void)
 {

@@ -132,7 +132,9 @@ typedef struct mesh_generic_state       mg_state;
 
 /// Flag for indicating that initialization was performed
 extern uint8_t init_done;
-extern uint8 MeshNodeModel;        
+extern uint8 MeshNodeModel;
+extern uint16 MeshNodeID;
+extern uint32 MeshNodeIVI;
 
 
 //function
@@ -180,6 +182,7 @@ void sensor_client_publish_get_descriptor_request(void);
 void FriendNodeInit();
 void FriendNodeDeInit();
 uint32 EvtMeshLpnFriendProc(PCmdPacket pEvent);
+void GetLocalCfg();
 
 
 

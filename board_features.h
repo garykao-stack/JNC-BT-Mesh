@@ -419,17 +419,30 @@
 #define FEATURE_BOARD_DETECTED
 #endif
 
+
+
+
 #if (EMBER_AF_BOARD_TYPE == CUSTOM_BOARD)
 // Uncomment the corresponding line in case of using Silicon Labs board feature in your design.
 // For using the selected feature you may need additional drivers. Check an appropriate SDK example for reference.
 
 // richard: 
-//#define BOARD_SILICON_CLIENT  1
-//#define BOARD_SILICON_SERVER    1
-//#define BOARD_SERVER_T1   1 //for Silicon and JNC T1
+//#define BOARD_SILICON_CLIENT  1 
+#define BOARD_T3_SIMULATION   1 // for T3
+//#define BOARD_T3   1 // for T3 to release
+ 
+// #define BOARD_SILICON_SERVER    1
+// #define BOARD_SERVER_T1   1 //for Silicon and JNC T1
 
-#define BOARD_JNC_CLIENT_T3   1 // for T3
-//#define BOARD_JNC_SERVER_T3   1 // for T3
+#define MESH_COLUME_ENABLE      0       //Mesh-Modbus Enable for ColumeRequest
+#define DEVICE_SPI_ENABLE       0
+    
+//#define SERVER_AUTO_PUBLISH
+//#define HARDWARE_RESET
+#undef HARDWARE_RESET
+    
+
+
 
 #if BOARD_SILICON_CLIENT
     #define FEATURE_LCD_SUPPORT 1
@@ -443,8 +456,35 @@
     #define FEATURE_LFXO
     #define FEATURE_BOARD_DETECTED
 
-    #define CLIENT_NODE         1
-    #define MESH_MODBUS_ENABLE  0       //Mesh-Modbus Enable
+    //#define CLIENT_NODE         1
+    
+    #define SIMULATION_MODBUS_REGS 
+#elif BOARD_T3_SIMULATION
+    
+    //#define FEATURE_LCD_SUPPORT
+    //#define FEATURE_LED_BUTTON_ON_SAME_PIN
+    //#define FEATURE_SPI_FLASH
+    #define FEATURE_PA_HIGH_POWER
+    #define FEATURE_PTI_SUPPORT
+    #define FEATURE_HW_FLOW_CONTROL
+    #define FEATURE_I2C_SENSOR
+    #define FEATURE_LFXO
+    //#define FEATURE_BOARD_DETECTED
+    
+    #define SIMULATION_MODBUS_REGS 
+#elif BOARD_T3
+        
+    //#define FEATURE_LCD_SUPPORT
+    //#define FEATURE_LED_BUTTON_ON_SAME_PIN
+    //#define FEATURE_SPI_FLASH
+    #define FEATURE_PA_HIGH_POWER
+    #define FEATURE_PTI_SUPPORT
+    #define FEATURE_HW_FLOW_CONTROL
+    #define FEATURE_I2C_SENSOR
+    #define FEATURE_LFXO
+        //#define FEATURE_BOARD_DETECTED
+
+        
     
 #elif BOARD_SERVER_T1 || BOARD_SILICON_SERVER
     //#define FEATURE_LCD_SUPPORT
@@ -456,33 +496,8 @@
     #define FEATURE_I2C_SENSOR
     #define FEATURE_LFXO
     //#define FEATURE_BOARD_DETECTED
-     #define MESH_MODBUS_ENABLE  0       //Mesh-Modbus Enable
-#elif BOARD_JNC_SERVER_T3
-    //#define FEATURE_LCD_SUPPORT
-    //#define FEATURE_LED_BUTTON_ON_SAME_PIN
-    //#define FEATURE_SPI_FLASH
-    #define FEATURE_PA_HIGH_POWER
-    #define FEATURE_PTI_SUPPORT
-    #define FEATURE_HW_FLOW_CONTROL
-    #define FEATURE_I2C_SENSOR
-    #define FEATURE_LFXO    
-    //#define FEATURE_BOARD_DETECTED
-#elif BOARD_JNC_CLIENT_T3
-    //#define FEATURE_LCD_SUPPORT 1
-    //#define FEATURE_LED_BUTTON_ON_SAME_PIN
-    //#define FEATURE_SPI_FLASH 
-
-    #define FEATURE_PA_HIGH_POWER
-    #define FEATURE_PTI_SUPPORT
-    #define FEATURE_HW_FLOW_CONTROL    
-    //#define FEATURE_I2C_SENSOR
-    #define FEATURE_LFXO
-   // #define FEATURE_BOARD_DETECTED
-    
-    #define CLIENT_NODE         1
-    #define MESH_MODBUS_ENABLE  1       //Mesh-Modbus Enable
-    
-    
+     
+    // #define CMD_TO_BT_MESH       //for cmd to bt mesh
 #else
     #error "You have forgotten to define the header file name."
 

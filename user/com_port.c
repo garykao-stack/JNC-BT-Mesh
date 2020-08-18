@@ -10,6 +10,7 @@
 #include "jnc_cmd.h"
 #include "mod_bus.h"
 #include "modbus_to_Mesh.h"
+#include "cmd_to_bt_mesh.h"
 #include "com_port.h"
 //uchar  ComPortBuff[COM_PORT_BUFF_SIZE];   // to receive cmd from COM/RS485
 
@@ -18,39 +19,26 @@ void ComPortInit()
     
     ModBusInit();
     JncCmdInit();
+#if MESH_COLUME_ENABLE
+    
     ModbusToMeshInit();
     SetNodeStatus(STATUS_MODBUS_MESH,ON); // debug for
+    
+#endif // MESH_COLUME_ENABLE
+    
+    CmdToBtMeshInit();
 }
 
 
 void ComPortProc(void)
 {//TraceProc();
-    uchar response_num;
+ //   uchar response_num;
     UsartMonitor();
     return;
-    
-    if(GetNodeStatus(STATUS_CLIENT))
-        ModbusToMeshClientProc();
-    else
-        ModbusToMeshServerProc();
-    return;
-    
-    if(UsartGetStatusRxEnd())
-        {
-        //TraceDec1("CounterRx", CounterRx); Trace(RxBuff);
-        
-        response_num = ProtocolProc();
-        if(response_num) 
-          {            
-           // ComPortSendCmd(response_num);
-          }
-        }
-
-    return;        
 }
 
 
-
+#if MESH_COLUME_ENABLE
 // 1. ModBus
 // 2. JNC Protocol
 uchar ProtocolProc()
@@ -82,6 +70,7 @@ void ComPortSendCmd(uchar size)
     UsartSendCmd(size);
 }
 
+#endif
 
 
 

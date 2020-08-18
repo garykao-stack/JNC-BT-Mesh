@@ -156,7 +156,8 @@
 
 #define BSP_LED_PRESENT                               (1)
 
-#if BOARD_JNC_SERVER_T3
+#if BOARD_T3_SIMULATION || BOARD_T3
+
 #define BSP_LED0_PIN                                  (14U)
 #define BSP_LED0_PORT                                 (gpioPortD)
 #define BSP_LED1_PIN                                  (15U)
@@ -189,9 +190,8 @@
 // [MODEM]$
 
 // $[PA]
-//#define FEATURE_PA_INPUT_FROM_VBAT
-
-#define BSP_PA_VOLTAGE                                (1800U) //richard 3300U
+#define FEATURE_PA_INPUT_FROM_VBAT                      // for Tx Power
+#define BSP_PA_VOLTAGE                                (3300U) //(1800U) //richard 3300U
 // [PA]$
 
 // $[PCNT0]
@@ -479,6 +479,8 @@
 #define SYSTEM_POWER_PORT                            (gpioPortC)
 #define SYSTEM_POWER_LOC                             (11U)
 
+#define HARDWARE_RESET_PORT     (gpioPortA)
+#define HARDWARE_RESET_PIN      (2)
 
 
 

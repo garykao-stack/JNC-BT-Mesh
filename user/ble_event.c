@@ -93,6 +93,11 @@ uint32 EvtSystemBootProc(PCmdPacket pEvent)
 {TraceProc();
     uint32 ret_code = TRUE;
     char buf[30];
+    msg_sys_boot_evt* p_sys_boot = &(pEvent->data.evt_system_boot);
+    Trace16_4(p_sys_boot->major, p_sys_boot->minor, p_sys_boot->patch, p_sys_boot->build);
+    Trace1("BootLoader",p_sys_boot->bootloader);
+    Trace16_2(p_sys_boot->hw,p_sys_boot->hash);
+    
     msg_sys_get_bt_addr_rsp *pAddr =  Cmd_sys_get_bt_addr();
     set_device_name(&pAddr->address);
     
@@ -241,11 +246,12 @@ static void print_scan_resp(struct gecko_msg_le_gap_scan_response_evt_t *pResp)
 	{
 		for(i=5;i>=0;i--)
 		{
-			Printf("%2.2x", pResp->address.addr[i]);
+			Printf("%2.2x", pResp->address.addr[i]);    //MAC Address
 		}
 
 		Printf(", RSSI: %d\r\n", pResp->rssi);
-
+        for( i = 0; i<pResp->data.len;i++){ printf("%02X",pResp->data.data[i]); }
+         Printf("\r\n\r\n");
         if(pResp->address.addr[0] == 0x91) BLE_RSSI[0] =  pResp->rssi;
         if(pResp->address.addr[0] == 0xC5) BLE_RSSI[1] =  pResp->rssi;
         if(pResp->address.addr[0] == 0xF9) BLE_RSSI[2] =  pResp->rssi;

@@ -37,6 +37,11 @@
 #include "mesh_lib.h"
 #include "mesh_serdeser.h"
 
+/* Enough room for Property ID (2 bytes), access flags (1 byte), and
+   longest currently defined property characteristic (36 bytes) */
+#define LONGEST_STATE 39
+#define LONGEST_REQUEST 39
+
 uint32_t mesh_lib_transition_time_to_ms(uint8_t t)
 {
   uint32_t res_ms[4] = { 100, 1000, 10000, 600000 };
@@ -52,6 +57,7 @@ struct reg {
     struct {
       mesh_lib_generic_server_client_request_cb client_request_cb;
       mesh_lib_generic_server_change_cb state_changed_cb;
+      mesh_lib_generic_server_recall_cb state_recall_cb;
     } server;
     struct {
       mesh_lib_generic_client_server_response_cb server_response_cb;
@@ -120,7 +126,8 @@ errorcode_t
 mesh_lib_generic_server_register_handler(uint16_t model_id,
                                          uint16_t elem_index,
                                          mesh_lib_generic_server_client_request_cb cb,
-                                         mesh_lib_generic_server_change_cb ch)
+                                         mesh_lib_generic_server_change_cb ch,
+                                         mesh_lib_generic_server_recall_cb recall)
 {
   struct reg *reg = NULL;
 
@@ -138,6 +145,7 @@ mesh_lib_generic_server_register_handler(uint16_t model_id,
   reg->elem_index = elem_index;
   reg->server.client_request_cb = cb;
   reg->server.state_changed_cb = ch;
+  reg->server.state_recall_cb = recall;
   return bg_err_success;
 }
 
@@ -168,6 +176,7 @@ void mesh_lib_generic_server_event_handler(struct gecko_cmd_packet *evt)
 {
   struct gecko_msg_mesh_generic_server_client_request_evt_t *req = NULL;
   struct gecko_msg_mesh_generic_server_state_changed_evt_t *chg = NULL;
+  struct gecko_msg_mesh_generic_server_state_recall_evt_t *recall = NULL;
   struct mesh_generic_request request;
   struct mesh_generic_state current;
   struct mesh_generic_state target;
@@ -214,6 +223,24 @@ void mesh_lib_generic_server_event_handler(struct gecko_cmd_packet *evt)
                                          &current,
                                          has_target ? &target : NULL,
                                          chg->remaining);
+        }
+      }
+      break;
+    case gecko_evt_mesh_generic_server_state_recall_id:
+      recall = &(evt->data.evt_mesh_generic_server_state_recall);
+      reg = find_reg(recall->model_id, recall->elem_index);
+      if (reg) {
+        if (mesh_lib_deserialize_state(&current,
+                                       &target,
+                                       &has_target,
+                                       recall->type,
+                                       recall->parameters.data,
+                                       recall->parameters.len) == 0) {
+          (reg->server.state_recall_cb)(recall->model_id,
+                                        recall->elem_index,
+                                        &current,
+                                        has_target ? &target : NULL,
+                                        recall->transition_time);
         }
       }
       break;
@@ -267,7 +294,7 @@ mesh_lib_generic_server_response(uint16_t model_id,
                                  uint32_t remaining_ms,
                                  uint8_t response_flags)
 {
-  uint8_t buf[12];
+  uint8_t buf[LONGEST_STATE];
   size_t len;
 
   if (mesh_lib_serialize_state(current, target, buf, sizeof(buf), &len) != 0) {
@@ -291,7 +318,7 @@ mesh_lib_generic_server_update(uint16_t model_id,
                                const struct mesh_generic_state *target,
                                uint32_t remaining_ms)
 {
-  uint8_t buf[12];
+  uint8_t buf[LONGEST_STATE];
   size_t len;
 
   if (mesh_lib_serialize_state(current, target, buf, sizeof(buf), &len) != 0) {
@@ -338,7 +365,7 @@ errorcode_t mesh_lib_generic_client_set(uint16_t model_id,
                                         uint16_t delay_ms,
                                         uint8_t flags)
 {
-  uint8_t buf[10];
+  uint8_t buf[LONGEST_REQUEST];
   size_t len;
 
   if (mesh_lib_serialize_request(request, buf, sizeof(buf), &len) != 0) {
@@ -366,7 +393,7 @@ mesh_lib_generic_client_publish(uint16_t model_id,
                                 uint16_t delay_ms,
                                 uint8_t request_flags)
 {
-  uint8_t buf[10];
+  uint8_t buf[LONGEST_REQUEST];
   size_t len;
 
   if (mesh_lib_serialize_request(request, buf, sizeof(buf), &len) != 0) {

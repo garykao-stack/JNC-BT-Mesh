@@ -77,9 +77,9 @@ static void uint16_to_buf(uint8_t *ptr, uint16_t n)
 }
 
 /* uint 24 */
-static int32_t uint24_from_buf(const uint8_t *ptr)
+static uint32_t uint24_from_buf(const uint8_t *ptr)
 {
-  return ((uint32_t)ptr[0]) | ((uint32_t)ptr[1] << 8) | ((uint32_t)ptr[2] << 8);
+  return ((uint32_t)ptr[0]) | ((uint32_t)ptr[1] << 8) | ((uint32_t)ptr[2] << 16);
 }
 
 static void uint24_to_buf(uint8_t *ptr, int32_t n)
@@ -156,21 +156,7 @@ uint8_t mesh_sensor_data_to_buf(uint16_t property_id, uint8_t *ptr, uint8_t *val
   uint16_to_buf(ptr, property_id);
   ptr += 2;
 
-  switch (property_id) 
-    {
-    case BT_MODBUS_REG0:    //return 16 bits
-    case BT_MODBUS_REG1:
-    case BT_MODBUS_REG2:
-    case BT_MODBUS_REG3:    
-         uint8_to_buf(ptr++, 2); uint16_to_buf(ptr, *(uint16_t*)value);
-         ret += 3;
-        break;
-  
-    case JNC_TEMP_RH:
-        uint8_to_buf(ptr++, 4);
-        uint32_to_buf(ptr, *(uint32_t*)value);
-        ret += 5;
-        break;
+  switch (property_id) {
     case PRESENT_AMBIENT_TEMPERATURE:
     case PRESENT_INDOOR_AMBIENT_TEMPERATURE:
     case PRESENT_OUTDOOR_AMBIENT_TEMPERATURE:
@@ -253,6 +239,8 @@ uint8_t mesh_sensor_data_to_buf(uint16_t property_id, uint8_t *ptr, uint8_t *val
     case LIGHT_CONTROL_TIME_OCCUPANCY_DELAY: \
     case LIGHT_CONTROL_TIME_PROLONG:
     case LIGHT_CONTROL_TIME_RUN_ON:
+    case PRESENT_AMBIENT_LIGHT_LEVEL:
+    case PRESENT_ILLUMINANCE:
     {
       uint8_to_buf(ptr++, 3);
       uint24_to_buf(ptr, *(uint32_t*)value);
@@ -428,6 +416,9 @@ uint8_t mesh_sensor_data_to_buf(uint16_t property_id, uint8_t *ptr, uint8_t *val
       ret += 10;
     } break;
     default:
+      // If Property ID has not been recognized, roll back the length and the pointer
+      ret -= 2;
+      ptr -= 2;
       break;
   }
   return ret;
@@ -437,17 +428,6 @@ mesh_device_property_t mesh_sensor_data_from_buf(uint16_t property_id, const uin
 {
   mesh_device_property_t property = { 0 };
   switch (property_id) {
-    
-    case BT_MODBUS_REG0:    //Get 16 bits
-    case BT_MODBUS_REG1:
-    case BT_MODBUS_REG2:
-    case BT_MODBUS_REG3:
-         property.int16 = uint16_from_buf(ptr);
-         break;
-    case JNC_TEMP_RH:       
-        property.uint32 = uint32_from_buf(ptr);
-        break;
-    
     case PRESENT_AMBIENT_TEMPERATURE:
     case PRESENT_INDOOR_AMBIENT_TEMPERATURE:
     case PRESENT_OUTDOOR_AMBIENT_TEMPERATURE:
@@ -522,6 +502,8 @@ mesh_device_property_t mesh_sensor_data_from_buf(uint16_t property_id, const uin
     case LIGHT_CONTROL_TIME_OCCUPANCY_DELAY: \
     case LIGHT_CONTROL_TIME_PROLONG:
     case LIGHT_CONTROL_TIME_RUN_ON:
+    case PRESENT_AMBIENT_LIGHT_LEVEL:
+    case PRESENT_ILLUMINANCE:
     {
       property.uint32 = uint24_from_buf(ptr);
     } break;

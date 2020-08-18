@@ -1,10 +1,13 @@
 
+
+
 #include <stdbool.h>
 #include "global.h"
 #include "device_bus.h"
 #include "bus_spi.h"
 #include "AD7147.h"
 
+#if DEVICE_SPI_ENABLE
 
 const uint16 AD7147_Bank1Tbl[BANK1_INIT_TBL_SIZE]={
   WORD_SWAP(SPI_7147_WR|0x0000), //start address
@@ -101,7 +104,7 @@ void ResetScanCinStatus()
     TCounterGetCin = TCounterErrCin = 0;
     ScanCinStatus = SCAN_CIN_STATUS_PENDING;
     GetCinInfoStage = GET_CIN_STAGE_PENDING;
-    SetEventTaskTimer(TIMER_ID_TASK_GET_CIN_VALUE, CYCLE_GET_CIN_PENDING, TIMER_EVENT_REPEAT);
+    SetEventTaskTimer(TD_TASK_GET_CIN_VALUE, CYCLE_GET_CIN_PENDING, TIMER_EVENT_REPEAT);
 }
 
 
@@ -109,7 +112,7 @@ void StartScanCinValue()
 {
     ScanCinStatus = SCAN_CIN_STATUS_ON_GOING;
     GetCinInfoStage = GET_CIN_STAGE_DATA_START;
-    SetEventTaskTimer(TIMER_ID_TASK_GET_CIN_VALUE, CYCLE_GET_CIN, TIMER_EVENT_REPEAT);
+    SetEventTaskTimer(TD_TASK_GET_CIN_VALUE, CYCLE_GET_CIN, TIMER_EVENT_REPEAT);
 }
 
 uchar GetScanCinStatus()
@@ -172,7 +175,7 @@ void GetAD7147CinxProc()
                 AD7147Close();
                 TCounterErrCin = 0;
                 GetCinInfoStage = GET_CIN_STAGE_PENDING;
-                SetEventTaskTimer(TIMER_ID_TASK_GET_CIN_VALUE, CYCLE_GET_CIN_PENDING, TIMER_EVENT_REPEAT);
+                SetEventTaskTimer(TD_TASK_GET_CIN_VALUE, CYCLE_GET_CIN_PENDING, TIMER_EVENT_REPEAT);
                 break;
             default: TraceErr("GetAllCinInfo");  
         };
@@ -303,6 +306,10 @@ bool AD7147WriteMultiReg(uint16 start_addr,uint16* p_reg_data, uchar size)
     SpiWrite((PUCHAR)p_reg_data,size*2); 
     return ret_code;
 }
+#else
+void AD7147Init() {return;}
 
+
+#endif
 
 

@@ -84,9 +84,9 @@ bool GetNodeStatus(uint32 status)
 
 // Show data for debug
 //
+#ifdef DEBUG_PRINT  
 void PrintData(PCHAR pTitle,PUINT16 pbuff, UINT len)
 {
-#ifdef DEBUG_PRINT  
     UINT x,y;
     
     
@@ -101,7 +101,6 @@ void PrintData(PCHAR pTitle,PUINT16 pbuff, UINT len)
                 }
             Printf("\r\n");
         }; 
-#endif
         
 }
 
@@ -110,7 +109,6 @@ void PrintData(PCHAR pTitle,PUINT16 pbuff, UINT len)
 //
 void PrintDataLen(PCHAR pTitle,PUINT16 pbuff,uint16 size, uchar len)
 {    
-#ifdef DEBUG_PRINT  
     uint16 loop,y;
     if(pTitle) Trace(pTitle);
 
@@ -122,13 +120,11 @@ void PrintDataLen(PCHAR pTitle,PUINT16 pbuff,uint16 size, uchar len)
                 {Printf("[%02d]%04Xh ",y++,*pbuff++); size--;}
             Printf("\r\n");
         };
-#endif    
 }
 
 //
 void PrintDataLenDec(PCHAR pTitle,PUINT16 pbuff,uint16 size, uchar len)
 {    
-#ifdef DEBUG_PRINT  
     uint16 loop,y;
     if(pTitle) Trace(pTitle);
 
@@ -140,14 +136,12 @@ void PrintDataLenDec(PCHAR pTitle,PUINT16 pbuff,uint16 size, uchar len)
                 {Printf("[%02d]%04d ",y++,*pbuff++); size--;}
             Printf("\r\n");
         };
-#endif    
 }
 
 
 
 void PrintDataByte(char *pTitle,BYTE* pbuff, UINT len)
 {
-#ifdef DEBUG_PRINT  
     UINT x,y;
         
     if(pTitle != NULL) Printf("%s ==> \r\n",pTitle);
@@ -160,16 +154,13 @@ void PrintDataByte(char *pTitle,BYTE* pbuff, UINT len)
                   y++;pbuff++; len--;
                 }
             Printf("\r\n");
-        }; 
-#endif
-        
+        };         
 }
 
 // Show data for debug
 //
 void PrintDataDec(char *pTitle,WORD* pbuff, UINT len)
 {
-#ifdef DEBUG_PRINT  
     UINT x,y;
         
     if(pTitle != NULL) Printf("%s ==> \r\n",pTitle);
@@ -183,21 +174,13 @@ void PrintDataDec(char *pTitle,WORD* pbuff, UINT len)
                 }
             Printf("\r\n");
         }; 
-#endif
         
 }
 
 
 
-void Delay_ms(int ms)
-{
-	int loop;
-	for(loop=0; loop<ms; loop++) UDELAY_Delay(990);
-}
-
 void PrintDataType(PCHAR pString, PUCHAR pBuff, int size, uchar type)
 {
-#ifdef DEBUG_PRINT  
     int loop;
         
     if (pString != NULL) Printf("%s: ", pString);
@@ -223,25 +206,22 @@ void PrintDataType(PCHAR pString, PUCHAR pBuff, int size, uchar type)
             break;
         default: break;
     };
-#endif
     
 }
 
+/*
 void PrintData1(PUCHAR pBuff, uchar size)
 {
-#ifdef DEBUG_PRINT  
     uchar loop;
     if(pBuff == NULL) return;
     TraceDec1("Print Data Size",size);
     for(loop = 0; loop < size; loop++) 
     {  Printf("%02Xh ", *pBuff++);  if((loop&0x0F) == 0x0F) {Printf("\r\n");}  }
     Printf("\r\n");
-#endif    
 }
-
+*/
 void PrintArray8(uint8array *pArrayBuff,int type)
 {
-#ifdef DEBUG_PRINT  
     uint8 loop;
     uint size;
     uint8* pBuff;
@@ -273,13 +253,11 @@ void PrintArray8(uint8array *pArrayBuff,int type)
         default: break;
     };
 
-#endif    
 }
 
 uint16 ShowResult(char* pString, uint16 result )
 {
     //char ret_code[21];
-#ifdef DEBUG_PRINT
     
     if(result) 
     {// return error
@@ -290,8 +268,16 @@ uint16 ShowResult(char* pString, uint16 result )
         //Printf("\r\nO-O-O-O OK %s = 0x%04X \r\n",pString, result);
     }
     
-#endif 
     return result;
+}
+#endif 
+
+
+
+void Delay_ms(int ms)
+{
+	int loop;
+	for(loop=0; loop<ms; loop++) UDELAY_Delay(990);
 }
 
 //debug interface enable/disable
@@ -302,6 +288,7 @@ void JtagStatus(uchar status)
     else
         {GPIO_DbgSWDClkEnable(false); GPIO_DbgSWDIOEnable(false) ;}
 }
+
 
 const uchar auchCRCHi[]=
 {
@@ -347,11 +334,11 @@ const uchar auchCRCLo[] =
 0x40
 };
 
-uint   ModbusRtu_CRC16(uchar *updata,uint len)
+uint16   ModbusRtu_CRC16(uchar *updata,uint16 len)
 {
   uchar uchCRCHi=0xff;
   uchar uchCRCLo=0xff;
-  uint  uindex;
+  uint16  uindex;
   while(len--)
   {
   uindex=uchCRCHi^*updata++;

@@ -62,6 +62,10 @@ void EvtSetupServerGetSettingsRequest(PCmdPacket pCmdEvent);
 void EvtSetupServerGetSettingRequest(PCmdPacket pCmdEvent);
 void EvtSetupServerSetSettingRequest(PCmdPacket pCmdEvent);
 
+void ServerGetSensorData();
+void SensorDataToClient();
+
+
 
 
 /** @} (end addtogroup Sensor) */

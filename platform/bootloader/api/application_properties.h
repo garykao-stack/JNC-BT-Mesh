@@ -64,7 +64,8 @@
 #define APPLICATION_PROPERTIES_VERSION_MAJOR (1UL)
 /// Minor version number of the AppliationProperties_t struct
 #define APPLICATION_PROPERTIES_VERSION_MINOR (1UL)
-
+/// Version number of the ApplicationCertificate_t struct
+#define APPLICATION_CERTIFICATE_VERSION  (1UL)
 /// The application is not signed
 #define APPLICATION_SIGNATURE_NONE       (0UL)
 /// @brief The SHA-256 digest of the application is signed using ECDSA with the
@@ -87,6 +88,8 @@
 #define APPLICATION_TYPE_BLUETOOTH_APP   (1UL << 5UL)
 /// The application contains a bootloader
 #define APPLICATION_TYPE_BOOTLOADER      (1UL << 6UL)
+/// The application contains a Zwave wireless stack
+#define APPLICATION_TYPE_ZWAVE           (1UL << 7UL)
 
 /// Application Data
 typedef struct ApplicationData {

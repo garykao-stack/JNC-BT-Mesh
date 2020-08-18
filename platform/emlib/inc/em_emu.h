@@ -1,7 +1,6 @@
 /***************************************************************************//**
  * @file
  * @brief Energy Management Unit (EMU) peripheral API
- * @version 5.8.3
  *******************************************************************************
  * # License
  * <b>Copyright 2018 Silicon Laboratories Inc. www.silabs.com</b>
@@ -56,7 +55,8 @@ extern "C" {
  *******************************   DEFINES   ***********************************
  ******************************************************************************/
 
-#if defined(_EMU_CTRL_EM23VSCALE_MASK)
+#if defined(_EMU_STATUS_VSCALE_MASK) \
+  && !defined(_SILICON_LABS_GECKO_INTERNAL_SDID_200)
 #define EMU_VSCALE_PRESENT
 #endif
 
@@ -406,7 +406,12 @@ typedef enum {
       EM0/1 voltage scaling is applied when core clock frequency is
       changed from @ref CMU or when calling @ref EMU_EM01Init() when HF
       clock is already below the limit. */
+#if defined(_SILICON_LABS_32B_SERIES_2)
+  /** Minimum VSCALE level in EM0/1 is VSCALE1. */
+  emuVScaleEM01_LowPower        = _EMU_STATUS_VSCALE_VSCALE1,
+#else
   emuVScaleEM01_LowPower        = _EMU_STATUS_VSCALE_VSCALE0,
+#endif
 } EMU_VScaleEM01_TypeDef;
 #endif
 
@@ -551,6 +556,16 @@ typedef enum {
 #endif
                                      | emuPeripheralRetention_WDOG0,            /* Select all peripherals with retention control.  */
 } EMU_PeripheralRetention_TypeDef;
+#endif
+
+#if defined(_EMU_TEMP_TEMPAVG_MASK)
+/** Number of samples to use for temperature averaging. */
+typedef enum {
+  /** 16 samples used for temperature averaging. */
+  emuTempAvgNum_16      = _EMU_CTRL_TEMPAVGNUM_N16,
+  /** 64 samples used for temperature averaging. */
+  emuTempAvgNum_64      = _EMU_CTRL_TEMPAVGNUM_N64,
+} EMU_TempAvgNum_TypeDef;
 #endif
 
 /*******************************************************************************
@@ -976,6 +991,9 @@ void EMU_VmonHystInit(const EMU_VmonHystInit_TypeDef *vmonInit);
 void EMU_VmonEnable(EMU_VmonChannel_TypeDef channel, bool enable);
 bool EMU_VmonChannelStatusGet(EMU_VmonChannel_TypeDef channel);
 #endif
+#if defined(_EMU_TEMP_TEMP_MASK)
+float EMU_TemperatureGet(void);
+#endif
 
 #if defined(_DCDC_CTRL_MASK)
 /***************************************************************************//**
@@ -994,11 +1012,25 @@ __STATIC_INLINE void EMU_DCDCLock(void)
  ******************************************************************************/
 __STATIC_INLINE void EMU_DCDCUnlock(void)
 {
-#if defined(_SILICON_LABS_32B_SERIES_2_CONFIG_2)
-  DCDC->LOCK = 0xABCD;    // Bug in current CMSIS (DDM)
-#else
   DCDC->LOCK = DCDC_LOCK_LOCKKEY_UNLOCKKEY;
+}
 #endif
+
+#if defined(_SILICON_LABS_32B_SERIES_1)
+/***************************************************************************//**
+ * @brief
+ *   Check status of the internal LDO regulator.
+ *
+ * @return
+ *   Return true if the regulator is on, false if regulator is off.
+ ******************************************************************************/
+__STATIC_INLINE bool EMU_LDOStatusGet(void)
+{
+  if ((*(volatile uint32_t*)0x400E303C & 0x00000040UL) == 0UL) {
+    return true;
+  } else {
+    return false;
+  }
 }
 #endif
 
@@ -1020,6 +1052,13 @@ __STATIC_INLINE void EMU_EnterEM1(void)
  ******************************************************************************/
 __STATIC_INLINE void EMU_VScaleWait(void)
 {
+#if defined(_SILICON_LABS_32B_SERIES_1)
+  if (EMU_LDOStatusGet() == false) {
+    /* Skip waiting if the LDO regulator is turned off. */
+    return;
+  }
+#endif
+
   while (BUS_RegBitRead(&EMU->STATUS, _EMU_STATUS_VSCALEBUSY_SHIFT) != 0U) {
   }
 }
@@ -1290,6 +1329,61 @@ __STATIC_INLINE void EMU_UnlatchPinRetention(void)
   EMU->CMD = EMU_CMD_EM4UNLATCH;
 }
 #endif
+
+#if defined(_EMU_TEMP_TEMP_MASK)
+#define EMU_TEMP_ZERO_C_IN_KELVIN (273.15f)
+/***************************************************************************//**
+ * @brief
+ *   Returns true if a temperature measurement is ready
+ ******************************************************************************/
+__STATIC_INLINE bool EMU_TemperatureReady(void)
+{
+#if defined(EMU_STATUS_FIRSTTEMPDONE)
+  return EMU->STATUS & EMU_STATUS_FIRSTTEMPDONE;
+#else
+  return !((EMU->TEMP & _EMU_TEMP_TEMP_MASK) == 0u);
+#endif
+}
+
+#if defined(_EMU_TEMP_TEMPAVG_MASK)
+/***************************************************************************//**
+ * @brief
+ *   Get averaged temperature in degrees Celcius
+ *
+ * @note
+ *   An averaged temperature measurement must first be requested by calling
+ *   @ref EMU_TemperatureAvgRequest() and waiting for the TEMPAVG interrupt flag
+ *   to go high.
+ *
+ * @return
+ *   Averaged temperature
+ ******************************************************************************/
+__STATIC_INLINE float EMU_TemperatureAvgGet(void)
+{
+  return ((float) ((EMU->TEMP & _EMU_TEMP_TEMPAVG_MASK)
+                   >> _EMU_TEMP_TEMPAVG_SHIFT)
+          ) / 4.0f - EMU_TEMP_ZERO_C_IN_KELVIN;
+}
+
+/***************************************************************************//**
+ * @brief
+ *   Request averaged temperature
+ *
+ * @note
+ *   EMU must be unlocked, by calling @ref EMU_Unlock(), before this function
+ *   can be called.
+ *
+ * @param[in] numSamples
+ *   Number of temeprature samples to average
+ ******************************************************************************/
+__STATIC_INLINE void EMU_TemperatureAvgRequest(EMU_TempAvgNum_TypeDef numSamples)
+{
+  BUS_RegBitWrite(&EMU->CTRL, _EMU_CTRL_TEMPAVGNUM_SHIFT, numSamples);
+  EMU->CMD = 1u << _EMU_CMD_TEMPAVGREQ_SHIFT;
+}
+
+#endif //defined(_EMU_TEMP_TEMPAVG_MASK)
+#endif //defined(_EMU_TEMP_TEMP_MASK)
 
 #if defined(_SILICON_LABS_GECKO_INTERNAL_SDID_80)
 void EMU_SetBiasMode(EMU_BiasMode_TypeDef mode);

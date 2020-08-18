@@ -16,15 +16,17 @@ void Rs485Init()
 
 // change RS-485 to Tx status
 void Rs485Tx()
-{TraceProc();
+{//TraceProc();
     UsartSetStatus(USART_RX_WAITING,OFF);
     RS485ToTx();
+    if(RS485GetPin() == LOW ) TraceErr("RS485 Tx PIN");
 }
 
 // change RS-485 to Rx status
 void Rs485Rx()
-{TraceProc();
+{//TraceProc();
     UsartSetStatus(USART_RX_WAITING,ON);
     RS485ToRx();
+    if(RS485GetPin() == HIGH ) TraceErr("RS485 Rx PIN");
 }
 

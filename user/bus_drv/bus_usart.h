@@ -78,6 +78,7 @@
 #define USART_RECEIVE_INTERVAL      3      //30ms
 
 #define MODBUS_CMD_NUM              8       // Rs-485 command bytes
+#define MODBUS_RET_NUM              USART_TX_BUFF_SIZE
 
 #define USART_OPEN                  BIT0
 #define USART_TX_ING                BIT1    // to USART
@@ -107,9 +108,14 @@
 #define TIMER_USART_RX_CYCLE    TIMER_5MS
 #define TIMER_USART_TX_CYCLE    TIMER_5MS
 
+
+#define TIMER_USART_RX_ENDING   TIMER_5MS //TIMER_10MS 
+#define SERVER_RX_NUM           29
+
+
 extern uchar   CounterRx,CounterTx;
 extern uchar RxBuff[];
-
+extern uchar UsartCounterTx,UsartCounterRx;
 
 void UsartInit(void);
 void UsartDeInit(void);
@@ -139,6 +145,14 @@ bool UsartGetStatusRxIng();
 
 
 void UsartMonitor();
+void UsartMonitor1ms();
+
+bool UsartTxSendCmd(PUCHAR pBuff,uchar size);
+void UsartShowDataRx();
+void UsartIrq(uchar    dir,uchar status);
+bool CheckModbusCrc(PUCHAR pbuff, uchar len);
+
+
 
 
 

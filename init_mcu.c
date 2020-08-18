@@ -64,6 +64,7 @@ void initMcu(void)
   // Set up clocks
   initMcu_clocks();
 
+
   RTCC_Init_TypeDef rtccInit = RTCC_INIT_DEFAULT;
   rtccInit.enable                = true;
   rtccInit.debugRun              = false;
@@ -75,18 +76,18 @@ void initMcu(void)
   rtccInit.cntMode               = rtccCntModeNormal;
   RTCC_Init(&rtccInit);
 
-#if defined(_EMU_CMD_EM01VSCALE0_MASK)
+#if defined(EMU_VSCALE_PRESENT)
   // Set up EM0, EM1 energy mode configuration
   EMU_EM01Init_TypeDef em01Init = EMU_EM01INIT_DEFAULT;
   EMU_EM01Init(&em01Init);
-#endif // _EMU_CMD_EM01VSCALE0_MASK
-
-#if defined(_EMU_CTRL_EM23VSCALE_MASK)
+#endif // EMU_VSCALE_PRESENT
   // Set up EM2, EM3 energy mode configuration
   EMU_EM23Init_TypeDef em23init = EMU_EM23INIT_DEFAULT;
+#if defined(EMU_VSCALE_PRESENT)
   em23init.vScaleEM23Voltage = emuVScaleEM23_LowPower;
+#endif // EMU_VSCALE_PRESENT
   EMU_EM23Init(&em23init);
-#endif //_EMU_CTRL_EM23VSCALE_MASK
+
 
 #if defined(RMU_PRESENT)
   // Set reset mode for sysreset back to DEFAULT (extended), this might have
@@ -124,10 +125,8 @@ static void initMcu_clocks(void)
   CMU_ClockEnable(cmuClock_HFLE, true);
 
 
-  //To use PLFRCO please remove commenting of these lines
-  //and comment out or delete the LFXO lines if they are present
-  //If using PLFRCO update gecko_configuration_t config's
-  //.bluetooth.sleep_clock_accuracy to 500 (ppm)
+  // To use PLFRCO, uncomment the following block and remove the LFXO lines if they are present.
+  // When using PLFRCO, be sure to have .bluetooth.sleep_clock_accuracy set to 500 (ppm)
 //  #if defined(PLFRCO_PRESENT)
 //    /* Ensure LE modules are accessible */
 //    CMU_ClockEnable(cmuClock_CORELE, true);

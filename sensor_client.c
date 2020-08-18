@@ -19,6 +19,7 @@
 #include "MeshFeatures.h"
 #include "mesh_sensor.h"
 #include "sensor_client.h"
+#include "cmd_to_bt_mesh.h"
 
 
 
@@ -36,10 +37,7 @@ const mesh_device_properties_t ServerProperties[MAX_PROPERTIES] =
     PEOPLE_COUNT, 
     JNC_MODBUS_CMD,
     JNC_TEMP_RH,    //for Tempature and Relative Hunidity
-    BT_MODBUS_REG0,
-    BT_MODBUS_REG1,
-    BT_MODBUS_REG2,
-    BT_MODBUS_REG3,
+    MODBUS_FC4_REG0,
     DEVICE_FIRMWARE_REVISION
 };
 
@@ -124,19 +122,31 @@ uint32 EvtMeshSensorClientProc(PCmdPacket pEvent)
             case Evt_ms_client_descriptor_status:   Trace("Evt_ms_client_descriptor_status");// to scan all server node 
                 ClientDescriptorStatus(pDescriptorStatus);
                 break;
-            case Evt_ms_client_status:              Trace("Evt_ms_client_status");
-                HandleServerProperty(pClientStatus);
+            case Evt_ms_client_status:              //Trace("Evt_ms_client_status");
+                //HandleServerProperty(pClientStatus);
+                
+                HandleModbusBtMesh(pClientStatus); // for Modbus debug
                 break;
+#if MESH_COLUME_ENABLE
+            
             case Evt_ms_client_series_status:       Trace("Evt_ms_client_series_status");
                 HandleServerSeriesProperty(&(pEvent->data.evt_mesh_sensor_client_series_status));
                 break;
             case Evt_ms_client_column_status:       Trace("Evt_ms_client_column_status");
                 HandleServerColumnProperty(&(pEvent->data.evt_mesh_sensor_client_column_status));
                 break;
+#endif // MESH_COLUME_ENABLE
+            case Evt_ms_client_setting_status:  Trace("Evt_ms_client_setting_status"); 
+                HandleSettingStatus(&(pEvent->data.evt_mesh_sensor_client_setting_status));
+                break;
+
+
             case Evt_ms_client_publish: // Trace("Evt_ms_client_publish: Bug"); // richard: must debug
                 //HandleClientPublish(&(pEvent->data.evt_mesh_sensor_client_publish));
                 break;
-            default: 
+
+            
+            default: TraceErr("EvtMeshSensorClientProc");
                 break;
         };
 
@@ -158,7 +168,7 @@ void ClientSetBehavior(uint16 event_class, uint16 param)
     {
         case TIMER_EVENT_SCAN_INIT:
             ResetServerNodeStatus();
-            //SetEventTaskTimer(TIMER_ID_TASK_CLIENT_SCAN_SERVER, TIMER_SCAN_SERVER_CYCLE, TIMER_EVENT_REPEAT);
+            //SetEventTaskTimer(TD_TASK_CLIENT_SCAN_SERVER, TIMER_SCAN_SERVER_CYCLE, TIMER_EVENT_REPEAT);
             TCounterScanServer = 0;
             SanServerStage = SCAN_SERVER_START;
             break;    
@@ -167,7 +177,7 @@ void ClientSetBehavior(uint16 event_class, uint16 param)
             SetPropertyIndex(SCAN_MESH_NODE_INDEX);      
             break;
         case TIMER_EVENT_SCAN_OFF:
-            //SetEventTaskTimer(TIMER_ID_TASK_CLIENT_SCAN_SERVER, TIMER_ENDING, TIMER_EVENT_ONCE);
+            //SetEventTaskTimer(TD_TASK_CLIENT_SCAN_SERVER, TIMER_ENDING, TIMER_EVENT_ONCE);
             break;            
         case TIMER_EVENT_GET_PROPERTY_ON:
             break;
@@ -184,7 +194,7 @@ void ClientSetBehavior(uint16 event_class, uint16 param)
 // return current stage
 //******************************************************************************************************
 void ClientScanServerProc()
-{//TraceProc();
+{TraceProc();
     TCounterScanServer++;
     switch(SanServerStage)
     {
@@ -237,7 +247,7 @@ void StartGetServerProperty()
     GetPropertyStage = GET_PROPERTY_INIT;
     TCounterGetProperty = 0;
     SetPropertyIndex(START_GET_NODE_DATA);
-    //SetEventTaskTimer(TIMER_ID_TASK_GET_PROPERTY, 10, TIMER_EVENT_REPEAT); // start to get device data
+    //SetEventTaskTimer(TD_TASK_GET_PROPERTY, 10, TIMER_EVENT_REPEAT); // start to get device data
 }
 //******************************************************************************************************
 // Get server property data
@@ -252,7 +262,7 @@ void ClientGetServerDataProc()
         break;
     case GET_PROPERTY_INIT:     Trace("GET_PROPERTY_INIT");
         GetPropertyStage = GET_PROPERTY_START;        
-        //SetEventTaskTimer(TIMER_ID_TASK_GET_PROPERTY, GET_PROERTY_CYCLE, TIMER_EVENT_REPEAT); // start to get device data
+        //SetEventTaskTimer(TD_TASK_GET_PROPERTY, GET_PROERTY_CYCLE, TIMER_EVENT_REPEAT); // start to get device data
         break;
     case GET_PROPERTY_START:    //Trace("GET_PROPERTY_START");
         ResponseNodeNum = 0;
@@ -260,7 +270,7 @@ void ClientGetServerDataProc()
         SetAllNodeStatus(SERVER_STATUS_WAITING);
         GetServerProperty(PUBLISH_ADDRESS,GetCurrProperty());    // get server property, next timer triggl by Evt_ms_client_status
         GetPropertyStage = GET_PROPERTY_WAITING;
-        SetEventTaskTimer(TIMER_ID_TASK_GET_PROPERTY, TIMER_STAGE_GET_PROERTY_CYCLE, TIMER_EVENT_REPEAT); // start to get device data
+        SetEventTaskTimer(TD_TASK_GET_PROPERTY, TIMER_STAGE_GET_PROERTY_CYCLE, TIMER_EVENT_REPEAT); // start to get device data
         break;
     case GET_PROPERTY_WAITING:  //Trace("GET_PROPERTY_WAITING");
         
@@ -332,8 +342,8 @@ void ResetServerNodeStatus()
 {
     CurrServerNodeNum = 0;    
     memset(&TotalMeshNode,0,sizeof(TotalMeshNode)); //clear server node
-    SetEventTaskTimer(TIMER_ID_TASK_CLIENT_SCAN_SERVER, TIMER_ENDING, TIMER_EVENT_REPEAT);
-    SetEventTaskTimer(TIMER_ID_TASK_GET_PROPERTY, TIMER_ENDING, TIMER_EVENT_REPEAT);
+    SetEventTaskTimer(TD_TASK_CLIENT_SCAN_SERVER, TIMER_ENDING, TIMER_EVENT_REPEAT);
+    SetEventTaskTimer(TD_TASK_GET_PROPERTY, TIMER_ENDING, TIMER_EVENT_REPEAT);
     SetPropertyIndex(SCAN_MESH_NODE_INDEX);
 
 }
@@ -473,6 +483,41 @@ void GetRs485Property(uint16 server_addr,mesh_device_properties_t property)
     ShowResult("GetRs485Property",result);
 }
 
+void HandleModbusBtMesh(msg_ms_client_status_evt *pEvent)
+{//TraceProc();
+    uint8_t *p_sensor_data = pEvent->sensor_data.data;
+    uint8_t data_len = pEvent->sensor_data.len;
+    uint8_t pos = 0;
+    mesh_device_properties_t property_id;
+    while(pos < data_len)
+        {
+           if(data_len - pos > PROPERTY_ID_SIZE)
+            {
+               property_id = (mesh_device_properties_t)(p_sensor_data[pos] + (p_sensor_data[pos + 1] << 8));
+               //Trace16_1(property_id);
+               uint8_t property_len = p_sensor_data[pos + PROPERTY_ID_SIZE];
+               uint8_t *property_data = NULL;
+               if(property_len && (data_len - pos > PROPERTY_HEADER_SIZE))
+                   {property_data = &p_sensor_data[pos + PROPERTY_HEADER_SIZE];}
+               switch(property_id)
+                {
+                    case MODBUS_GET_REGS_VALUE: 
+                        //Trace16_3(property_len, *property_data,property_id);
+                        //Trace16_2(property_len, *property_data);
+                        ClientUpdateModbusRegs(pEvent->server_address, property_data,property_len);
+                        break;
+                    default: TraceErr1("HandleModbusBtMesh",property_id);
+                };
+               pos += PROPERTY_HEADER_SIZE + property_len;
+            }
+        };
+}
+
+
+void HandleSettingStatus(msg_ms_client_setting_status_evt *pEvent)
+{TraceProc();
+ PrintDataByte("HandleSettingStatus", (PUCHAR)&pEvent->raw_value.data, (UINT)pEvent->raw_value.len);
+}
 
 
 
@@ -493,6 +538,8 @@ void HandleServerProperty(msg_ms_client_status_evt *pEvent)
     PMeshNode p_node;
     uint32 temp_rh;
 
+    HandleModbusBtMesh(pEvent); return; // for Modbus Mesh Debug
+    
     if((p_node = CheckServerAddr(pEvent->server_address)) == NULL ) {TraceDec1("Error: server_address",pEvent->server_address);return;}
 
         SetServerNodeStatus(p_node,SERVER_STATUS_COMPLETE); //update node status
@@ -536,6 +583,9 @@ void HandleServerProperty(msg_ms_client_status_evt *pEvent)
                                     DisplayProperty(p_node,property_len,property_id,property);
                                 }
                                 break;
+                            case MODBUS_GET_REGS_VALUE:
+                                ClientUpdateModbusRegs(pEvent->server_address,property_data,property_len);
+                                break;
 
                             default: break;
                         }
@@ -550,6 +600,7 @@ void HandleServerProperty(msg_ms_client_status_evt *pEvent)
             return;
 }
 
+#if MESH_COLUME_ENABLE
 
 //******************************************************************************
 // Handling of sensor client Series status event.
@@ -561,6 +612,8 @@ void HandleServerSeriesProperty(msg_ms_client_series_status_evt *pEvent)
     
     PrintDataByte("HandleServerSeriesProperty", pEvent->sensor_data.data, pEvent->sensor_data.len);
 }
+
+
 
 //******************************************************************************
 // Handling of sensor client Colume status event.
@@ -574,6 +627,8 @@ void HandleServerColumnProperty(msg_ms_client_column_status_evt *pEvent)
     //PrintDataByte("HandleServerColumnProperty", pEvent->sensor_data.data, pEvent->sensor_data.len);
     SendServerNodeData(pEvent->sensor_data.data,pEvent->sensor_data.len);
 }
+
+#endif // MESH_COLUME_ENABLE
 
 //******************************************************************************
 // Indicates that the publishing period timer elapsed and the app should/can 

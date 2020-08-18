@@ -221,12 +221,6 @@ typedef struct _TimerHandleProc_
 #define UI_TIMER_POL_INV    NULL
 
 
-#define MESH_SENSOR_MODEL_SERVER    0
-#define MESH_SENSOR_MODEL_CLIENT    1
-#define MESH_NODE_FRIEND            2
-#define MESH_NODE_LPN               3
-#define MESH_NODE                   4
-
 
 #define BLE_NODE_FACTORY_RESET      8
 

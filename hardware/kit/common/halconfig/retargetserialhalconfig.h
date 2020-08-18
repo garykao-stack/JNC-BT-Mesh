@@ -1,11 +1,7 @@
 #ifndef RETARGETSERIALHALCONFIG_H
 #define RETARGETSERIALHALCONFIG_H
 
-#define RETARGET_VCOM   //richard add
-
 #include "hal-config.h"
-
-
 
 #if BSP_SERIAL_APP_PORT == HAL_SERIAL_PORT_USART0
 // USART0

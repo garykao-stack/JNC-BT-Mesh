@@ -28,9 +28,9 @@ void initBoard(void);
 void MeshBoardInit();
 void WlBoardInit();
 void SystemPower(uchar status);
+void BtMeshReset();
 
-
-
+void initVcomEnable(void);
 
 #ifdef __cplusplus
 }

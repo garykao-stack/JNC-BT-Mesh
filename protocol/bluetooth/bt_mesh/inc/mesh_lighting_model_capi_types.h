@@ -51,4 +51,22 @@
 /** Light CTL Temperature Maximum */
 #define MESH_LIGHTING_CTL_TEMPERATURE_MAX 0x4e20
 
+/** Light HSL server */
+#define MESH_LIGHTING_HSL_SERVER_MODEL_ID 0x1307
+/** Light HSL setup server */
+#define MESH_LIGHTING_HSL_SETUP_SERVER_MODEL_ID 0x1308
+/** Light HSL client */
+#define MESH_LIGHTING_HSL_CLIENT_MODEL_ID 0x1309
+/** Light HSL hue server */
+#define MESH_LIGHTING_HSL_HUE_SERVER_MODEL_ID 0x130a
+/** Light HSL saturation server */
+#define MESH_LIGHTING_HSL_SATURATION_SERVER_MODEL_ID 0x130b
+
+/** Light xyl server */
+#define MESH_LIGHTING_XYL_SERVER_MODEL_ID 0x130c
+/** Light xyl setup server */
+#define MESH_LIGHTING_XYL_SETUP_SERVER_MODEL_ID 0x130d
+/** Light xyl client */
+#define MESH_LIGHTING_XYL_CLIENT_MODEL_ID 0x130e
+
 #endif /* MESH_LIGHTING_MODEL_CAPI_TYPES_H */

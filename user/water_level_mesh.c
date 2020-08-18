@@ -1,3 +1,4 @@
+#if DEVICE_SPI_ENABLE
 #include "global.h"
 
 //richard Add
@@ -123,34 +124,6 @@ void WaterLeveMeshProc(void)
     
 }
 
-
-//
-// To get all of data for sensor
-//
-void WaterLeveMeshProc1(void)
-{//TraceProc();
-    //uchar loop;
-    if(!GetNodeStatus(STATUS_WAKE_UP) || GetNodeStatus(STATUS_CLIENT) || GetNodeStatus(STATUS_BLE_CONNECT))
-        return;
-
-    // start to scan CINx value
-
-    if(GetOneAD7147Status() == TRUE) 
-        {
-         if(++SensorNum >= AD7147Num) {// to process CIN information
-            DeviceLevelInfo();
-            ResetGetCinInfo();
-            SensorNum = 0;
-            memset(&CdcValue,0,sizeof(CdcValue));   //clean cin buffer
-            }
-         //else Trace1("SensorNum",SensorNum);
-        }
-    
-}
-
-
-
-    
 //
 // Transfer sensor data to water/oil/mud level
 // update: AirLevel, WaterLevel, OilLevel, MudLevel
@@ -525,5 +498,5 @@ uint16 GetDevLevelInfo(uchar kind)
     return ret_code;
 }
 
-
+#endif
 

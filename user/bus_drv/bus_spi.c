@@ -7,12 +7,11 @@
 
 #include "bus_spi.h"
 
-#define FOR_EMDRV_SPIDRV    1
 
+#if DEVICE_SPI_ENABLE
 
 uint SpiPinCS;
 
-//#if FOR_EMDRV_SPIDRV
 
 SPIDRV_HandleData_t SpiHandleDataMaster;
 SPIDRV_Handle_t SpiHandleMaster = &SpiHandleDataMaster;
@@ -53,7 +52,6 @@ void SpiDeInit(void)
     if(error_code) TraceErr("SPIDRV_DeInit");
 }
 
-//#endif
 
 
 //uchar SpiActiveDev;
@@ -156,4 +154,11 @@ bool SpiRead(PUCHAR cmd_buff, int cmd_size,PUCHAR rx_buff,int rx_size)
     return ret_code;
 }
 
+#else
+void SpiInit(void) //void initUSART1 (void)
+{TraceProc();
+}
+
+
+#endif
 

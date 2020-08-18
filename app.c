@@ -85,14 +85,16 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
 {
     // Initialize stack
     
-    //DeviceInit();
+    //DeviceInit();    
+    //printf("SDK Version %s\r\n",Mesh_SDK_VER); 
+    printf("Firmware Version ==> %1.3f\r\n", FW_VER/100.0);
     
     gecko_stack_init(pConfig);
     gecko_bgapi_classes_init();
-    gecko_initCoexHAL();      // Initialize coexistence interface. Parameters are taken from HAL config.
-#ifndef DEBUG_PRINT    
+   // gecko_initCoexHAL();      // Initialize coexistence interface. Parameters are taken from HAL config.
+//#ifndef DEBUG_PRINT    
     RETARGET_SerialInit();    // Initialize debug prints and display interface
-#endif    
+//#endif    
     DI_Init();                //Initialize Display Interface.
     //Trace("123456789");     while(1);
     /* Enable AFH */
@@ -102,10 +104,11 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
     // for button & LED. Initialization is done in this order so that default
     // configuration will be "button" for those radio boards with shared pins.
     // led_init() is called later as needed to (re)initialize the LEDs
-    led_init();  button_init();
+    led_init();  
+    button_init(); 
+    //enable_button_interrupts(); // must disable because buttom that triggle INT
+    BleCommInit(); 
 
-    BleCommInit();  
-    NodeDataInit();  
     if(MeshNodeStatus & STATUS_CLIENT)
         {Trace("Client Node Init");
          gecko_bgapi_class_mesh_sensor_client_init();
@@ -116,7 +119,6 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
          gecko_bgapi_class_mesh_sensor_server_init();
          gecko_bgapi_class_mesh_sensor_setup_server_init();
         }
-    
     BleEventInit();
     MeshEventInit();
     
@@ -132,12 +134,14 @@ extern EventFun BleEventFun[],MeshEventFun[];
 void WaterLeveMeshProc(void);
 void ComPortProc(void);
 
+uint32  debug_count=0;
 
 void appMain(gecko_configuration_t *pConfig)
 {
     
     BleMeshNodeInit(pConfig);
     PCmdPacket pEvent;
+    
     while (1) 
     {
     // Event pointer for handling events
@@ -145,9 +149,8 @@ void appMain(gecko_configuration_t *pConfig)
     // If there are no events pending then the next call to gecko_wait_event()
     // may cause device go to deep sleep.
     // Make sure that debug prints are flushed before going to sleep
-    if (gecko_event_pending()) { RETARGET_SerialFlush();  }
-
 GetMeshEvent:    
+    if (gecko_event_pending()) { RETARGET_SerialFlush();  }
     pEvent = gecko_wait_event(); // Check for stack event
     bool pass = mesh_bgapi_listener(pEvent);
     if (pass) 
@@ -158,15 +161,30 @@ GetMeshEvent:
         goto GetMeshEvent;
         } 
 
-
     
-    if(GetNodeStatus(STATUS_PROVISIONED))
+    //if(GetNodeStatus(STATUS_PROVISIONED) && !GetNodeStatus(STATUS_BLE_CONNECT) )
+    if(CheckRunDevTask() == TRUE)
         {
-          //WaterLeveMeshProc(); //debug
-          ComPortProc();    
-          TimerEventTaskProc();
+          //ComPortProc();    
+          DeviceTaskProc();
+          
         }
-    }
+
+        // for System Crash Debug
+        //if(debug_count++ > 300) {SetLedToggle(LED1); debug_count=0;}
+
+    } 
+}
+
+bool CheckRunDevTask()
+{
+    bool ret_code=TRUE;
+
+    //if(!GetNodeStatus(STATUS_PROVISIONED) || GetNodeStatus(STATUS_IVI_UPDATE) || GetNodeStatus(STATUS_BLE_CONNECT) )    
+    if(!GetNodeStatus(STATUS_PROVISIONED) ||  GetNodeStatus(STATUS_BLE_CONNECT) )    
+        ret_code = FALSE;
+
+    return ret_code;
 }
 
 

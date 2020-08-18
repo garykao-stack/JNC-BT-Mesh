@@ -549,6 +549,4 @@ struct mesh_generic_request {
 /** Use default transition time */
 #define MESH_GENERIC_DEFAULT_TRANS_MS 0xffffffff
 
-/** @} */
-
 #endif /* MESH_GENERIC_MODEL_CAPI_TYPES_H */

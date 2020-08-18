@@ -1,9 +1,12 @@
 #ifndef _BaseDef_H_
 #define _BaseDef_H_
 
+
+
 #include <stddef.h>
 #include <stdio.h>
 #include <stdint.h>
+#include "native_gecko.h"
 #include "bg_types.h"
 
 
@@ -77,8 +80,10 @@ typedef word*    PWORD;
 
 /// Data type unsigned char
 typedef char*   PCHAR;
+
+
 /// Data type unsigned int
-typedef int*    PINT;
+//typedef int*    PINT;
 /// Data type unsigned int
 typedef long*   PLONG;
 

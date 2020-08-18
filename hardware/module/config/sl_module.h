@@ -1,28 +1,31 @@
 /***************************************************************************//**
- * Module Configuration Header
- * Copyright 2018 Silicon Laboratories, Inc.
- *
+ * @file
+ * @brief Module Configuration Header
+ *******************************************************************************
  * # License
+ * <b>Copyright 2018 Silicon Laboratories Inc. www.silabs.com</b>
+ *******************************************************************************
+ *
+ * SPDX-License-Identifier: Zlib
+ *
+ * The licensor of this software is Silicon Laboratories Inc.
+ *
+ * This software is provided 'as-is', without any express or implied
+ * warranty. In no event will the authors be held liable for any damages
+ * arising from the use of this software.
+ *
  * Permission is granted to anyone to use this software for any purpose,
  * including commercial applications, and to alter it and redistribute it
  * freely, subject to the following restrictions:
  *
  * 1. The origin of this software must not be misrepresented; you must not
- *    claim that you wrote the original software.@n
+ *    claim that you wrote the original software. If you use this software
+ *    in a product, an acknowledgment in the product documentation would be
+ *    appreciated but is not required.
  * 2. Altered source versions must be plainly marked as such, and must not be
- *    misrepresented as being the original software.@n
+ *    misrepresented as being the original software.
  * 3. This notice may not be removed or altered from any source distribution.
  *
- * DISCLAIMER OF WARRANTY/LIMITATION OF REMEDIES: Silicon Laboratories, Inc.
- * has no obligation to support this Software. Silicon Laboratories, Inc. is
- * providing the Software "AS IS", with no express or implied warranties of any
- * kind, including, but not limited to, any implied warranties of
- * merchantability or fitness for any particular purpose or warranties against
- * infringement of any proprietary rights of a third party.
- *
- * Silicon Laboratories, Inc. will not be liable for any consequential,
- * incidental, or special damages, or any other relief, or for any claim by
- * any third party, arising from your use of this Software.
  ******************************************************************************/
  
 #ifndef SL_MODULE_H
@@ -204,6 +207,27 @@
 
 #elif defined(BGM210LA22JNF)
 #include "sl_module_bgm210la22jnf.h"
+
+#elif defined(BGM220PC22HNA)
+#include "sl_module_bgm220pc22hna.h"
+
+#elif defined(BGM220PC22WGA)
+#include "sl_module_bgm220pc22wga.h"
+
+#elif defined(BGM220SC12WGA)
+#include "sl_module_bgm220sc12wga.h"
+
+#elif defined(BGM220SC22HNA)
+#include "sl_module_bgm220sc22hna.h"
+
+#elif defined(BGM220SC22WGA)
+#include "sl_module_bgm220sc22wga.h"
+
+#elif defined(MGM220PC22HNA)
+#include "sl_module_mgm220pc22hna.h"
+
+#elif defined(MGM220SC22HNA)
+#include "sl_module_mgm220sc22hna.h"
 
 #else
 #error "Module part number not defined, or unknown."

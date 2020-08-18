@@ -47,8 +47,8 @@
 #define MAX_CONNECTIONS 2 // 4 //8   //2 richard 
 
 /// Heap for Bluetooth stack
-//uint8_t bluetooth_stack_heap[DEFAULT_BLUETOOTH_HEAP(MAX_CONNECTIONS) + BTMESH_HEAP_SIZE + 1760];
-uint8_t bluetooth_stack_heap[DEFAULT_BLUETOOTH_HEAP(MAX_CONNECTIONS) + BTMESH_HEAP_SIZE + 2048*2];
+uint8_t bluetooth_stack_heap[DEFAULT_BLUETOOTH_HEAP(MAX_CONNECTIONS) + BTMESH_HEAP_SIZE + 1760*5];
+
 
 
 /// Bluetooth advertisement set configuration
@@ -68,9 +68,9 @@ static gecko_bluetooth_ll_priorities linklayer_priorities = GECKO_BLUETOOTH_PRIO
 
 /// Bluetooth stack configuration
 static gecko_configuration_t config =
-{
-  .config_flags=0,
-  .sleep.flags=SLEEP_FLAGS_DEEP_SLEEP_ENABLE,           // Enable Sleep EM2   !!!!
+{ 
+ // .config_flags=0,
+ // .sleep.flags=SLEEP_FLAGS_DEEP_SLEEP_ENABLE,           // Enable Sleep EM2   !!!!
 
   .bluetooth.max_connections = MAX_CONNECTIONS,
   .bluetooth.max_advertisers = MAX_ADVERTISERS,
@@ -83,21 +83,20 @@ static gecko_configuration_t config =
 #if (HAL_PA_ENABLE)
   .pa.config_enable = 1, // Set this to be a valid PA config
 #if defined(FEATURE_PA_INPUT_FROM_VBAT)
+  //Richard: enable
   .pa.input = GECKO_RADIO_PA_INPUT_VBAT, // Configure PA input to VBAT
-  //.pa.pa_mode=0, //richard add for hi power
+  .pa.pa_mode=0, 
 #else
   .pa.input = GECKO_RADIO_PA_INPUT_DCDC,
 #endif // defined(FEATURE_PA_INPUT_FROM_VBAT)
 #endif // (HAL_PA_ENABLE)
-  .max_timers = 16,
-
+  .max_timers = 32, //16, richard
+  .rf.tx_gain = COMP_TX_POWER, 
+  .rf.rx_gain = COMP_RX_POWER, 
   //.rf.flags = GECKO_RF_CONFIG_ANTENNA,   // Enable antenna configuration.
   //.rf.antenna = GECKO_RF_ANTENNA,   // Select antenna path!
-  
-  // Richard Add  
-  .rf.tx_gain = -50, //-110,   //richard: debug
-  .rf.rx_gain = -50, //-110,   //richard: debug
-  
+
+
   // Richard Add
 #ifdef JNC_OTA  
     .ota.flags = 0,

@@ -1,10 +1,9 @@
 /***************************************************************************//**
  * @file
  * @brief CMSIS Compatible BGM13 startup file in C for IAR EWARM
- * @version 5.8.3
  *******************************************************************************
  * # License
- * <b>Copyright 2019 Silicon Laboratories Inc. www.silabs.com</b>
+ * <b>Copyright 2020 Silicon Laboratories Inc. www.silabs.com</b>
  *******************************************************************************
  *
  * SPDX-License-Identifier: Zlib
@@ -63,6 +62,7 @@ __weak void NMI_Handler(void)
 
 __weak void HardFault_Handler(void)
 {
+    Reset_Handler(); //richard add to debug
   while (true) {
   }
 }
@@ -384,13 +384,6 @@ __weak void TRNG0_IRQHandler(void)
   while (true) {
   }
 }
-
-typedef union {
-  void (*pFunc)(void);
-  void *topOfStack;
-} tVectorEntry;
-
-extern const tVectorEntry __vector_table[];
 
 #pragma data_alignment=256
 #pragma location = ".intvec"

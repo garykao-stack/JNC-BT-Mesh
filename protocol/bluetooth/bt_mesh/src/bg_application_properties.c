@@ -18,10 +18,10 @@
 
 #if defined(__IAR_SYSTEMS_ICC__)
 /* IAR ICC */
-  #define KEEP_SYMBOL           _Pragma("location=\".application_properties\"") __root
+  #define KEEP_SYMBOL           __root
 #elif defined(__GNUC__)
 /* GNU GCC */
-  #define KEEP_SYMBOL           __attribute__ ((section(".application_properties")))
+  #define KEEP_SYMBOL           __attribute__((used))
 #else
   #define KEEP_SYMBOL
 #endif
@@ -33,7 +33,7 @@
 /// Unique ID (e.g. UUID or GUID) for the product this application is built for (uint8_t[16])
 #define BG_APP_PROPERTIES_ID { 0 }
 
-KEEP_SYMBOL const ApplicationProperties_t bg_application_properties
+KEEP_SYMBOL const ApplicationProperties_t sl_app_properties
   =
   {
   /// @brief Magic value indicating that this is an ApplicationProperties_t struct.

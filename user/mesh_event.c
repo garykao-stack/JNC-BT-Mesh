@@ -1,9 +1,11 @@
 #include "global.h"
 
 //richard Add
+#include "bus_usart.h"
 /* BG stack headers */
 #include "MeshFeatures.h"
 #include "leds.h"
+#include "ivi_features.h"
 #include "sensor_client.h"
 #include "sensor_server.h"
 #include "mesh_event.h"
@@ -48,6 +50,7 @@ EventFun    MeshEventFun[] =
     {Evt_ms_client_series_status,       EvtMeshSensorClientProc},
     {Evt_ms_client_column_status,       EvtMeshSensorClientProc},
     {Evt_ms_client_publish,             EvtMeshSensorClientProc},
+    {Evt_ms_client_setting_status,      EvtMeshSensorClientProc},
 
     ///////////////////////// for server event ///////////////////////////////////////////
     {Evt_ms_server_get_req,             EvtSensorServerEventsProc},
@@ -59,6 +62,7 @@ EventFun    MeshEventFun[] =
     {Evt_ms_setup_server_get_settings_req,EvtSensorServerEventsProc},
     {Evt_ms_setup_server_get_setting_req,EvtSensorServerEventsProc},
     {Evt_ms_setup_server_set_setting_req,EvtSensorServerEventsProc},
+    
 
     {Evt_mg_server_client_req,          EvtMeshGenServerClientRequestProc},
     {Evt_mg_server_state_changed,       EvtMeshGenServerStateChangedProc},
@@ -79,13 +83,15 @@ EventFun    MeshEventFun[] =
     ///////////////////////// for other event ////////////////////////////////////////
     {Evt_mn_key_added,                  EvtMeshNodeKeyAddedProc},
     {Evt_mn_model_config_changed,       EvtMeshNodeModelConfigChangedProc}, // for client/server option
-    {Evt_mn_reset,                      EvtMeshNodeResetProc},
+    {Evt_mn_reset,                      EvtMeshNodeResetProc}, 
         /////////////////////// For Friend Event //////////////////////////////////////////
 #ifdef FRIEND_NODE
     {Evt_m_friend_friendship_established,  EvtMeshFriendProc},
     {Evt_m_friend_friendship_terminated,   EvtMeshFriendProc},
 #endif    
-    
+// for IVI
+    {Evt_mn_changed_ivupdate_state,     EvtMeshIviProc},    
+    {Evt_mn_ivrecovery_needed,          EvtMeshIviProc},
 
     {0, NULL},  // End
 };
@@ -125,14 +131,54 @@ bool MeshNodeModelInit()
     bool ret_code=TRUE;
    // uint8 node_model;
     if(MeshNodeStatus & STATUS_CLIENT) 
-       { SensorClientNodeInit();}
+       { SensorClientNodeInit(); LedOnClient();
+        }
     else
-       { SensorServerNodeInit();}
+       { SensorServerNodeInit();
+        }
+    SetEventTaskTimer(TD_NO_EVENT, TIMER_IVI_UPDATE, TIMER_EVENT_REPEAT);
     
     return ret_code;
 }
 
 
+
+void GetLocalCfg()
+{TraceProc();
+    uchar state=ON;
+    struct gecko_msg_mesh_test_get_local_config_rsp_t* p_local_cfg;
+    p_local_cfg = Cmd_mt_get_local_config(mesh_node_dcd,pMeshNodeData->NetkeyIndex);
+    if(p_local_cfg->result) {TraceErr1("Get DCD",p_local_cfg->result);}
+    else PrintDataByte("Get DCD",p_local_cfg->data.data, p_local_cfg->data.len);
+
+    struct gecko_msg_mesh_test_get_local_model_pub_rsp_t* p_get_model_pub;
+
+    p_get_model_pub = gecko_cmd_mesh_test_get_local_model_pub(0,0xffff,MODEL_ID_CLIENT);
+    if(p_get_model_pub->result) TraceErr1("MODEL_ID_CLIENT",p_get_model_pub->result);
+    else{ 
+        TraceOk("MODEL_ID_CLIENT");
+        Trace16_1(p_get_model_pub->appkey_index);Trace16_1(p_get_model_pub->pub_address);
+        Trace8_1(p_get_model_pub->ttl);Trace8_1(p_get_model_pub->period);
+        Trace8_1(p_get_model_pub->retrans);Trace8_1(p_get_model_pub->credentials);
+    
+        }
+
+    p_get_model_pub = gecko_cmd_mesh_test_get_local_model_pub(0,0xffff,MODEL_ID_SETUP_SERVER);
+    if(p_get_model_pub->result) TraceErr1("MODEL_ID_SETUP_SERVER",p_get_model_pub->result);
+    else{TraceOk("MODEL_ID_SETUP_SERVER");
+        
+        Trace16_1(p_get_model_pub->appkey_index);Trace16_1(p_get_model_pub->pub_address);
+        Trace8_1(p_get_model_pub->ttl);Trace8_1(p_get_model_pub->period);
+        Trace8_1(p_get_model_pub->retrans);Trace8_1(p_get_model_pub->credentials);
+        }
+    
+
+}
+
+
+
+//uint16 MeshNodeID;
+//uint32 MeshNodeIVI;
 
 //**********************************************************************************************
 // Event: gecko_evt_mesh_node_initialized_id
@@ -142,30 +188,45 @@ uint32 EvtMeshSensorInitProc(PCmdPacket pEvent)
 { TraceProc();
     uint32 ret_code = TRUE;
     msg_mn_initialized_evt *pMeshInit = &(pEvent->data.evt_mesh_node_initialized);
+    if(MeshNodeStatus & STATUS_CLIENT) 
+        iv_config(IV_TEST_MODE, IV_RECOVERY_MODE, SNB_STATE);
+    else
+        iv_config(IV_TEST_MODE, 0, SNB_STATE);
 
     if(pMeshInit->provisioned)
     {
-        Printf("node is provisioned. address:%x, ivi:%ld\r\n", pMeshInit->address, pMeshInit->ivi);
-        DI_Print("provisioned", DI_ROW_STATUS);
-        SetNodeStatus(STATUS_PROVISIONED,ON);
+        //GetLocalCfg();  //debug
+        SetNodeStatus(STATUS_PROVISIONED,ON);  
+        pMeshNodeData->MeshNodeID = (uchar)pMeshInit->address;
+        pMeshNodeData->IvIndex = pMeshInit->ivi;
+
+        
+        Printf("node1 is provisioned. Mesh Node ID:0x%x, %d, IVI:%ld\r\n", 
+            pMeshNodeData->MeshNodeID,pMeshNodeData->MeshNodeID, pMeshNodeData->IvIndex);
+        
         MeshNodeModelInit();
         SetTxPower(TX_POWER_HI);
 
-        if(GetNodeStatus(STATUS_CLIENT) == TRUE) StartScanServerNode();  //to scan server node
-#if 0
-        gecko_cmd_mesh_node_set_adv_event_filter(0x7,0,NULL); //richard: for RSSI message
-#endif  
+        SetLedStatus(LED_STATUS_OFF);
+
+     //   if(GetNodeStatus(STATUS_CLIENT) == TRUE) LedOnClient();
         
-        SetEventTaskTimer(TIMER_ID_DEVICE_TASK,TIMER_DEVICE_TASK,TIMER_EVENT_REPEAT); // set up task timer
-        SetEventTaskTimer(TIMER_ID_SYS_RESET,TIMER_NO_SIGNAL,TIMER_EVENT_REPEAT); // system reset
+        SetEventTaskTimer(TD_GET_SENSOR_INFO,200,TIMER_EVENT_ONCE);
+       // UsartOpen();
+        
+#if BT_RSSI
+        Cmd_mn_set_adv_event_filter(0xF,0,NULL); //for RSSI event
+#endif  
+       
+        DI_Print("provisioned", DI_ROW_STATUS);
     }
     else
     {
-        Trace("node is unprovisioned");
-        DI_Print("unprovisioned", DI_ROW_STATUS);
-        //Trace("starting unprovisioned beaconing...");
-        // Enable ADV and GATT provisioning bearer
-        Cmd_mn_start_unprov_beaconing(PB_ADV | PB_GATT);
+        //Trace("starting unprovisioned beaconing...");// Enable ADV and GATT provisioning bearer
+        Cmd_mn_start_unprov_beaconing(PB_ADV | PB_GATT); 
+        Trace("node is unprovisioned: starting unprovisioned beaconing..."); //DI_Print("unprovisioned", DI_ROW_STATUS);
+        SetLedStatus(LED_STATUS_OFF);
+        SetEventTaskTimer(TD_UNPROVISION,TIMER_UNPROVISION,TIMER_EVENT_REPEAT); // system reset
     }
 
 
@@ -193,48 +254,31 @@ uint32 EvtMeshNodeProvProc(PCmdPacket pEvent)
 
     switch(event_id)
     {
-        case Evt_mn_provisioning_started:
-            TraceDec1("Evt_mn_provisioning_started", pProv_started->result);
+        case Evt_mn_provisioning_started: TraceDec1("Evt_mn_provisioning_started", pProv_started->result);
             DI_Print("provisioning...", DI_ROW_STATUS);
-#ifdef FEATURE_LED_BUTTON_ON_SAME_PIN
-            led_init(); /* shared GPIO pins used as LED output */
-#endif
             // start timer for blinking LEDs to indicate which node is being provisioned
-            SetEventTaskTimer(TIMER_ID_PROVISIONING,250, TIMER_EVENT_REPEAT);
-            SetNodeStatus(STATUS_PROVISIONING,ON);
+            SetEventTaskTimer(TD_PROVISIONING,TIMER_PROVISION, TIMER_EVENT_REPEAT);
+            SetEventTaskTimer(TD_UNPROVISION,TIMER_ENDING, TIMER_EVENT_REPEAT);
+            SetLedStatus(LED_STATUS_START_PROV);
             init_done = 0;
             break;
 
-        case Evt_mn_provisioned:
-            Trace("Evt_mn_provisioned");
-
+        case Evt_mn_provisioned: Trace("Evt_mn_provisioned");
+            
             if(MeshNodeStatus & STATUS_CLIENT) Cmd_ms_client_init();
             else SensorServerNodeInit();
-
-            SetNodeStatus(STATUS_PROVISIONED,ON);
-        
+            
             Printf("node provisioned, got address=0x%2.0X, ivi:%ld\r\n", pProvisioned->address, pProvisioned->iv_index);
-            // stop LED blinking when provisioning complete
-            SetEventTaskTimer(TIMER_ID_PROVISIONING,TIMER_REMOVE, TIMER_EVENT_REPEAT);
-            led_set_state(LED_STATE_OFF);
             DI_Print("provisioned", DI_ROW_STATUS);
-#ifdef FEATURE_LED_BUTTON_ON_SAME_PIN
-            button_init(); /* shared GPIO pins used as button input */
-#endif
-            enable_button_interrupts();
-            //if(MeshNodeStatus & STATUS_CLIENT) 
-            //    SetEventTaskTimer(TIMER_ID_SENSOR_DESCRIPTOR,TIMER_SENSOR_DESCRIPTOR, TIMER_EVENT_ONCE);
             init_done = 1;
-            SetNodeStatus(STATUS_PROVISIONING,OFF);
+           SetEventTaskTimer(TD_PROVISIONING,TIMER_ENDING, TIMER_EVENT_REPEAT);            
             break;
 
-        case Evt_mn_provisioning_failed:
-            Trace("Evt_mn_provisioning_failed");
+        case Evt_mn_provisioning_failed:  Trace("Evt_mn_provisioning_failed");
             Printf("provisioning failed, code %x\r\n", pProv_failed->result);
             DI_Print("prov failed", DI_ROW_STATUS);
             // start a one-shot timer that will trigger soft reset after small delay
-            SetEventTaskTimer(TIMER_ID_RESTART,2000, TIMER_EVENT_ONCE);
-            SetNodeStatus(STATUS_PROVISIONING,OFF);
+            SetEventTaskTimer(TD_RESTART,2000, TIMER_EVENT_ONCE);
             break;
 
         default: TraceErr("EvtMeshNodeProvProc"); break;
@@ -250,21 +294,26 @@ uint32 EvtMeshConfigProc(PCmdPacket pEvent)
 {TraceProc();
     uint32 ret_code = TRUE;
     uint32 event_id;
+    uint16 netkey_index;
     event_id = BGLIB_MSG_ID(pEvent->header);
     msg_mn_config_set_evt *p_config_set = &(pEvent->data.evt_mesh_node_config_set);
     msg_mn_config_get_evt *p_config_get = &(pEvent->data.evt_mesh_node_config_get);
+    pMeshNodeData->NetkeyIndex = p_config_set->netkey_index;
+    WriteNodeData();
 
     switch(event_id)
     {
-        case Evt_mn_config_set: Trace("Evt_mn_config_set");
-                PrintDataByte("EvtMeshConfigSetProc",p_config_set->value.data,p_config_set->value.len);
-                Trace16_2(p_config_set->id, p_config_set->netkey_index);
+        case Evt_mn_config_set: //Trace("Evt_mn_config_set");
+                //PrintDataByte("EvtMeshConfigSetProc",p_config_set->value.data,p_config_set->value.len);
+                SetEventTaskTimer(TD_SYS_SETUP_RESET,TIMER_SYS_SETUP,TIMER_EVENT_ONCE); // system reset
+               // Trace16_2(p_config_set->id, p_config_set->netkey_index);
             break;
-        case Evt_mn_config_get: Trace("Evt_mn_config_get");
-                Trace16_2(p_config_get->id, p_config_get->netkey_index);
+        case Evt_mn_config_get: //Trace("Evt_mn_config_get");
+               // Trace16_2(p_config_get->id, p_config_get->netkey_index);
             break;
        default: TraceErr("EvtMeshConfigProc"); break;     
     }
+    SetLedToggle(LED_SERVER);
     return ret_code;
 }
 
@@ -286,11 +335,13 @@ uint32 EvtMeshProxyProc(PCmdPacket pEvent)
     switch(event_id)
     {
         case Evt_m_proxy_connected: Trace1("Evt_m_proxy_connected",p_connected->handle);
+            SetEventTaskTimer(TD_SYS_SETUP_RESET,TIMER_ENDING,TIMER_EVENT_ONCE); // for Reset
             SetNodeStatus(STATUS_PROXY_CONNECT,ON);
             break;
         case Evt_m_proxy_disconnected: Trace2("Evt_m_proxy_disconnected",p_disconnected->handle,p_disconnected->reason);
             SetNodeStatus(STATUS_PROXY_CONNECT,OFF);
-            //if(!(MeshNodeStatus & STATUS_PROVISIONING)) StartGetServerProperty(); // start to get property
+            //SetEventTaskTimer(TD_SYS_SETUP_RESET,TIMER_SYS_SETUP,TIMER_EVENT_ONCE);
+            SetEventTaskTimer(TD_SYS_SETUP_RESET,TIMER_5SEC,TIMER_EVENT_ONCE);
             break;
         case Evt_m_proxy_filter_status: Trace3("Evt_m_proxy_filter_status",p_filter->handle, p_filter->type, p_filter->count);
             break;
@@ -305,10 +356,22 @@ uint32 EvtMeshProxyProc(PCmdPacket pEvent)
 //
 //**********************************************************************************************
 uint32 EvtMeshNodeKeyAddedProc(PCmdPacket pCmdEvent)
-{TraceProc();
-    uint32 ret_code = TRUE;
+{TraceProc(); 
+    uint32 ret_code = TRUE; 
+    msg_mn_key_added_evt* p_key_added = &(pCmdEvent->data.evt_mesh_node_key_added);
+   // Printf("got new %s key with index %x netkey_index %x\r\n", p_key_added->type == 0 ? "network" : "application",
+    //       p_key_added->index,p_key_added->netkey_index);
 
-
+    if(p_key_added->type == 0)
+        {//TraceDec1("Add netkey index",p_key_added->index);
+        pMeshNodeData->NetkeyIndex = p_key_added->index;    // netkey_index
+        }
+    else
+        {//TraceDec1("Add appkey index",p_key_added->index);
+        pMeshNodeData->AppkeyIndex = p_key_added->index;    // appkey_index
+        }
+    //Trace1("Add key Netkey Index",p_key_added->netkey_index);
+    WriteNodeData();
     return ret_code;
 }
 
@@ -320,7 +383,17 @@ uint32 EvtMeshNodeModelConfigChangedProc(PCmdPacket pCmdEvent)
 {TraceProc();
     uint32 ret_code = TRUE;
     msg_mn_model_config_changed_evt *pEvent = &(pCmdEvent->data.evt_mesh_node_model_config_changed);
-    Trace16Ptr_4(pEvent, mesh_node_config_state, element_address, vendor_id, model_id);
+   
+    if(pEvent->model_id == MODEL_ID_SERVER)
+        pMeshNodeData->MeshNodeRole = BT_NODE_ROLE_SERVER;
+    else if(pEvent->model_id == MODEL_ID_SETUP_SERVER)
+        pMeshNodeData->MeshNodeRole = BT_NODE_ROLE_SETUP_SERVER;    
+    else if(pEvent->model_id == MODEL_ID_CLIENT)
+        pMeshNodeData->MeshNodeRole = BT_NODE_ROLE_CLIENT;
+    SetLedToggle(LED_SERVER);
+    WriteNodeData();
+  //  Trace16Ptr_4(pEvent, mesh_node_config_state, element_address, vendor_id, model_id);
+    SetEventTaskTimer(TD_SYS_SETUP_RESET,TIMER_SYS_SETUP,TIMER_EVENT_ONCE);
 
     return ret_code;
 }
@@ -336,7 +409,7 @@ uint32 EvtMeshNodeResetProc(PCmdPacket pCmdEvent)
     uint32 ret_code = TRUE;
     printf("evt: gecko_evt_mesh_node_reset_id\r\n");
     initiate_factory_reset();
-
+   // Cmd_sys_reset(0);
 
     return ret_code;
 }

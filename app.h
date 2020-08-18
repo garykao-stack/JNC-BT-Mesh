@@ -44,6 +44,8 @@ void BleMeshNodeInit();
 void appMain(gecko_configuration_t *pConfig);
 
 void NodeDataInit();
+bool CheckRunDevTask();
+
 
 
 /** @} (end addtogroup app) */

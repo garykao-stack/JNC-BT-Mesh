@@ -233,6 +233,9 @@ uint16 GetCurrProperty();
 bool SetPropertyIndex(uint16 index);
 void ClientSetBehavior(uint16 event_class, uint16 param);
 
+void HandleModbusBtMesh(msg_ms_client_status_evt *pEvent);
+void HandleSettingStatus(msg_ms_client_setting_status_evt *pEvent);
+
 
 
 

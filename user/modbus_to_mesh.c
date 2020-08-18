@@ -1,7 +1,10 @@
+
+
 #include "global.h"
 
 //richard Add
 /* BG stack headers */
+#include "init_board.h"
 #include "sensor_server.h"
 #include "mesh_event.h"
 #include "device_bus.h"
@@ -12,22 +15,22 @@
 #include "sensor_client.h"
 #include "sensor_server.h"
 
-
-
 #include "modbus_to_mesh.h"
+
+#if MESH_COLUME_ENABLE
 
 uchar ModbusToMeshStage;
 
 
 #define BT_MESH_RX_BUFF_NUM             50
-#define MODBUS_CMD_SIZE                 24
+#define MODBUS_CMD_SIZE_COL                 24
 
 
 typedef struct
 {
     uchar Size;
     //uchar Buff1[8];
-    uchar Buff[MODBUS_CMD_SIZE];
+    uchar Buff[MODBUS_CMD_SIZE_COL];
 }_MeshModbusBuff,*_PMeshModbusBuff;
 
 _MeshModbusBuff MeshModbusBuff[BT_MESH_RX_BUFF_NUM];
@@ -38,23 +41,24 @@ uchar MeshModbusWaiting;
 
 uchar MeshRxSize;
 
-#define TaskTiimerToCount(x) (x/TIMER_DEVICE_TASK)  // base 10ms
-
-#define ToNextTaskStage(stage)  (pDeviceTask->TaskStage = stage)
-#define ToTaskWatingStage(id)   {ToNextTaskStage(id); pDeviceTask->TaskTimeOut = pDeviceTask->TaskTimeOutValue;}
-#define CheckTaskTimeOut()      (pDeviceTask->TaskTimeOut)
-#define CurrTaskStage()         (pDeviceTask->TaskStage)
-
-#define MODBUS_CMD_SIZE     8
-uchar ModBusCmdTbl[MODBUS_CMD_SIZE]={01,04,00,00,00,01};
+//#define MODBUS_CMD_SIZE     8
+//uchar ModBusCmdTbl[MODBUS_CMD_SIZE]={01,04,00,00,00,01};
+#define CMD_TO_BT_MESH       //for modbus cmd to bt mesh
 
 
 void ModbusToMeshInit()
 {TraceProc();
+
+    #ifdef CMD_TO_BT_MESH   //richard debug
+        return;
+    #endif
+
     ModbusToMeshStage = MM_PENDING;
     BtMeshCountRx = BtMeshCountTx = 0;
     MeshModbusWaiting = OFF;
     ToNextTaskStage(MM_PENDING);
+    
+    //SetEventTaskTimer(TD_SYS_RESET,TIMER_NO_SIGNAL,TIMER_EVENT_REPEAT); // system reset
 
     /*
     uint16 Crc16=ModbusRtu_CRC16((PUCHAR)ModBusCmdTbl,6);
@@ -94,10 +98,12 @@ void SendServerNodeData(PUCHAR p_buff, uchar size)
     MeshModbusWaiting = OFF;
 }
 
+
 #if 1
 
-uint32 WaitingCounter;
 
+uint32 WaitingCounter;
+extern uchar DeviceModBusID;
 
 // for client node
 // USART Rx => Mesh Tx => Waiting Mesh Tx Response => Mesh Rx => USART Tx
@@ -105,24 +111,30 @@ void ModbusToMeshClientProc()
 {//TraceProc();
     uchar rx_counter,size;
     PUCHAR p_rx_buff,p_tx_buff;
+    //BtMeshReset();
     if(!GetNodeStatus(STATUS_CLIENT)) return;
     switch(CurrTaskStage())
         {
-         case MM_PENDING: //Trace("Client:MM_PENDING");
+         case MM_PENDING: //Trace("Client:MM_PENDING");            
             if(UsartGetStatusRxEnd() == TRUE ) 
                 {Trace("MM_PENDING: ****** USART Rx Ending ******");
+                    
                     if(UsartGetRxCounter() == 8)
                       {
                         ToNextTaskStage(MM_USART_RX);
                         BtMeshCountTx = BtMeshCountRx = 0;MeshModbusWaiting = OFF;
                         SetNodeStatus(STATUS_MODBUS_MESH_PENDING,OFF);
-                        //UsartClose();
+                        
                       }
                     else UsartSetStage(USART_STAGE_RX_CLEAN);
+                    
                 }
             break;
-         case MM_USART_RX: Trace("Client:MM_USART_RX");            
+         case MM_USART_RX: Trace("Client:MM_USART_RX");         
+            //debug for No BT Event
+            //SetEventTaskTimer(TD_SYS_RESET,TIMER_NO_SIGNAL,TIMER_EVENT_REPEAT); // system reset
             ModbusToMeshFormat(p_rx_buff,rx_counter);
+         
             ToNextTaskStage(MM_MESH_TX);
             break;
          case MM_MESH_TX: Trace("Client:MM_MESH_TX");    // send data to server node
@@ -130,25 +142,26 @@ void ModbusToMeshClientProc()
             p_rx_buff = UsartGetBuff(USART_ID_RX);
             rx_counter = UsartGetRxCounter();
             PrintDataByte("ModbusToMeshProc Rx", p_rx_buff, rx_counter);
+
+            // if ID do not match, then break;
+            if(p_rx_buff[0] != DeviceModBusID) {TraceErr("Modbus ID");ToNextTaskStage(MM_WAITING_ERROR); break;}
             
             result = Cmd_ms_client_get_column(SENSOR_ELEMENT, PUBLISH_ADDRESS, IGNORED, NO_FLAGS,JNC_MODBUS_CMD,
             //result = Cmd_ms_client_get_column(SENSOR_ELEMENT, 6, IGNORED, NO_FLAGS,JNC_MODBUS_CMD,
                                               rx_counter,p_rx_buff)->result;
+            //SetEventTaskTimer(TD_SYS_RESET,TIMER_NO_SIGNAL,TIMER_EVENT_REPEAT); // system reset
             if(result == RESULT_OK) 
                 {
                 UsartSetStage(USART_STAGE_RX_CLEAN);
-                ToTaskWatingStage(MM_MESH_RX_WAITING);
-                //ToTaskWatingStage()
+                ToDefaultWating(MM_MESH_RX_WAITING);
+                //ToDefaultWating()
                 MeshModbusWaiting = ON;
-                WaitingCounter = 0;
+                //WaitingCounter = 0;
                 }
             else
                 { ShowResult("ModbusToMeshClientProc==>Cmd_ms_client_get_column", result);
-                   //gecko_bgapi_class_mesh_sensor_client_init(); // gecko_cmd_mesh_sensor_client_init();
                    //gecko_cmd_mesh_node_reset();
-                   gecko_cmd_system_reset(0);
-                   UsartSetStage(USART_STAGE_RX_CLEAN);//for Bug
-                   ToNextTaskStage(MM_ENDING);
+                   BtMeshReset();
                 }
             break;
          case MM_MESH_RX_WAITING: //Trace("Client:MM_MESH_RX_WAITING");
@@ -161,9 +174,10 @@ void ModbusToMeshClientProc()
             break;
          case MM_MESH_RX_OK: Trace("Client:MM_MESH_RX_OK");
             ToNextTaskStage(MM_USART_TX);
-            SetEventTaskTimer(TIMER_ID_SYS_RESET,TIMER_NO_SIGNAL,TIMER_EVENT_REPEAT); // system reset
+            if(WaitingCounter != 0) {WaitingCounter = 0;SetEventTaskTimer(TD_SYS_RESET,TIMER_ENDING,TIMER_EVENT_ONCE);} 
+           // SetEventTaskTimer(TD_SYS_RESET,TIMER_NO_SIGNAL,TIMER_EVENT_REPEAT); // system reset
             break;
-         case MM_USART_TX://Trace("Client:MM_USART_TX");
+         case MM_USART_TX:Trace("Client:MM_USART_TX");
 
             if(UsartGetStatus(USART_TX_ING)) {//Trace("TX_ING"); 
                 return ;}
@@ -177,21 +191,26 @@ void ModbusToMeshClientProc()
                  ComPortSendCmd(size);
                  BtMeshCountTx++;
                 }
-            else {ToNextTaskStage(MM_ENDING); WaitingCounter = 0;}
+            else {ToNextTaskStage(MM_ENDING);}
 
             //ComPortSendCmd(MeshRxSize);
             //PrintDataByte("Rs485ToMeshProc Tx", UsartGetBuff(USART_ID_TX), MeshRxSize);
             //ModbusToMeshStage = MM_ENDING;
             break;
-         case MM_ENDING://Trace("Client:MM_ENDING");
+         case MM_ENDING:Trace("Client:MM_ENDING");
              //ModbusToMeshStage = MM_PENDING;
              BtMeshCountTx = BtMeshCountRx = 0;
-             memset(MeshModbusBuff,0,sizeof(MeshModbusBuff));
-             //if(WaitingCounter++ > 10)  
+             memset(MeshModbusBuff,0,sizeof(MeshModbusBuff));             
              ToNextTaskStage(MM_PENDING);
             break;
          case MM_WAITING_ERROR: TraceErr("Client:MM_WAITING_ERROR");
             UsartSetStage(USART_STAGE_RX_CLEAN);
+            if(WaitingCounter++ < 5)
+                {TraceDec1("WaitingCounter",WaitingCounter);
+                SetEventTaskTimer(TD_SYS_RESET,TIMER_NO_SIGNAL,TIMER_EVENT_ONCE); // system reset
+                //result = Cmd_set_soft_timer(TIMER_MS_2_TICKS(10000),TD_SYS_RESET,TIMER_EVENT_ONCE)->result;
+                }
+            //BtMeshReset();
             ToNextTaskStage(MM_ENDING);
             break;
             
@@ -289,13 +308,14 @@ void ModbusToMeshServerProc()
             break;
         case MM_MESH_RX_OK: Trace("Server: MM_MESH_RX_OK"); // to check modbus cmd
             BtMeshCountTx = BtMeshCountRx = 0;
+             if(WaitingCounter != 0) {WaitingCounter = 0;SetEventTaskTimer(TD_SYS_RESET,TIMER_ENDING,TIMER_EVENT_ONCE);} 
 
         #ifdef WATER_LEVEL_DEBUG //richard debug
             ToNextTaskStage(MM_MESH_TX);    
         #else
             ToNextTaskStage(MM_USART_TX);
         #endif
-            SetEventTaskTimer(TIMER_ID_SYS_RESET,TIMER_NO_SIGNAL,TIMER_EVENT_REPEAT); // system reset
+            //SetEventTaskTimer(TD_SYS_RESET,TIMER_NO_SIGNAL,TIMER_EVENT_REPEAT); // system reset
             break;            
         case MM_USART_TX: Trace("Server: MM_USART_TX");  // to modbus device
             ComPortSendCmd(MeshCmdSizeRx);
@@ -304,10 +324,10 @@ void ModbusToMeshServerProc()
             //ToNextTaskStage(MM_USART_RX_WAITING);
             break;
         case MM_USART_TX_WAITING: Trace("Server: MM_MESH_TX_WAITING");
-            if(UsartGetStatusTxIng() == FAIL)  ToTaskWatingStage(MM_USART_RX_WAITING);
+            if(UsartGetStatusTxIng() == FAIL)  ToDefaultWating(MM_USART_RX_WAITING);
             //ToNextTaskStage(MM_USART_RX_WAITING);
             break;            
-        case MM_USART_RX_WAITING: Trace("Server: MM_MESH_RX_WAITING");            
+        case MM_USART_RX_WAITING: //Trace("Server: MM_MESH_RX_WAITING");            
             //ModbusToMeshFormat(pServerMeshBuffTx,ServerMeshSizeTx);
             if(CheckTaskTimeOut() == 0) {ToNextTaskStage(MM_WAITING_ERROR); TraceErr("Server Rx Time-out");}
             else if(UsartGetStatusRxEnd() == TRUE )  ToNextTaskStage(MM_MESH_TX);
@@ -337,16 +357,22 @@ void ModbusToMeshServerProc()
             result = MeshServerSendModbusCmd();
             if(result != RESULT_OK)
                 {TraceErr1("MeshServerSendModbusCmd 1",result);
-                   Cmd_sys_reset(0); 
+                   //Cmd_sys_reset(0); 
+                   SetEventTaskTimer(TD_SYS_RESET,TIMER_NO_SIGNAL,TIMER_EVENT_ONCE); // system reset
                 }
+            //SetEventTaskTimer(TD_SYS_RESET,TIMER_NO_SIGNAL,TIMER_EVENT_REPEAT); // Debug:200214
             ToNextTaskStage(MM_ENDING);
             break;
         case MM_ENDING:Trace("Server: MM_ENDING\r\n\r\n");
-           
+            //SetEventTaskTimer(TD_SYS_RESET,TIMER_NO_SIGNAL,TIMER_EVENT_REPEAT); // system reset
             ToNextTaskStage(MM_PENDING);
             break;
         case MM_WAITING_ERROR: TraceErr("Server:MM_WAITING_ERROR\r\n");
-           UsartSetStage(USART_STAGE_RX_CLEAN);
+            if(WaitingCounter++ < 5)
+                {TraceDec1("WaitingCounter",WaitingCounter);
+                SetEventTaskTimer(TD_SYS_RESET,TIMER_NO_SIGNAL,TIMER_EVENT_ONCE); // system reset
+                //result = Cmd_set_soft_timer(TIMER_MS_2_TICKS(10000),TD_SYS_RESET,TIMER_EVENT_ONCE)->result;
+                }
            ToNextTaskStage(MM_ENDING);
            break;
          
@@ -371,4 +397,6 @@ typedef struct
 
 
 #endif
+
+#endif // MESH_COLUME_ENABLE
 

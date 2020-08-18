@@ -1,7 +1,6 @@
 /***************************************************************************//**
  * @file
  * @brief Chip Initialization API
- * @version 5.8.3
  *******************************************************************************
  * # License
  * <b>Copyright 2018 Silicon Laboratories Inc. www.silabs.com</b>
@@ -36,10 +35,6 @@
 #include "em_system.h"
 #include "em_gpio.h"
 #include "em_bus.h"
-
-#if defined(_SILICON_LABS_GECKO_INTERNAL_SDID_220)
-#include "em_cmu.h"
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -291,13 +286,21 @@ __STATIC_INLINE void CHIP_Init(void)
   }
 #endif
 
-/* Charge redist setup (fixed value): LCD->DBGCTRL.CHGRDSTSTR = 1 (reset: 0). */
 #if defined(_LCD_DISPCTRL_CHGRDST_MASK)
+/* Charge redist setup (fixed value): LCD->DBGCTRL.CHGRDSTSTR = 1 (reset: 0). */
   CMU->HFBUSCLKEN0 |= CMU_HFBUSCLKEN0_LE;
   CMU->LFACLKEN0   |= CMU_LFACLKEN0_LCD;
   *(volatile uint32_t *)(LCD_BASE + 0x034) |= (0x1UL << 12);
   CMU->LFACLKEN0   &= ~CMU_LFACLKEN0_LCD;
   CMU->HFBUSCLKEN0 &= ~CMU_HFBUSCLKEN0_LE;
+#endif
+
+#if defined(_SILICON_LABS_32B_SERIES_1)              \
+  && !defined(_SILICON_LABS_GECKO_INTERNAL_SDID_80)  \
+  && !defined(ERRATA_FIX_EMU_E220_DECBOD_IGNORE)
+  /* First part of the EMU_E220 DECBOD Errata fix. DECBOD Reset can occur
+   * during voltage scaling after EM2/3 wakeup. Second part is in em_emu.c */
+  *(volatile uint32_t *)(EMU_BASE + 0x1A4) |= 0x1f << 10;
 #endif
 
 #if defined(_SILICON_LABS_GECKO_INTERNAL_SDID_200)
@@ -326,10 +329,22 @@ __STATIC_INLINE void CHIP_Init(void)
       dmem += (DMEM_BANK0_SIZE / 4U);
     }
   }
+
+  /* Set TRACE clock to intended reset value. */
+  CMU->TRACECLKCTRL = (CMU->TRACECLKCTRL & ~_CMU_TRACECLKCTRL_CLKSEL_MASK)
+                      | CMU_TRACECLKCTRL_CLKSEL_HFRCOEM23;
 #endif
 
-#if defined(_SILICON_LABS_GECKO_INTERNAL_SDID_220)
-  CMU_HFRCODPLLBandSet(cmuHFRCODPLLFreq_19M0Hz);
+#if defined(_SILICON_LABS_GECKO_INTERNAL_SDID_205)
+  if (SYSTEM_GetProdRev() == 1) {
+    bool hfrcoClkIsOff = (CMU->CLKEN0 & CMU_CLKEN0_HFRCO0) == 0;
+    CMU->CLKEN0_SET = CMU_CLKEN0_HFRCO0;
+    /* Enable HFRCO CLKOUT0. */
+    *(volatile uint32_t*)(0x40012020UL) = 0x4UL;
+    if (hfrcoClkIsOff) {
+      CMU->CLKEN0_CLR = CMU_CLKEN0_HFRCO0;
+    }
+  }
 #endif
 }
 

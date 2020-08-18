@@ -191,6 +191,6 @@ void EventIDtoStringProc(PCmdPacket pEvent)
                 }
             pTable++;
         };
-   if(pTable->pString == NULL) Trace("No BLE ID To Display");     
+   if(pTable->pString == NULL) Trace1("No BLE Mesh Cmd ID To Display",event_id);     
 }
 

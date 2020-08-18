@@ -1,7 +1,6 @@
 /***************************************************************************//**
  * @file
  * @brief Secure Element API
- * @version 5.8.3
  *******************************************************************************
  * # License
  * <b>Copyright 2018 Silicon Laboratories Inc. www.silabs.com</b>
@@ -34,6 +33,7 @@
 
 #include "em_se.h"
 #include "em_assert.h"
+#include "em_system.h"
 
 /***************************************************************************//**
  * @addtogroup emlib
@@ -49,8 +49,6 @@
  ******************************   DEFINES    ***********************************
  ******************************************************************************/
 
-#if defined(SEMAILBOX_PRESENT)
-
 /* OTP initialization structure defines. */
 #define SE_OTP_MCU_SETTINGS_FLAG_SECURE_BOOT_ENABLE (1 << 16)
 #define SE_OTP_MCU_SETTINGS_FLAG_SECURE_BOOT_VERIFY_CERTIFICATE (1 << 17)
@@ -58,7 +56,7 @@
 #define SE_OTP_MCU_SETTINGS_FLAG_SECURE_BOOT_PAGE_LOCK_NARROW (1 << 19)
 #define SE_OTP_MCU_SETTINGS_FLAG_SECURE_BOOT_PAGE_LOCK_FULL (1 << 20)
 
-#elif defined(CRYPTOACC_PRESENT)
+#if defined(CRYPTOACC_PRESENT)
 
 /* Size of Root Code Mailbox instance.
    There are two instances, input and output. */
@@ -80,7 +78,7 @@
 /* Root Code Configuration Status bits mask */
 #define ROOT_MB_OUTPUT_STATUS_CONFIG_BITS_MASK  (0xFFFF)
 
-#endif // #if defined(SEMAILBOX_PRESENT)
+#endif // #if defined(CRYPTOACC_PRESENT)
 
 /*******************************************************************************
  ******************************   TYPEDEFS   ***********************************
@@ -255,7 +253,8 @@ void SE_executeCommand(SE_Command_t *command)
   SE_DataTransfer_t *inDataDesc;
   uint32_t *inData;
   uint32_t checksum;
-
+  bool sysCfgClkWasEnabled = ((CMU->CLKEN0 & CMU_CLKEN0_SYSCFG) != 0);
+  CMU->CLKEN0_SET = CMU_CLKEN0_SYSCFG;
   // Set base of Mailbox Input data structure in SYSCFG register in order
   // for Root Code to find it.
   SYSCFG->ROOTDATA0 = ROOT_MAILBOX_INPUT_BASE;
@@ -264,6 +263,9 @@ void SE_executeCommand(SE_Command_t *command)
   // for Root Code to know where to write output data.
   // Write command into FIFO
   SYSCFG->ROOTDATA1 = ROOT_MAILBOX_OUTPUT_BASE;
+  if (!sysCfgClkWasEnabled) {
+    CMU->CLKEN0_CLR = CMU_CLKEN0_SYSCFG;
+  }
 
   rootInMb->magic   = SE_RESPONSE_MAILBOX_VALID;
   rootInMb->command = command->command;
@@ -275,13 +277,17 @@ void SE_executeCommand(SE_Command_t *command)
   }
 
   // Write input data into Mailbox DATA array
-  for (inDataDesc = command->data_in, inDataLen = 0; inDataDesc;
-       inDataDesc = (SE_DataTransfer_t*) inDataDesc->next) {
+  inDataLen = 0;
+  for (inDataDesc = command->data_in; inDataDesc; inDataDesc = (SE_DataTransfer_t*) inDataDesc->next) {
     inData = (uint32_t*) inDataDesc->data;
-    for (i = 0; i < inDataDesc->length; i++, inDataLen++) {
+    for (i = 0; i < (inDataDesc->length & SE_DATATRANSFER_LENGTH_MASK) / sizeof(uint32_t); i++) {
       // Make sure we do not overflow the input mailbox.
       EFM_ASSERT(mbDataLen < ROOT_MAILBOX_SIZE);
       mbData[mbDataLen++] = inData[i];
+      inDataLen++;
+    }
+    if (inDataDesc->next == (void*)SE_DATATRANSFER_STOP) {
+      break;
     }
   }
 
@@ -308,6 +314,194 @@ void SE_executeCommand(SE_Command_t *command)
   return;
 }
 
+/***************************************************************************//**
+ * @brief
+ *   Init pubkey or pubkey signature.
+ *
+ * @details
+ *   Initialize public key stored in the SE, or its corresponding signature. The
+ *   command can be used to write:
+ *   * @ref SE_KEY_TYPE_BOOT -- public key used to perform secure boot
+ *   * @ref SE_KEY_TYPE_AUTH -- public key used to perform secure debug
+ *
+ * @note
+ *   These keys can not be overwritten, so this command can only be issued once
+ *   per key per part.
+ *
+ * @param[in] key_type
+ *   ID of key type to initialize.
+ *
+ * @param[in] pubkey
+ *   Pointer to a buffer that contains the public key or signature.
+ *   Must be word aligned and have a length of 64 bytes.
+ *
+ * @param[in] numBytes
+ *   Length of pubkey buffer (64 bytes).
+ *
+ * @param[in] signature
+ *   If true, initialize signature for the specified key type instead of the
+ *   public key itself.
+ *
+ * @return
+ *   One of the @ref SE_RESPONSE return codes.
+ * @retval SE_RESPONSE_OK when the command was executed successfully
+ * @retval SE_RESPONSE_TEST_FAILED when the pubkey is not set
+ * @retval SE_RESPONSE_INVALID_PARAMETER when an invalid type is passed
+ ******************************************************************************/
+SE_Response_t SE_initPubkey(uint32_t key_type, void *pubkey, uint32_t numBytes, bool signature)
+{
+  uint32_t commandWord;
+  SE_Response_t res = SE_RESPONSE_INVALID_COMMAND;
+
+  EFM_ASSERT((key_type == SE_KEY_TYPE_BOOT)
+             || (key_type == SE_KEY_TYPE_AUTH));
+
+  EFM_ASSERT(numBytes == 64);
+  EFM_ASSERT(!((size_t)pubkey & 3U));
+
+  // Find parity word
+  volatile uint32_t parity = 0;
+  for (size_t i = 0; i < numBytes / 4; i++) {
+    parity = parity ^ ((uint32_t *)pubkey)[i];
+  }
+
+  // SE command structures
+#if defined(SEMAILBOX_PRESENT)
+  commandWord =
+    (signature) ? SE_COMMAND_INIT_PUBKEY_SIGNATURE : SE_COMMAND_INIT_PUBKEY;
+#elif defined(CRYPTOACC_PRESENT)
+  (void)signature;
+  commandWord = SE_COMMAND_INIT_PUBKEY;
+#endif
+  SE_Command_t command = SE_COMMAND_DEFAULT(commandWord | key_type);
+
+  SE_DataTransfer_t parityData = SE_DATATRANSFER_DEFAULT(&parity, 4);
+  SE_addDataInput(&command, &parityData);
+
+  SE_DataTransfer_t pubkeyData = SE_DATATRANSFER_DEFAULT(pubkey, numBytes);
+  SE_addDataInput(&command, &pubkeyData);
+
+  SE_executeCommand(&command);
+#if defined(SEMAILBOX_PRESENT)
+  res = SE_readCommandResponse();
+#endif
+  return res;
+}
+
+/***************************************************************************//**
+ * @brief
+ *   Initialize SE one-time-programmable (OTP) configuration.
+ *
+ * @details
+ *   Configuration is performed by setting the desired options in the
+ *   @ref SE_OTPInit_t structure.
+ *
+ *   This function can be used to enable secure boot, to configure flash page
+ *   locking, and to enable anti-rollback protection when using the SE to
+ *   perform an application upgrade, typically a Gecko bootloader upgrade.
+ *
+ *   Before secure boot can be enabled, the public key used for secure boot
+ *   verification must be uploaded using @ref SE_initPubkey().
+ *
+ * @warning
+ *   This command can only be executed once per device! When the configuration
+ *   has been programmed it is not possible to update any of the fields.
+ *
+ * @param[in] otp_init
+ *   @ref SE_OTPInit_t structure containing the SE configuration.
+ *
+ * @return
+ *   One of the @ref SE_RESPONSE return codes.
+ * @retval SE_RESPONSE_OK when the command was executed successfully
+ ******************************************************************************/
+SE_Response_t SE_initOTP(SE_OTPInit_t *otp_init)
+{
+  volatile uint32_t mcuSettingsFlags = 0;
+
+  SE_Response_t res = SE_RESPONSE_INVALID_COMMAND;
+
+  if (otp_init->enableSecureBoot) {
+    mcuSettingsFlags |= SE_OTP_MCU_SETTINGS_FLAG_SECURE_BOOT_ENABLE;
+
+#if defined(SEMAILBOX_PRESENT)
+    uint8_t pubkey[64];
+    res = SE_readPubkey(SE_KEY_TYPE_BOOT, &pubkey, 64, false);
+    if (res != SE_RESPONSE_OK) {
+      return SE_RESPONSE_ABORT;
+    }
+#endif
+  }
+  if (otp_init->verifySecureBootCertificate) {
+    mcuSettingsFlags |= SE_OTP_MCU_SETTINGS_FLAG_SECURE_BOOT_VERIFY_CERTIFICATE;
+  }
+  if (otp_init->enableAntiRollback) {
+    mcuSettingsFlags |= SE_OTP_MCU_SETTINGS_FLAG_SECURE_BOOT_ANTI_ROLLBACK;
+  }
+
+  if (otp_init->secureBootPageLockNarrow && otp_init->secureBootPageLockFull) {
+    return SE_RESPONSE_ABORT;
+  }
+  if (otp_init->secureBootPageLockNarrow) {
+    mcuSettingsFlags |= SE_OTP_MCU_SETTINGS_FLAG_SECURE_BOOT_PAGE_LOCK_NARROW;
+  }
+  if (otp_init->secureBootPageLockFull) {
+    mcuSettingsFlags |= SE_OTP_MCU_SETTINGS_FLAG_SECURE_BOOT_PAGE_LOCK_FULL;
+  }
+
+  // Find parity word
+  uint32_t parity = 0;
+  parity = parity ^ mcuSettingsFlags;
+
+  volatile uint32_t parameters[2] = {
+    parity,
+    sizeof(mcuSettingsFlags)
+  };
+
+  // SE command structures
+  SE_Command_t command = SE_COMMAND_DEFAULT(SE_COMMAND_INIT_OTP);
+
+#if defined(SEMAILBOX_PRESENT)
+  volatile struct ReservedSettings {
+    uint8_t reserved1[16];
+    uint8_t reserved2[2];
+    uint8_t reserved3[2];
+  } reservedSettings = {
+    { 0x00 },
+    { 0xFF },
+    { 0x00 }
+  };
+
+  for (size_t i = 0; i < 5; i++) {
+    parity = parity ^ ((uint32_t*)(&reservedSettings))[i];
+  }
+  parameters[0] = parity;
+  parameters[1] = parameters[1] + sizeof(reservedSettings);
+
+  SE_DataTransfer_t parametersData = SE_DATATRANSFER_DEFAULT(&parameters, 8);
+  SE_addDataInput(&command, &parametersData);
+
+  SE_DataTransfer_t mcuSettingsFlagsData = SE_DATATRANSFER_DEFAULT(&mcuSettingsFlags, sizeof(mcuSettingsFlags));
+  SE_addDataInput(&command, &mcuSettingsFlagsData);
+
+  SE_DataTransfer_t reservedSettingsData = SE_DATATRANSFER_DEFAULT(&reservedSettings, sizeof(reservedSettings));
+  SE_addDataInput(&command, &reservedSettingsData);
+
+  SE_executeCommand(&command);
+
+  res = SE_readCommandResponse();
+#elif defined(CRYPTOACC_PRESENT)
+  SE_DataTransfer_t parametersData = SE_DATATRANSFER_DEFAULT(&parameters, 8);
+  SE_addDataInput(&command, &parametersData);
+
+  SE_DataTransfer_t mcuSettingsFlagsData = SE_DATATRANSFER_DEFAULT(&mcuSettingsFlags, sizeof(mcuSettingsFlags));
+  SE_addDataInput(&command, &mcuSettingsFlagsData);
+
+  SE_executeCommand(&command);
+#endif
+
+  return res;
+}
+
 #if defined(CRYPTOACC_PRESENT)
 
 /***************************************************************************//**
@@ -320,7 +514,13 @@ bool rootIsOutputMailboxValid(void)
 {
   // Setup pointer to the Root Code Output Mailbox data structure
   // (must be stored in a RAM area which is not used by the root code)
+  bool sysCfgClkWasEnabled = ((CMU->CLKEN0 & CMU_CLKEN0_SYSCFG) != 0);
+  CMU->CLKEN0_SET = CMU_CLKEN0_SYSCFG;
   root_OutputMailbox_t *rootOutMb = (root_OutputMailbox_t *) SYSCFG->ROOTDATA1;
+  if (!sysCfgClkWasEnabled) {
+    CMU->CLKEN0_CLR = CMU_CLKEN0_SYSCFG;
+  }
+
   uint32_t *mbPtr = (uint32_t*) rootOutMb;
   uint32_t checksum;
   unsigned int mbLen, cnt;
@@ -363,7 +563,12 @@ bool rootIsOutputMailboxValid(void)
  ******************************************************************************/
 SE_Response_t SE_getVersion(uint32_t *version)
 {
+  bool sysCfgClkWasEnabled = ((CMU->CLKEN0 & CMU_CLKEN0_SYSCFG) != 0);
+  CMU->CLKEN0_SET = CMU_CLKEN0_SYSCFG;
   root_OutputMailbox_t *rootOutMb = (root_OutputMailbox_t *) SYSCFG->ROOTDATA1;
+  if (!sysCfgClkWasEnabled) {
+    CMU->CLKEN0_CLR = CMU_CLKEN0_SYSCFG;
+  }
 
   if (version == NULL) {
     return SE_RESPONSE_INVALID_PARAMETER;
@@ -385,11 +590,23 @@ SE_Response_t SE_getVersion(uint32_t *version)
  *   Get Root Code Configuration Status bits
  *
  * @details
- *   This function returns the current Root Code Configuration Status bits
+ *   This function returns the current Root Code Configuration Status bits.
+ *   The following list explains what the different bits in cfgStatus indicate.
+ *   A bit value of 1 means enabled, while 0 means disabled:
+ *    * [0]: Secure boot
+ *    * [1]: Verify secure boot certificate
+ *    * [2]: Anti-rollback
+ *    * [3]: Narrow page lock
+ *    * [4]: Full page lock
  *
- * @param[in]  cfgStatus
- *   Pointer to location where to copy Configuration Status bits
- *   of the root code.
+ * @param[out]  cfgStatus
+ *   Pointer to location to copy Configuration Status bits into.
+ *
+ * @note
+ *   This function will check that the mailbox content is valid before
+ *   reading the status bits. If the command response has already been read
+ *   with a call to @ref SE_ackCommand(), the validity check will fail, and
+ *   the config status bits cannot be read before a reset has occurred.
  *
  * @return
  *   One of the SE_RESPONSE return codes:
@@ -399,7 +616,12 @@ SE_Response_t SE_getVersion(uint32_t *version)
  ******************************************************************************/
 SE_Response_t SE_getConfigStatusBits(uint32_t *cfgStatus)
 {
+  bool sysCfgClkWasEnabled = ((CMU->CLKEN0 & CMU_CLKEN0_SYSCFG) != 0);
+  CMU->CLKEN0_SET = CMU_CLKEN0_SYSCFG;
   root_OutputMailbox_t *rootOutMb = (root_OutputMailbox_t *) SYSCFG->ROOTDATA1;
+  if (!sysCfgClkWasEnabled) {
+    CMU->CLKEN0_CLR = CMU_CLKEN0_SYSCFG;
+  }
 
   if (cfgStatus == NULL) {
     return SE_RESPONSE_INVALID_PARAMETER;
@@ -427,7 +649,12 @@ SE_Response_t SE_getConfigStatusBits(uint32_t *cfgStatus)
  ******************************************************************************/
 bool SE_isCommandCompleted(void)
 {
+  bool sysCfgClkWasEnabled = ((CMU->CLKEN0 & CMU_CLKEN0_SYSCFG) != 0);
+  CMU->CLKEN0_SET = CMU_CLKEN0_SYSCFG;
   root_OutputMailbox_t *rootOutMb = (root_OutputMailbox_t *) SYSCFG->ROOTDATA1;
+  if (!sysCfgClkWasEnabled) {
+    CMU->CLKEN0_CLR = CMU_CLKEN0_SYSCFG;
+  }
 
   // First verify that the response is ok
   if (!rootIsOutputMailboxValid()) {
@@ -440,14 +667,38 @@ bool SE_isCommandCompleted(void)
 
 /***************************************************************************//**
  * @brief
+ *   Read the previously executed command.
+ *
+ * @details
+ *   This function reads the previously executed command.
+ *
+ * @return
+ *   One of the SE command words.
+ *   SE_RESPONSE_MAILBOX_INVALID when the mailbox content is invalid.
+ ******************************************************************************/
+uint32_t SE_readExecutedCommand(void)
+{
+  bool sysCfgClkWasEnabled = ((CMU->CLKEN0 & CMU_CLKEN0_SYSCFG) != 0);
+  CMU->CLKEN0_SET = CMU_CLKEN0_SYSCFG;
+  root_OutputMailbox_t *rootOutMb = (root_OutputMailbox_t *) SYSCFG->ROOTDATA1;
+  if (!sysCfgClkWasEnabled) {
+    CMU->CLKEN0_CLR = CMU_CLKEN0_SYSCFG;
+  }
+
+  // First verify that the Output Mailbox includes a valid response.
+  if (!SE_isCommandCompleted()) {
+    return SE_RESPONSE_MAILBOX_INVALID;
+  }
+
+  return rootOutMb->command;
+}
+
+/***************************************************************************//**
+ * @brief
  *   Read the status of the previously executed command.
  *
  * @details
  *   This function reads the status of the previously executed command.
- *
- * @note
- *   The command response needs to be read for every executed command, and can
- *   only be read once per executed command (FIFO behavior).
  *
  * @return
  *   One of the SE_RESPONSE return codes:
@@ -460,12 +711,21 @@ bool SE_isCommandCompleted(void)
  *   because of conflicting Secure/Non-Secure memory accesses,
  *   SE_RESPONSE_CRYPTO_ERROR on an internal SE failure, or
  *   SE_RESPONSE_INVALID_PARAMETER when an invalid parameter was passed
+ *   SE_RESPONSE_MAILBOX_INVALID when the mailbox content is invalid
  ******************************************************************************/
 SE_Response_t SE_readCommandResponse(void)
 {
+  bool sysCfgClkWasEnabled = ((CMU->CLKEN0 & CMU_CLKEN0_SYSCFG) != 0);
+  CMU->CLKEN0_SET = CMU_CLKEN0_SYSCFG;
   root_OutputMailbox_t *rootOutMb = (root_OutputMailbox_t *) SYSCFG->ROOTDATA1;
+  if (!sysCfgClkWasEnabled) {
+    CMU->CLKEN0_CLR = CMU_CLKEN0_SYSCFG;
+  }
 
-  SE_waitCommandCompletion();
+  // First verify that the Output Mailbox includes a valid response.
+  if (!SE_isCommandCompleted()) {
+    return SE_RESPONSE_MAILBOX_INVALID;
+  }
 
   return (SE_Response_t)(rootOutMb->status & SE_RESPONSE_MASK);
 }
@@ -483,7 +743,7 @@ SE_Response_t SE_readCommandResponse(void)
  *   to in the given command data structure.
  *
  * @param[in]  command
- *   Pointer to a filled-out SE command structure.
+ *   Pointer to an SE command structure.
  *
  * @return
  *   One of the SE_RESPONSE return codes.
@@ -503,7 +763,12 @@ SE_Response_t SE_ackCommand(SE_Command_t *command)
 {
   // Setup pointer to the Root Code Output Mailbox data structure
   // (must be stored in a RAM area which is not used by the root code)
+  bool sysCfgClkWasEnabled = ((CMU->CLKEN0 & CMU_CLKEN0_SYSCFG) != 0);
+  CMU->CLKEN0_SET = CMU_CLKEN0_SYSCFG;
   root_OutputMailbox_t *rootOutMb = (root_OutputMailbox_t *) SYSCFG->ROOTDATA1;
+  if (!sysCfgClkWasEnabled) {
+    CMU->CLKEN0_CLR = CMU_CLKEN0_SYSCFG;
+  }
   uint32_t *mbData = (uint32_t*) rootOutMb->data;
   SE_DataTransfer_t *outDataDesc = command->data_out;
   unsigned int outDataLen, outDataCnt, i, outDescLen;
@@ -742,168 +1007,6 @@ SE_Response_t SE_readPubkey(uint32_t key_type, void *pubkey, uint32_t numBytes, 
 
   SE_executeCommand(&command);
   SE_Response_t res = SE_readCommandResponse();
-  return res;
-}
-
-/***************************************************************************//**
- * @brief
- *   Init pubkey or pubkey signature.
- *
- * @details
- *   Initialize public key stored in the SE, or its corresponding signature. The
- *   command can be used to write:
- *   * @ref SE_KEY_TYPE_BOOT -- public key used to perform secure boot
- *   * @ref SE_KEY_TYPE_AUTH -- public key used to perform secure debug
- *
- * @note
- *   These keys can not be overwritten, so this command can only be issued once
- *   per key per part.
- *
- * @param[in] key_type
- *   ID of key type to initialize.
- *
- * @param[in] pubkey
- *   Pointer to a buffer that contains the public key or signature.
- *   Must be word aligned and have a length of 64 bytes.
- *
- * @param[in] numBytes
- *   Length of pubkey buffer (64 bytes).
- *
- * @param[in] signature
- *   If true, initialize signature for the specified key type instead of the
- *   public key itself.
- *
- * @return
- *   One of the @ref SE_RESPONSE return codes.
- * @retval SE_RESPONSE_OK when the command was executed successfully
- * @retval SE_RESPONSE_TEST_FAILED when the pubkey is not set
- * @retval SE_RESPONSE_INVALID_PARAMETER when an invalid type is passed
- ******************************************************************************/
-SE_Response_t SE_initPubkey(uint32_t key_type, void *pubkey, uint32_t numBytes, bool signature)
-{
-  EFM_ASSERT((key_type == SE_KEY_TYPE_BOOT)
-             || (key_type == SE_KEY_TYPE_AUTH));
-
-  EFM_ASSERT(numBytes == 64);
-  EFM_ASSERT(!((size_t)pubkey & 3U));
-
-  // Find parity word
-  volatile uint32_t parity = 0;
-  for (size_t i = 0; i < numBytes / 4; i++) {
-    parity = parity ^ ((uint32_t *)pubkey)[i];
-  }
-
-  // SE command structures
-  uint32_t commandWord =
-    (signature) ? SE_COMMAND_INIT_PUBKEY_SIGNATURE : SE_COMMAND_INIT_PUBKEY;
-  SE_Command_t command = SE_COMMAND_DEFAULT(commandWord | key_type);
-
-  SE_DataTransfer_t parityData = SE_DATATRANSFER_DEFAULT(&parity, 4);
-  SE_addDataInput(&command, &parityData);
-
-  SE_DataTransfer_t pubkeyData = SE_DATATRANSFER_DEFAULT(pubkey, numBytes);
-  SE_addDataInput(&command, &pubkeyData);
-
-  SE_executeCommand(&command);
-  SE_Response_t res = SE_readCommandResponse();
-  return res;
-}
-
-/***************************************************************************//**
- * @brief
- *   Initialize SE one-time-programmable (OTP) configuration.
- *
- * @details
- *   Configuration is performed by setting the desired options in the
- *   @ref SE_OTPInit_t structure.
- *
- *   This function can be used to enable secure boot, to configure flash page
- *   locking, and to enable anti-rollback protection when using the SE to
- *   perform an application upgrade, typically a Gecko bootloader upgrade.
- *
- *   Before secure boot can be enabled, the public key used for secure boot
- *   verification must be uploaded using @ref SE_initPubkey().
- *
- * @warning
- *   This command can only be executed once per device! When the configuration
- *   has been programmed it is not possible to update any of the fields.
- *
- * @param[in] otp_init
- *   @ref SE_OTPInit_t structure containing the SE configuration.
- *
- * @return
- *   One of the @ref SE_RESPONSE return codes.
- * @retval SE_RESPONSE_OK when the command was executed successfully
- ******************************************************************************/
-SE_Response_t SE_initOTP(SE_OTPInit_t *otp_init)
-{
-  volatile uint32_t mcuSettingsFlags = 0;
-
-  SE_Response_t res;
-
-  if (otp_init->enableSecureBoot) {
-    mcuSettingsFlags |= SE_OTP_MCU_SETTINGS_FLAG_SECURE_BOOT_ENABLE;
-
-    uint8_t pubkey[64];
-    res = SE_readPubkey(SE_KEY_TYPE_BOOT, &pubkey, 64, false);
-    if (res != SE_RESPONSE_OK) {
-      return SE_RESPONSE_ABORT;
-    }
-  }
-  if (otp_init->verifySecureBootCertificate) {
-    mcuSettingsFlags |= SE_OTP_MCU_SETTINGS_FLAG_SECURE_BOOT_VERIFY_CERTIFICATE;
-  }
-  if (otp_init->enableAntiRollback) {
-    mcuSettingsFlags |= SE_OTP_MCU_SETTINGS_FLAG_SECURE_BOOT_ANTI_ROLLBACK;
-  }
-
-  if (otp_init->secureBootPageLockNarrow && otp_init->secureBootPageLockFull) {
-    return SE_RESPONSE_ABORT;
-  }
-  if (otp_init->secureBootPageLockNarrow) {
-    mcuSettingsFlags |= SE_OTP_MCU_SETTINGS_FLAG_SECURE_BOOT_PAGE_LOCK_NARROW;
-  }
-  if (otp_init->secureBootPageLockFull) {
-    mcuSettingsFlags |= SE_OTP_MCU_SETTINGS_FLAG_SECURE_BOOT_PAGE_LOCK_FULL;
-  }
-
-  volatile struct ReservedSettings {
-    uint8_t reserved1[16];
-    uint8_t reserved2[2];
-    uint8_t reserved3[2];
-  } reservedSettings = {
-    { 0x00 },
-    { 0xFF },
-    { 0x00 }
-  };
-
-  // Find parity word
-  uint32_t parity = 0;
-  parity = parity ^ mcuSettingsFlags;
-  for (size_t i = 0; i < 5; i++) {
-    parity = parity ^ ((uint32_t*)(&reservedSettings))[i];
-  }
-
-  // SE command structures
-  SE_Command_t command = SE_COMMAND_DEFAULT(SE_COMMAND_INIT_OTP);
-
-  volatile uint32_t parameters[2] = {
-    parity,
-    sizeof(mcuSettingsFlags)
-    + sizeof(reservedSettings)
-  };
-  SE_DataTransfer_t parametersData = SE_DATATRANSFER_DEFAULT(&parameters, 8);
-  SE_addDataInput(&command, &parametersData);
-
-  SE_DataTransfer_t mcuSettingsFlagsData = SE_DATATRANSFER_DEFAULT(&mcuSettingsFlags, sizeof(mcuSettingsFlags));
-  SE_addDataInput(&command, &mcuSettingsFlagsData);
-
-  SE_DataTransfer_t reservedSettingsData = SE_DATATRANSFER_DEFAULT(&reservedSettings, sizeof(reservedSettings));
-  SE_addDataInput(&command, &reservedSettingsData);
-
-  SE_executeCommand(&command);
-  res = SE_readCommandResponse();
-
   return res;
 }
 

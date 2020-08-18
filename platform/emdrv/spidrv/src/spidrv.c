@@ -6,12 +6,25 @@
  * <b>Copyright 2018 Silicon Laboratories Inc. www.silabs.com</b>
  *******************************************************************************
  *
- * The licensor of this software is Silicon Laboratories Inc.  Your use of this
- * software is governed by the terms of Silicon Labs Master Software License
- * Agreement (MSLA) available at
- * www.silabs.com/about-us/legal/master-software-license-agreement.  This
- * software is distributed to you in Source Code format and is governed by the
- * sections of the MSLA applicable to Source Code.
+ * SPDX-License-Identifier: Zlib
+ *
+ * The licensor of this software is Silicon Laboratories Inc.
+ *
+ * This software is provided 'as-is', without any express or implied
+ * warranty. In no event will the authors be held liable for any damages
+ * arising from the use of this software.
+ *
+ * Permission is granted to anyone to use this software for any purpose,
+ * including commercial applications, and to alter it and redistribute it
+ * freely, subject to the following restrictions:
+ *
+ * 1. The origin of this software must not be misrepresented; you must not
+ *    claim that you wrote the original software. If you use this software
+ *    in a product, an acknowledgment in the product documentation would be
+ *    appreciated but is not required.
+ * 2. Altered source versions must be plainly marked as such, and must not be
+ *    misrepresented as being the original software.
+ * 3. This notice may not be removed or altered from any source distribution.
  *
  ******************************************************************************/
 
@@ -64,8 +77,7 @@ static bool     RxDMAComplete(unsigned int channel,
                               void *userParam);
 
 #if defined(EMDRV_SPIDRV_INCLUDE_SLAVE)
-static void     SlaveTimeout(RTCDRV_TimerID_t id,
-                             void *user);
+static void     SlaveTimeout(sl_sleeptimer_timer_handle_t *handle, void *data);
 #endif
 
 static void     StartReceiveDMA(SPIDRV_Handle_t handle,
@@ -362,19 +374,11 @@ Ecode_t SPIDRV_Init(SPIDRV_Handle_t handle, SPIDRV_Init_t *initData)
     CORE_EXIT_ATOMIC();
 
 #if defined(EMDRV_SPIDRV_INCLUDE_SLAVE)
-    RTCDRV_Init();
+    sl_sleeptimer_init();
 #endif
   } else {
     CORE_EXIT_ATOMIC();
   }
-
-#if defined(EMDRV_SPIDRV_INCLUDE_SLAVE)
-  if ( initData->type == spidrvSlave ) {
-    if ( RTCDRV_AllocateTimer(&handle->timer) != ECODE_EMDRV_RTCDRV_OK ) {
-      return ECODE_EMDRV_SPIDRV_TIMER_ALLOC_ERROR;
-    }
-  }
-#endif
 
   // Initialize DMA.
   DMADRV_Init();
@@ -414,8 +418,7 @@ Ecode_t SPIDRV_DeInit(SPIDRV_Handle_t handle)
 
 #if defined(EMDRV_SPIDRV_INCLUDE_SLAVE)
   if ( handle->initData.type == spidrvSlave ) {
-    RTCDRV_StopTimer(handle->timer);
-    RTCDRV_FreeTimer(handle->timer);
+    sl_sleeptimer_stop_timer(&handle->timer);
   }
 #endif
 
@@ -456,7 +459,7 @@ Ecode_t SPIDRV_AbortTransfer(SPIDRV_Handle_t handle)
 
 #if defined(EMDRV_SPIDRV_INCLUDE_SLAVE)
   if ( handle->initData.type == spidrvSlave ) {
-    RTCDRV_StopTimer(handle->timer);
+    sl_sleeptimer_stop_timer(&handle->timer);
   }
 #endif
 
@@ -1003,11 +1006,7 @@ Ecode_t SPIDRV_SReceive(SPIDRV_Handle_t handle,
   }
 
   if ( timeoutMs ) {
-    RTCDRV_StartTimer(handle->timer,
-                      rtcdrvTimerTypeOneshot,
-                      timeoutMs,
-                      SlaveTimeout,
-                      handle);
+    sl_sleeptimer_start_timer_ms(&handle->timer, timeoutMs, SlaveTimeout, handle, 0, 0);
   }
 
   if ( handle->initData.slaveStartMode == spidrvSlaveStartDelayed ) {
@@ -1061,11 +1060,7 @@ Ecode_t SPIDRV_SReceiveB(SPIDRV_Handle_t handle,
   }
 
   if ( timeoutMs ) {
-    RTCDRV_StartTimer(handle->timer,
-                      rtcdrvTimerTypeOneshot,
-                      timeoutMs,
-                      SlaveTimeout,
-                      handle);
+    sl_sleeptimer_start_timer_ms(&handle->timer, timeoutMs, SlaveTimeout, handle, 0, 0);
   }
 
   if ( handle->initData.slaveStartMode == spidrvSlaveStartDelayed ) {
@@ -1124,11 +1119,7 @@ Ecode_t SPIDRV_STransfer(SPIDRV_Handle_t handle,
   }
 
   if ( timeoutMs ) {
-    RTCDRV_StartTimer(handle->timer,
-                      rtcdrvTimerTypeOneshot,
-                      timeoutMs,
-                      SlaveTimeout,
-                      handle);
+    sl_sleeptimer_start_timer_ms(&handle->timer, timeoutMs, SlaveTimeout, handle, 0, 0);
   }
 
   if ( handle->initData.slaveStartMode == spidrvSlaveStartDelayed ) {
@@ -1188,11 +1179,7 @@ Ecode_t SPIDRV_STransferB(SPIDRV_Handle_t handle,
   }
 
   if ( timeoutMs ) {
-    RTCDRV_StartTimer(handle->timer,
-                      rtcdrvTimerTypeOneshot,
-                      timeoutMs,
-                      SlaveTimeout,
-                      handle);
+    sl_sleeptimer_start_timer_ms(&handle->timer, timeoutMs, SlaveTimeout, handle, 0, 0);
   }
 
   if ( handle->initData.slaveStartMode == spidrvSlaveStartDelayed ) {
@@ -1247,11 +1234,7 @@ Ecode_t SPIDRV_STransmit(SPIDRV_Handle_t handle,
   }
 
   if ( timeoutMs ) {
-    RTCDRV_StartTimer(handle->timer,
-                      rtcdrvTimerTypeOneshot,
-                      timeoutMs,
-                      SlaveTimeout,
-                      handle);
+    sl_sleeptimer_start_timer_ms(&handle->timer, timeoutMs, SlaveTimeout, handle, 0, 0);
   }
 
   if ( handle->initData.slaveStartMode == spidrvSlaveStartDelayed ) {
@@ -1305,11 +1288,7 @@ Ecode_t SPIDRV_STransmitB(SPIDRV_Handle_t handle,
   }
 
   if ( timeoutMs ) {
-    RTCDRV_StartTimer(handle->timer,
-                      rtcdrvTimerTypeOneshot,
-                      timeoutMs,
-                      SlaveTimeout,
-                      handle);
+    sl_sleeptimer_start_timer_ms(&handle->timer, timeoutMs, SlaveTimeout, handle, 0, 0);
   }
 
   if ( handle->initData.slaveStartMode == spidrvSlaveStartDelayed ) {
@@ -1638,7 +1617,7 @@ static bool RxDMAComplete(unsigned int channel,
 
 #if defined(EMDRV_SPIDRV_INCLUDE_SLAVE)
   if ( handle->initData.type == spidrvSlave ) {
-    RTCDRV_StopTimer(handle->timer);
+    sl_sleeptimer_stop_timer(&handle->timer);
   }
 #endif
 
@@ -1654,11 +1633,11 @@ static bool RxDMAComplete(unsigned int channel,
 /***************************************************************************//**
  * @brief Slave transfer timeout callback function.
  ******************************************************************************/
-static void SlaveTimeout(RTCDRV_TimerID_t id, void *user)
+static void SlaveTimeout(sl_sleeptimer_timer_handle_t *sleepdriver_handle, void *user)
 {
   bool active, pending;
   SPIDRV_Handle_t handle;
-  (void)id;
+  (void)sleepdriver_handle;
 
   handle = (SPIDRV_Handle_t)user;
 

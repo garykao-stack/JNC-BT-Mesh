@@ -21,6 +21,9 @@ void Si7021Init()
 }
 
 
+UCHAR WriteEepromTestTbl[16]={0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F};
+UCHAR ReadEepromTestTbl[16];
+
 void I2CInit()
 {TraceProc();
 
@@ -29,6 +32,13 @@ void I2CInit()
     I2CSPM_Init_TypeDef i2cInit = I2CSPM_INIT_DEFAULT;
     I2CSPM_Init(&i2cInit);
     Delay_ms(50);
+
+ #if 0 //for EEPROM Test
+    EepromWriteBytes(0x10,16,WriteEepromTestTbl);
+    EepromReadBytes(0x10,16,ReadEepromTestTbl);
+    PrintDataByte("EEPROM Test", ReadEepromTestTbl,16);
+ #endif
+ 
 #endif //HAL_I2CSENSOR_ENABLE
     //GetTempature();
     //GetHumidity();
@@ -93,25 +103,26 @@ void I2CInit()
 
   //  EepromInit();
 }
-
+ 
 
 
 typedef struct         //for Power On initial
 {
-    uint16  DeviceInfoID;     //  0xAA55 to check EEPROM is new or old
-    uchar   SysDataInittVer;  // for EEPROM data structure ID
-    uchar   MeshNodeRole;     // 0:Server 1:Client 2:Friend 3:LPN 4:BLE Master 5:BLE Slave    
-    uint32  MeshNodeFun;      // BT-Modbus/BT-Mesh-Sensor/BT-Mesh
-    uchar   ServerNodeNum;  // Total Server Node Num
-    uchar   TxPower;        // setup Tx power
-    uchar   TxGain;         //
-    uchar   RxGain;         // for RF distance, but CE failed    
-    uint16  CTune;          // for BLE RF sensivity
-    uint32  SleepingTimer;  // xxxx Sec
-    uchar   ModbusID;       // 1 ~ 0xFE
-    uchar   BaudRate;       // {2400, 4800, 9600, 19200, 38400, 57600, 115200, 128000, 256000, 460800, 921600, 1382400,1843200,2764800};
-    uchar   Reserve[3];
-}_MeshSysDataInit,*_PMeshSysDataInit;
+    uint16  DeviceInfoID;       // 0xAA55 to check EEPROM is new or old
+    uchar   SysDataInittVer;    // for EEPROM data structure ID
+    uint16  MeshNodeID;
+    uchar   MeshNodeRole;       // 0:Server 1:Client 2:Friend 3:LPN 4:BLE Master 5:BLE Slave    
+    uint32  MeshNodeFun;        // BT-Modbus/BT-Mesh-Sensor/BT-Mesh
+    uchar   ServerNodeNum;      // Total Server Node Num
+    uchar   TxPower;            // setup Tx power
+    uchar   TxGain;             //
+    uchar   RxGain;             // 
+    uint16  CTune;              // for BLE RF sensivity
+    uint32  SleepingTimer;      // xxxx Sec
+    uchar   ModbusID;           // 1 ~ 0xFE
+    uchar   BaudRate;           // {2400, 4800, 9600, 19200, 38400, 57600, 115200, 128000, 256000, 460800, 921600, 1382400,1843200,2764800};
+    uchar   Reserve[10];
+}_MeshNodeSysData,*_PMeshNodeSysData;
 
 #define MESH_SYS_DATA_EEPROM_ADDR       0x0000
 
@@ -163,12 +174,14 @@ typedef struct
     uint16  SensorData[12*8];   // for calibration
 }_WaterLevel,*_PWaterLevel;
 
+
+
 //
 //
 //
 void EepromInit()
 {TraceProc();
-    _PMeshSysDataInit pEeprom=0;
+    _PMeshNodeSysData pEeprom=0;
     uint16 DeviceInfoID;
     DeviceInfoID = EepromReadWord1((uint16)pEeprom); Trace16_1(DeviceInfoID);
     if(DeviceInfoID != DEVICE_INFO_ID ) EepromToDefault();
@@ -181,11 +194,12 @@ void EepromInit()
 bool EepromToDefault()
 {TraceProc();
     bool ret_code = TRUE;
-    _MeshSysDataInit mesh_sys_data;
-    memset(&mesh_sys_data,0,sizeof(_MeshSysDataInit));
+    _MeshNodeSysData mesh_sys_data;
+    memset(&mesh_sys_data,0,sizeof(_MeshNodeSysData));
    
     mesh_sys_data.DeviceInfoID = DEVICE_INFO_ID;
     mesh_sys_data.SysDataInittVer = 100;    // for 1.00
+    mesh_sys_data.MeshNodeID = 0;
     mesh_sys_data.MeshNodeRole = MESH_NODE_ROLE_DEFAULT;
     mesh_sys_data.MeshNodeFun = MESH_NODE_FUN_DEFAULT;
     mesh_sys_data.ServerNodeNum = 1;
@@ -197,25 +211,9 @@ bool EepromToDefault()
     mesh_sys_data.ModbusID = 1;
     mesh_sys_data.BaudRate = 6; //115200
 
-    EepromWriteBytes(MESH_SYS_DATA_EEPROM_ADDR,sizeof(_MeshSysDataInit),(PUCHAR)&mesh_sys_data);
+    EepromWriteBytes(MESH_SYS_DATA_EEPROM_ADDR,sizeof(_MeshNodeSysData),(PUCHAR)&mesh_sys_data);
     
     return ret_code;
-}
-
-uchar EepromReadByte1(uint16 addr)
-{
-    uchar ret_value = 0xFF;
-    if(EEPROM_Read(I2C_EEPROM,I2C_ADDR_EEPROM,addr,(PUCHAR)&ret_value,1) < 0)  
-       TraceErr("EepromReadByte");
-    return ret_value;
-}
-
-uint16 EepromReadWord1(uint16 addr)
-{
-    uint16 ret_value = 0xFFFF;
-    if(EEPROM_Read(I2C_EEPROM,I2C_ADDR_EEPROM,addr,(PUCHAR)&ret_value,2) < 0)  
-       TraceErr("EepromReadWord");
-    return ret_value;
 }
 
 
@@ -287,6 +285,24 @@ bool EepromWriteBytes(uint16 addr,uint16 buff_num,PUCHAR p_buff)
     return ret_code;
 }
 
+uchar EepromReadByte1(uint16 addr)
+{
+    uchar ret_value = 0xFF;
+    if(EEPROM_Read(I2C_EEPROM,I2C_ADDR_EEPROM,addr,(PUCHAR)&ret_value,1) < 0)  
+       TraceErr("EepromReadByte");
+    return ret_value;
+}
+
+uint16 EepromReadWord1(uint16 addr)
+{
+    uint16 ret_value = 0xFFFF;
+    if(EEPROM_Read(I2C_EEPROM,I2C_ADDR_EEPROM,addr,(PUCHAR)&ret_value,2) < 0)  
+       TraceErr("EepromReadWord");
+    return ret_value;
+}
+
+
+
 
 
 #define RET_VALUE_ERROR         (-1)
@@ -325,7 +341,7 @@ int16 GetTempature()
     int32 tempature;    
     ret_byte = Si7013_Measure(I2C_SI7021, I2C_ADDR_SI7021, (PUINT32)&tempature, SI7013_READ_TEMP);
 
-    Trace1("GetTempature 1",tempature);
+    //Trace1("GetTempature 1",tempature);
     
     if (ret_byte == 2) {
       tempature = (((17552*tempature)/65536) - 4685)/10;
@@ -333,7 +349,7 @@ int16 GetTempature()
       tempature = RET_VALUE_ERROR;
     }
     
-    TraceDec1("GetTempature 2-1",(int16)tempature);
+   //TraceDec1("GetTempature 2-1",(int16)tempature);
     //if((int16)tempature < -100) 
       //  {TraceDec1("GetTempature 2-2",(int16)tempature);tempature = -100;}
     
@@ -356,7 +372,7 @@ int16 GetHumidity()
     } else {
       humidity = RET_VALUE_ERROR;
     }
-    TraceDec1("GetHumidity",(int16)humidity);
+    //TraceDec1("GetHumidity",(int16)humidity);
     return (int16)humidity;
 
 }
@@ -373,7 +389,7 @@ int16 GetTempature1()
     
     ret_byte = Si7013_Measure(I2C_SI7021, I2C_ADDR_SI7021, &tempature, SI7013_READ_TEMP);
 
-    Trace1("GetTempature 1",tempature);
+    //Trace1("GetTempature 1",tempature);
     
     if (ret_byte == 2) {
       tempature = (((tempature) * 21965L) >> 13) - 46850; // convert to milli-degC  ((tempature*175.72)/65536) -46.85

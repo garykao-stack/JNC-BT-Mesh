@@ -175,6 +175,34 @@ typedef void
                                      uint32_t remaining_ms);
 
 /**
+ * @brief Server state recall handler function for generic server model
+ *
+ * When a generic server state recall event is passed to
+ * mesh_lib_generic_server_event_handler() it will call the request
+ * handler function that has been registered for the model that
+ * emitted the state recall event. It will have unpacked the event
+ * data into a generic request structure and other parameters.
+ *
+ * This happens when node has received state recall reques
+ *
+ * @param model_id Model that generated the event
+ * @param element_index Element where the model resides
+ * @param current Current model state
+ * @param target Target model state, towards which model is moving;
+ * in case there is no state transition ongoing a NULL pointer will
+ * be given
+ * @param transition_time_ms Time remaining for transition in milliseconds;
+ * in case there is no state transition ongoing a value of zero will
+ * be given
+ */
+typedef void
+(*mesh_lib_generic_server_recall_cb)(uint16_t model_id,
+                                     uint16_t element_index,
+                                     const struct mesh_generic_state *current,
+                                     const struct mesh_generic_state *target,
+                                     uint32_t transition_time_ms);
+
+/**
  * @brief Send a response to a client request
  *
  * When a server model has received a client request that needs to be
@@ -267,6 +295,7 @@ mesh_lib_generic_server_publish(uint16_t model_id,
  * @param element_index Element where the model resides
  * @param cb Function for client requests
  * @param ch Function for server state changes
+ * @param recall  Function for server state recall
  *
  * @return bg_err_success if registration succeeded; an error otherwise
  */
@@ -274,7 +303,8 @@ errorcode_t
 mesh_lib_generic_server_register_handler(uint16_t model_id,
                                          uint16_t element_index,
                                          mesh_lib_generic_server_client_request_cb cb,
-                                         mesh_lib_generic_server_change_cb ch);
+                                         mesh_lib_generic_server_change_cb ch,
+                                         mesh_lib_generic_server_recall_cb recall);
 
 /***
  *** Generic Client

@@ -14,7 +14,7 @@
  * sections of the MSLA applicable to Source Code.
  *
  ******************************************************************************/
-
+#include "base_def.h"
 #include <stdio.h>
 #include <string.h>
 #include "graphics.h"

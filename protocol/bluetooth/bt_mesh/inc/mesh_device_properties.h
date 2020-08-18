@@ -209,7 +209,7 @@ typedef struct electric_current_statistics {
  * The Energy characteristic is used to represent a measure of energy in units of kilowatt hours.
  * Unit is kilowatt-hour with a resolution of 1.
  * Format UINT24, ranging from 0 to 16777214.
- * A value of 0xFFFFFF represents ‘value is not known’.
+ * A value of 0xFFFFFF represents ?�value is not known??
  */
 typedef uint32_t energy_t;
 
@@ -431,7 +431,7 @@ typedef time_millisecond_24_t light_control_time_standby_auto;
  * This property represents the time lights transition from a prolong state to a standby state when
  * the transition is automatic (such as when triggered by an occupancy or light sensor).
  */
-typedef time_millisecond_24_t light_control_time_standy_manual;
+typedef time_millisecond_24_t light_control_time_standby_manual;
 
 /**
  * Light Control Time Fade Standby Manual
@@ -453,7 +453,7 @@ typedef time_millisecond_24_t light_control_time_prolong;
  * when people are still in a room and occupancy detectors fail to detect occupancy (which could occur,
  * for example, with passive infrared motion sensors and people in the room not moving for a period of time).
  */
-typedef time_millisecond_24_t light_control_time_time_run_on;
+typedef time_millisecond_24_t light_control_time_run_on;
 
 /**
  * Percentage 8
@@ -713,6 +713,7 @@ typedef struct mesh_device_property {
  */
 
 typedef enum mesh_device_properties_e {
+  DEVICE_PROPERTY_INVALID                         = 0x0000,
   /** Average Ambient Temperature In A Period Of Day
    * Type: Temperature 8 In A Period Of Day */
   AVERAGE_AMBIENT_TEMPERATURE_IN_A_PERIOD_OF_DAY  = 0x0001,
@@ -1059,14 +1060,33 @@ typedef enum mesh_device_properties_e {
   JNC_MODBUS_GET_TEMPATURE                        = 0x0093,          // 
   JNC_MODBUS_GET_HUMIDITY                         = 0x0094,          //
 
-  BT_MODBUS_REG0                            = 0x2000,
-  BT_MODBUS_REG1                            = 0x2001,  
-  BT_MODBUS_REG2                            = 0x2002,
-  BT_MODBUS_REG3                            = 0x2003,
+//
+  JNC_SERVER_SLEEPING                  = 0x0095,
+  
+  //for Modbus FC4
+  MODBUS_FC4_REG0                            = 0x2000,
+  MODBUS_FC4_REG1                            = 0x2001,
+  MODBUS_FC4_REG2                            = 0x2002,
+  MODBUS_FC4_REG3                            = 0x2003,
+  MODBUS_FC4_REG4                            = 0x2004,
+  MODBUS_FC4_REG5                            = 0x2005,
+  MODBUS_FC4_REG6                            = 0x2006,
+  MODBUS_FC4_REG7                            = 0x2007,
+  MODBUS_FC4_REG8                            = 0x2008,
+  MODBUS_FC4_REG9                            = 0x2009,
+  MODBUS_FC4_REG10                           = 0x200A,
+  MODBUS_FC4_REG60                           = 0x200B,
+  //for FC1
+  MODBUS_FC1_REG1                            = 0x200C,
+  MODBUS_FC1_REG7                            = 0x200D,
+
+  
+  MODBUS_GET_REGS_VALUE                      = 0x2020,  //My_Device_Property  
+  MODBUS_SET_REGS_VALUE                      = 0x2021,  //My_Device_Property
+
   
   JNC_DEF_ENDING       = 0xF000          // 
 } mesh_device_properties_t;
-
 
 #if 0
 typedef enum mesh_characteristics_e {

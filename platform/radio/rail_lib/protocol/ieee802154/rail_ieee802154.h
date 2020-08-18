@@ -6,12 +6,25 @@
  * <b>Copyright 2018 Silicon Laboratories Inc. www.silabs.com</b>
  *******************************************************************************
  *
- * The licensor of this software is Silicon Laboratories Inc. Your use of this
- * software is governed by the terms of Silicon Labs Master Software License
- * Agreement (MSLA) available at
- * www.silabs.com/about-us/legal/master-software-license-agreement. This
- * software is distributed to you in Source Code format and is governed by the
- * sections of the MSLA applicable to Source Code.
+ * SPDX-License-Identifier: Zlib
+ *
+ * The licensor of this software is Silicon Laboratories Inc.
+ *
+ * This software is provided 'as-is', without any express or implied
+ * warranty. In no event will the authors be held liable for any damages
+ * arising from the use of this software.
+ *
+ * Permission is granted to anyone to use this software for any purpose,
+ * including commercial applications, and to alter it and redistribute it
+ * freely, subject to the following restrictions:
+ *
+ * 1. The origin of this software must not be misrepresented; you must not
+ *    claim that you wrote the original software. If you use this software
+ *    in a product, an acknowledgment in the product documentation would be
+ *    appreciated but is not required.
+ * 2. Altered source versions must be plainly marked as such, and must not be
+ *    misrepresented as being the original software.
+ * 3. This notice may not be removed or altered from any source distribution.
  *
  ******************************************************************************/
 
@@ -30,13 +43,21 @@ extern "C" {
 ///
 /// The functions in this group configure RAIL IEEE 802.15.4 hardware
 /// acceleration which includes IEEE 802.15.4 format filtering, address
-/// filtering, acking, and filtering based on the frame type.
+/// filtering, ACKing, and filtering based on the frame type.
 ///
 /// To configure IEEE 802.15.4 functionality, the application must first set up
 /// a RAIL instance with RAIL_Init() and other setup functions.
 /// Instead of RAIL_ConfigChannels(), however, an
 /// application may use RAIL_IEEE802154_Config2p4GHzRadio() to set up the
 /// official IEEE 2.4 GHz 802.15.4 PHY. This configuration is shown below.
+///
+/// 802.15.4 defines its macAckWaitDuration from the end of the transmitted
+/// packet to complete reception of the ACK. RAIL's ackTimeout only covers
+/// sync word detection of the ACK. Therefore, subtract the ACK's
+/// PHY header and payload time to get RAIL's ackTimeout setting.
+/// For 2.4 GHz OQPSK, macAckWaitDuration is specified as 54 symbols;
+/// subtracting 2-symbol PHY header and 10-symbol payload yields a RAIL
+/// ackTimeout of 42 symbols or 672 microseconds at 16 microseconds/symbol.
 ///
 /// @code{.c}
 /// static RAIL_Handle_t railHandle = NULL; // Initialized somewhere else.
@@ -45,7 +66,7 @@ extern "C" {
 ///   .addresses = NULL,
 ///   .ackConfig = {
 ///     .enable = true,     // Turn on auto ACK for IEEE 802.15.4.
-///     .ackTimeout = 864,  // 54 symbols * 16 us/symbol = 864 us.
+///     .ackTimeout = 672,  // See note above: 54-12 sym * 16 us/sym = 672 us.
 ///     .rxTransitions = {
 ///       .success = RAIL_RF_STATE_RX,  // Return to RX after ACK processing
 ///       .error = RAIL_RF_STATE_RX,    // Ignored
@@ -140,9 +161,9 @@ extern "C" {
 /// Auto ACK is controlled by the ackConfig and timings fields passed to
 /// RAIL_IEEE802154_Init(). After initialization they may be controlled
 /// using the normal \ref Auto_Ack and \ref State_Transitions APIs. When in IEEE
-/// 802.15.4 mode, the ACK will have a 5 byte length, the frame type will be set
-/// to ACK, and the frame pending bit will be set if
-/// RAIL_IEEE802154_SetFramePending() is called when the \ref
+/// 802.15.4 mode, the ACK will generally have a 5 byte length, its Frame Type
+/// will be ACK, its Frame Version 0 (2003), and its Frame Pending bit will be
+/// set if RAIL_IEEE802154_SetFramePending() is called when the \ref
 /// RAIL_EVENT_IEEE802154_DATA_REQUEST_COMMAND event is triggered. This event
 /// must be turned on by the user and will fire whenever a data request is being
 /// received so that the stack can determine whether there is pending data. Be
@@ -239,32 +260,32 @@ typedef struct RAIL_IEEE802154_Config {
    */
   const RAIL_IEEE802154_AddrConfig_t *addresses;
   /**
-   * Defines the acking configuration for the IEEE 802.15.4 implementation.
+   * Defines the ACKing configuration for the IEEE 802.15.4 implementation.
    */
   RAIL_AutoAckConfig_t ackConfig;
   /**
-   * Defines state timings for the IEEE 802.15.4 implementation.
+   * Define state timings for the IEEE 802.15.4 implementation.
    */
   RAIL_StateTiming_t timings;
   /**
-   * Sets which 802.15.4 frame types will be received, of Beacon, Data, ACK, and
+   * Set which 802.15.4 frame types will be received, of Beacon, Data, ACK, and
    * Command. This setting can be overridden via RAIL_IEEE802154_AcceptFrames().
    */
   uint8_t framesMask;
   /**
-   * Enables promiscuous mode during configuration. This can be overridden via
+   * Enable promiscuous mode during configuration. This can be overridden via
    * RAIL_IEEE802154_SetPromiscuousMode() afterwards.
    */
   bool promiscuousMode;
   /**
-   * Sets whether the device is a PAN Coordinator during configuration. This can
+   * Set whether the device is a PAN Coordinator during configuration. This can
    * be overridden via RAIL_IEEE802154_SetPanCoordinator() afterwards.
    */
   bool isPanCoordinator;
 } RAIL_IEEE802154_Config_t;
 
 /**
- * Initializes RAIL for IEEE802.15.4 features.
+ * Initialize RAIL for IEEE802.15.4 features.
  *
  * @param[in] railHandle A handle of RAIL instance.
  * @param[in] config An IEEE802154 configuration structure.
@@ -291,7 +312,7 @@ RAIL_Status_t RAIL_IEEE802154_Init(RAIL_Handle_t railHandle,
                                    const RAIL_IEEE802154_Config_t *config);
 
 /**
- * Configures the radio for 2.4GHz 802.15.4 operation.
+ * Configure the radio for 2.4 GHz 802.15.4 operation.
  *
  * @param[in] railHandle A handle of RAIL instance.
  * @return A status code indicating success of the function call.
@@ -304,7 +325,7 @@ RAIL_Status_t RAIL_IEEE802154_Init(RAIL_Handle_t railHandle,
 RAIL_Status_t RAIL_IEEE802154_Config2p4GHzRadio(RAIL_Handle_t railHandle);
 
 /**
- * Configures the radio for 2.4GHz 802.15.4 operation with antenna diversity.
+ * Configure the radio for 2.4 GHz 802.15.4 operation with antenna diversity.
  *
  * @param[in] railHandle A handle of RAIL instance.
  * @return A status code indicating success of the function call.
@@ -318,7 +339,7 @@ RAIL_Status_t RAIL_IEEE802154_Config2p4GHzRadio(RAIL_Handle_t railHandle);
 RAIL_Status_t RAIL_IEEE802154_Config2p4GHzRadioAntDiv(RAIL_Handle_t railHandle);
 
 /**
- * Configures the radio for 2.4GHz 802.15.4 operation with antenna diversity
+ * Configure the radio for 2.4 GHz 802.15.4 operation with antenna diversity
  * optimized for radio coexistence.
  *
  * @param[in] railHandle A handle of RAIL instance.
@@ -333,7 +354,7 @@ RAIL_Status_t RAIL_IEEE802154_Config2p4GHzRadioAntDiv(RAIL_Handle_t railHandle);
 RAIL_Status_t RAIL_IEEE802154_Config2p4GHzRadioAntDivCoex(RAIL_Handle_t railHandle);
 
 /**
- * Configures the radio for 2.4GHz 802.15.4 operation optimized for radio coexistence.
+ * Configure the radio for 2.4 GHz 802.15.4 operation optimized for radio coexistence.
  *
  * @param[in] railHandle A handle of RAIL instance.
  * @return A status code indicating success of the function call.
@@ -347,7 +368,7 @@ RAIL_Status_t RAIL_IEEE802154_Config2p4GHzRadioAntDivCoex(RAIL_Handle_t railHand
 RAIL_Status_t RAIL_IEEE802154_Config2p4GHzRadioCoex(RAIL_Handle_t railHandle);
 
 /**
- * Configures the radio for SubGHz GB868 863 MHz 802.15.4 operation.
+ * Configure the radio for SubGHz GB868 863 MHz 802.15.4 operation.
  *
  * @param[in] railHandle A handle of RAIL instance.
  * @return A status code indicating success of the function call.
@@ -362,7 +383,7 @@ RAIL_Status_t RAIL_IEEE802154_Config2p4GHzRadioCoex(RAIL_Handle_t railHandle);
 RAIL_Status_t RAIL_IEEE802154_ConfigGB863MHzRadio(RAIL_Handle_t railHandle);
 
 /**
- * Configures the radio for SubGHz GB868 915 MHz 802.15.4 operation.
+ * Configure the radio for SubGHz GB868 915 MHz 802.15.4 operation.
  *
  * @param[in] railHandle A handle of RAIL instance.
  * @return A status code indicating success of the function call.
@@ -376,7 +397,7 @@ RAIL_Status_t RAIL_IEEE802154_ConfigGB863MHzRadio(RAIL_Handle_t railHandle);
 RAIL_Status_t RAIL_IEEE802154_ConfigGB915MHzRadio(RAIL_Handle_t railHandle);
 
 /**
- * De-initializes IEEE802.15.4 hardware acceleration.
+ * De-initialize IEEE802.15.4 hardware acceleration.
  *
  * @param[in] railHandle A handle of RAIL instance.
  * @return A status code indicating success of the function call.
@@ -391,7 +412,7 @@ RAIL_Status_t RAIL_IEEE802154_ConfigGB915MHzRadio(RAIL_Handle_t railHandle);
 RAIL_Status_t RAIL_IEEE802154_Deinit(RAIL_Handle_t railHandle);
 
 /**
- * Returns whether IEEE802.15.4 hardware acceleration is currently enabled.
+ * Return whether IEEE802.15.4 hardware acceleration is currently enabled.
  *
  * @param[in] railHandle A handle of RAIL instance.
  * @return True if IEEE802.15.4 hardware acceleration was enabled to start with
@@ -400,7 +421,7 @@ RAIL_Status_t RAIL_IEEE802154_Deinit(RAIL_Handle_t railHandle);
 bool RAIL_IEEE802154_IsEnabled(RAIL_Handle_t railHandle);
 
 /**
- * Configures the RAIL Address Filter for 802.15.4 filtering.
+ * Configure the RAIL Address Filter for 802.15.4 filtering.
  *
  * @param[in] railHandle A handle of RAIL instance.
  * @param[in] addresses The address information that should be used.
@@ -434,7 +455,7 @@ RAIL_Status_t RAIL_IEEE802154_SetPanId(RAIL_Handle_t railHandle,
                                        uint8_t index);
 
 /**
- * Sets a short address for 802.15.4 address filtering.
+ * Set a short address for 802.15.4 address filtering.
  *
  * @param[in] railHandle A handle of RAIL instance
  * @param[in] shortAddr 16 bit short address value. This will be matched against the
@@ -453,7 +474,7 @@ RAIL_Status_t RAIL_IEEE802154_SetShortAddress(RAIL_Handle_t railHandle,
                                               uint8_t index);
 
 /**
- * Sets a long address for 802.15.4 address filtering.
+ * Set a long address for 802.15.4 address filtering.
  *
  * @param[in] railHandle A handle of RAIL instance.
  * @param[in] longAddr A pointer to an 8-byte array containing the long address
@@ -472,7 +493,7 @@ RAIL_Status_t RAIL_IEEE802154_SetLongAddress(RAIL_Handle_t railHandle,
                                              uint8_t index);
 
 /**
- * Sets whether the current node is a PAN coordinator.
+ * Set whether the current node is a PAN coordinator.
  *
  * @param[in] railHandle A handle of RAIL instance.
  * @param[in] isPanCoordinator True if this device is a PAN coordinator.
@@ -487,7 +508,7 @@ RAIL_Status_t RAIL_IEEE802154_SetPanCoordinator(RAIL_Handle_t railHandle,
                                                 bool isPanCoordinator);
 
 /**
- * Sets whether to enable 802.15.4 promiscuous mode.
+ * Set whether to enable 802.15.4 promiscuous mode.
  *
  * @param[in] railHandle A handle of RAIL instance.
  * @param[in] enable True if all frames and addresses should be accepted.
@@ -520,7 +541,7 @@ RAIL_ENUM_GENERIC(RAIL_IEEE802154_EOptions_t, uint32_t) {
 /**
  * An option to enable/disable 802.15.4E-2012 features needed for GB868.
  * When not promiscuous, RAIL normally accepts only 802.15.4 MAC frames
- * whose MAC Header Frame Version is 0 (802.15.4-2003) or 1 (802.15.4-2006),
+ * whose MAC header Frame Version is 0 (802.15.4-2003) or 1 (802.15.4-2006),
  * filtering out higher Frame Version packets (as \ref
  * RAIL_RX_PACKET_ABORT_FORMAT).
  * Enabling this feature additionally allows Frame Version 2 (802.15.4E-2012 /
@@ -535,7 +556,7 @@ RAIL_ENUM_GENERIC(RAIL_IEEE802154_EOptions_t, uint32_t) {
  *   RAIL_IEEE802154_E_OPTION_ENH_ACK on platforms that support
  *   that feature.
  *
- * @note This feature does not automatically enable receiving MULTIPURPOSE
+ * @note This feature does not automatically enable receiving Multipurpose
  *   frames; that can be enabled via RAIL_IEEE802154_AcceptFrames()'s
  *   \ref RAIL_IEEE802154_ACCEPT_MULTIPURPOSE_FRAMES.
  */
@@ -582,7 +603,7 @@ RAIL_ENUM_GENERIC(RAIL_IEEE802154_EOptions_t, uint32_t) {
 #define RAIL_IEEE802154_E_OPTIONS_ALL 0xFFFFFFFFUL
 
 /**
- * Configures certain 802.15.4E-2012 / 802.15.4-2015 Frame Version 2 features.
+ * Configure certain 802.15.4E-2012 / 802.15.4-2015 Frame Version 2 features.
  *
  * @param[in] railHandle A handle of RAIL instance.
  * @param[in] mask A bitmask containing which options should be modified.
@@ -617,11 +638,36 @@ RAIL_ENUM_GENERIC(RAIL_IEEE802154_GOptions_t, uint32_t) {
 /**
  * An option to enable/disable 802.15.4G-2012 features needed for GB868.
  * Normally RAIL supports 802.15.4-2003 and -2006 radio configurations
- * that have the single-byte PHY Header allowing frames up to 128 bytes
+ * that have the single-byte PHY header allowing frames up to 128 bytes
  * in size. This feature must be enabled for 802.15.4G-2012 or
  * 802.15.4-2015 SUN PHY radio configurations with the two-byte
- * bit-reversed PHY Header format.  GB868 only supports whitened non-FEC
- * non-mode-switch frames up to 129 bytes including 2-byte CRC.
+ * bit-reversed-length PHY header format.
+ *
+ * While GB868 only supports whitened non-FEC non-mode-switch frames
+ * up to 129 bytes including 2-byte CRC, this option also enables:
+ * - On platforms where \ref RAIL_FEAT_IEEE802154_G_4BYTE_CRC_SUPPORTED
+ *   is true: automatic per-packet 2/4-byte Frame Check Sequence (FCS)
+ *   reception and transmission based on the FCS Type bit in the
+ *   received/transmitted PHY header. This includes ACK reception
+ *   and automatically-generated ACKs reflect the CRC size of the
+ *   incoming frame being acknowledged (i.e. their MAC payload will be
+ *   increased to 7 bytes when sending 4-byte FCS).
+ *   On other platforms, only the 2-byte FCS is supported.
+ * - On platforms where \ref RAIL_FEAT_IEEE802154_G_UNWHITENED_RX_SUPPORTED
+ *   and/or \ref RAIL_FEAT_IEEE802154_G_UNWHITENED_TX_SUPPORTED are true:
+ *   automatic per-packet whitened/unwhitened reception and transmission,
+ *   respectively, based on the Data Whitening bit in the received/transmitted
+ *   PHY header. This includes ACK reception and automatically-generated ACKs
+ *   which reflect the whitening of the incoming frame being acknowledged.
+ *   On other platforms, only whitened frames are supported.
+ * - Support for frames up to 2049 bytes per the radio configuration's
+ *   maximum packet length setting.
+ *
+ * @note Sending/receiving whitened frames assumes the radio configuration
+ *   has established an appropriate 802.15.4-compliant whitening algorithm.
+ *   RAIL does not itself override the radio configuration's whitening
+ *   settings other than to enable/disable it per-packet based on the
+ *   packet's PHY header Data Whitening flag.
  */
 #define RAIL_IEEE802154_G_OPTION_GB868 (1UL << RAIL_IEEE802154_G_OPTION_GB868_SHIFT)
 
@@ -629,7 +675,7 @@ RAIL_ENUM_GENERIC(RAIL_IEEE802154_GOptions_t, uint32_t) {
 #define RAIL_IEEE802154_G_OPTIONS_ALL 0xFFFFFFFFUL
 
 /**
- * Configures certain 802.15.4G-2012 / 802.15.4-2015 SUN PHY features
+ * Configure certain 802.15.4G-2012 / 802.15.4-2015 SUN PHY features
  * (only for radio configurations designed accordingly).
  *
  * @param[in] railHandle A handle of RAIL instance.
@@ -659,7 +705,7 @@ RAIL_Status_t RAIL_IEEE802154_ConfigGOptions(RAIL_Handle_t railHandle,
 /// When receiving packets, accept 802.15.4 COMMAND frame types.
 #define RAIL_IEEE802154_ACCEPT_COMMAND_FRAMES      (0x08)
 // Reserved for possible future use:               (0x10)
-/// When receiving packets, accept 802.15.4-2015 MULTIPURPOSE frame types.
+/// When receiving packets, accept 802.15.4-2015 Multipurpose frame types.
 /// (Not supported on EFR32XG1.)
 #define RAIL_IEEE802154_ACCEPT_MULTIPURPOSE_FRAMES (0x20)
 
@@ -671,7 +717,7 @@ RAIL_Status_t RAIL_IEEE802154_ConfigGOptions(RAIL_Handle_t railHandle,
                                                 | RAIL_IEEE802154_ACCEPT_COMMAND_FRAMES)
 
 /**
- * Sets which 802.15.4 frame types to accept.
+ * Set which 802.15.4 frame types to accept.
  *
  * @param[in] railHandle A handle of RAIL instance.
  * @param[in] framesMask A mask containing which 802.15.4 frame types to receive.
@@ -680,22 +726,23 @@ RAIL_Status_t RAIL_IEEE802154_ConfigGOptions(RAIL_Handle_t railHandle,
  * This function will fail if 802.15.4 hardware acceleration is not currently
  * enabled or framesMask requests an unsupported frame type.
  * This setting may be changed at any time when 802.15.4 hardware
- * acceleration is enabled. Only Beacon, Data, ACK, Command, and MultiPurpose
+ * acceleration is enabled. Only Beacon, Data, ACK, Command, and Multipurpose
  * (except on EFR32XG1) frames may be received.
  * The RAIL_IEEE802154_ACCEPT_XXX_FRAMES defines may be combined to create a
  * bitmask to pass into this function.
  *
  * \ref RAIL_IEEE802154_ACCEPT_ACK_FRAMES behaves slightly different than the
  * other defines. If \ref RAIL_IEEE802154_ACCEPT_ACK_FRAMES is set, the radio
- * will accept an ACK frame during normal packet reception. If \ref
- * RAIL_IEEE802154_ACCEPT_ACK_FRAMES is not set, ACK frames will be filtered
- * unless they're expected when the radio is waiting for an ACK.
+ * will accept an ACK frame during normal packet reception, but only a
+ * truly expected ACK will have its \ref RAIL_RxPacketDetails_t::isAck true.
+ * If \ref RAIL_IEEE802154_ACCEPT_ACK_FRAMES is not set, ACK frames will be
+ * filtered unless they're expected when the radio is waiting for an ACK.
  */
 RAIL_Status_t RAIL_IEEE802154_AcceptFrames(RAIL_Handle_t railHandle,
                                            uint8_t framesMask);
 
 /**
- * Enables early Frame Pending lookup event notification
+ * Enable early Frame Pending lookup event notification
  * (RAIL_EVENT_IEEE802154_DATA_REQUEST_COMMAND).
  *
  * @param[in] railHandle A handle of RAIL instance.
@@ -705,13 +752,13 @@ RAIL_Status_t RAIL_IEEE802154_AcceptFrames(RAIL_Handle_t railHandle,
  * Normally RAIL_EVENT_IEEE802154_DATA_REQUEST_COMMAND is triggered after
  * receiving the entire MAC header for a MAC command and the MAC
  * command byte indicating the packet is a data request. Enabling this
- * feature causes this event to be triggered earlier, right after
- * receiving the source address information in the MAC header, allowing
- * for more time to perform the lookup and call RAIL_SetFramePending()
+ * feature causes this event to be triggered earlier, right after receiving
+ * the source address information in the MAC header, allowing for more time
+ * to perform the lookup and call \ref RAIL_IEEE802154_SetFramePending()
  * to set Frame Pending in the outgoing ACK for the incoming frame.
  * This feature is also necessary for handling 802.15.4 MAC-encrypted
  * frames where the MAC Command byte is encrypted (MAC Frame Version 2) --
- * see RAIL_IEEE802154_Enable154E().
+ * see \ref RAIL_IEEE802154_ConfigEOptions().
  *
  * This function will fail if 802.15.4 hardware acceleration is not
  * currently enabled, or on platforms that do not support this feature.
@@ -722,7 +769,7 @@ RAIL_Status_t RAIL_IEEE802154_EnableEarlyFramePending(RAIL_Handle_t railHandle,
                                                       bool enable);
 
 /**
- * Enables Frame Pending lookup event notification
+ * Enable Frame Pending lookup event notification
  * (RAIL_EVENT_IEEE802154_DATA_REQUEST_COMMAND) for MAC Data frames.
  *
  * @param[in] railHandle A handle of RAIL instance.
@@ -744,7 +791,7 @@ RAIL_Status_t RAIL_IEEE802154_EnableDataFramePending(RAIL_Handle_t railHandle,
                                                      bool enable);
 
 /**
- * Sets the frame pending bit on the outgoing legacy Immediate ACK.
+ * Set the frame pending bit on the outgoing legacy Immediate ACK.
  *
  * @param[in] railHandle A handle of RAIL instance.
  * @return A status code indicating success of the function call.
@@ -759,7 +806,7 @@ RAIL_Status_t RAIL_IEEE802154_EnableDataFramePending(RAIL_Handle_t railHandle,
 RAIL_Status_t RAIL_IEEE802154_SetFramePending(RAIL_Handle_t railHandle);
 
 /**
- * Gets the source address of the incoming data request.
+ * Get the source address of the incoming data request.
  *
  * @param[in] railHandle A RAIL instance handle.
  * @param[out] pAddress A pointer to \ref RAIL_IEEE802154_Address_t structure
@@ -775,11 +822,11 @@ RAIL_Status_t RAIL_IEEE802154_GetAddress(RAIL_Handle_t railHandle,
                                          RAIL_IEEE802154_Address_t *pAddress);
 
 /**
- * Writes the AutoACK FIFO for the next outgoing 802.15.4E Enhanced ACK.
+ * Write the AutoACK FIFO for the next outgoing 802.15.4E Enhanced ACK.
  *
  * @param[in] railHandle A handle of RAIL instance.
- * @param[in] ackData Pointer to ack data to transmit
- * @param[in] ackDataLen Length of ack data, in bytes
+ * @param[in] ackData Pointer to ACK data to transmit
+ * @param[in] ackDataLen Length of ACK data, in bytes
  * @return A status code indicating success of the function call.
  *
  * This function sets the AutoACK data to use in acknowledging the frame
@@ -799,6 +846,36 @@ RAIL_Status_t RAIL_IEEE802154_GetAddress(RAIL_Handle_t railHandle,
 RAIL_Status_t RAIL_IEEE802154_WriteEnhAck(RAIL_Handle_t railHandle,
                                           const uint8_t *ackData,
                                           uint8_t ackDataLen);
+
+/**
+ * Convert RSSI into 802.15.4 Link Quality Indication (LQI) metric
+ * compatible with the Silicon Labs Zigbee stack.
+ *
+ * @param[in] origLqi The original LQI, for example from
+ *   \ref RAIL_RxPacketDetails_t::lqi.
+ *   This parameter is not currently used but may be used in the future.
+ * @param[in] rssiDbm The RSSI in dBm, for example from
+ *   \ref RAIL_RxPacketDetails_t::rssi.
+ * @return An LQI value (range 0..255 but not all intermediate values are
+ *   possible) based on the rssiDbm and the chip's RSSI sensitivity range.
+ *
+ * This function is compatible with \ref RAIL_ConvertLqiCallback_t and
+ * is suitable to pass to \ref RAIL_ConvertLqi().
+ */
+uint8_t RAIL_IEEE802154_ConvertRssiToLqi(uint8_t origLqi, int8_t rssiDbm);
+
+/**
+ * Convert RSSI into 802.15.4 Energy Detection (ED) metric
+ * compatible with the Silicon Labs Zigbee stack.
+ *
+ * @param[in] rssiDbm The RSSI in dBm, for example from
+ *   \ref RAIL_RxPacketDetails_t::rssi.
+ * @return An Energy Detect value (range 0..255 but not all intermediate
+ *   values are possible) based on the rssiDbm and the chip's RSSI
+ *   sensitivity range.
+ */
+uint8_t RAIL_IEEE802154_ConvertRssiToEd(int8_t rssiDbm);
+
 /** @} */ // end of IEEE802.15.4
 
 #ifdef __cplusplus

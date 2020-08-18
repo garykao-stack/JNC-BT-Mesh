@@ -41,7 +41,7 @@ void DeviceBusInit()
 void DeviceAllInit()
 {TraceProc();
     //AD7147Init(); 
-    WaterLevelMeshInit();
+    //WaterLevelMeshInit();
     ComPortInit();
     
 }

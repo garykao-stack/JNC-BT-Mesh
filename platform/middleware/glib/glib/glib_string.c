@@ -58,7 +58,7 @@ EMSTATUS GLIB_drawChar(GLIB_Context_t *pContext, char myChar, int32_t x, int32_t
   uint16_t *pPixMap16;
   uint32_t *pPixMap32;
   uint16_t row;
-  uint16_t currentRow;
+  uint32_t currentRow;
   uint16_t xOffset;
   uint32_t drawnElements = 0;
 

@@ -55,17 +55,62 @@ void led_set_state(uint8_t state);
 #define LED0        0
 #define LED1        1
 
-#if BOARD_JNC_SERVER_T3
-#define LED_ON      GPIO_PinOutSet
-#define LED_OFF     GPIO_PinOutClear
+#define LED_RED     0
+#define LED_BLUE    1
+
+
+#if BOARD_T3_SIMULATION || BOARD_T3
+#define LED_ON_FUN      GPIO_PinOutSet
+#define LED_OFF_FUN     GPIO_PinOutClear
+#define LED_ON          HIGH
+#define LED_OFF         LOW
+
 #else
-#define LED_ON      GPIO_PinOutClear
-#define LED_OFF     GPIO_PinOutSet
+#define LED_ON_FUN      GPIO_PinOutClear
+#define LED_OFF_FUN     GPIO_PinOutSet
+#define LED_ON          LOW
+#define LED_OFF         HIGH
+
 #endif
 
 
-#define LED_SLEEP   LED0
-#define LED_ACTIVE  LED1
+
+#define LED_SERVER          LED0
+#define LED_CLIENT          LED1
+#define LED_GET_INFO        LED0
+#define LED_BT_TEMP_HUM     LED0
+#define LED_OTHER_TEMP_HUM  LED1
+#define LED_IVI_UPDATE      LED1
+
+
+#define LedOnClient()       SetLed(LED_CLIENT,LED_ON)
+#define LedOffClient()      SetLed(LED_CLIENT,LED_OFF)
+#define LedOnServer()       SetLed(LED_SERVER,LED_ON)
+#define LedOffServer()      SetLed(LED_SERVER,LED_OFF)
+#define LedOnGetReg()       SetLed(LED_GET_INFO,LED_ON)
+#define LedOffGetReg()      SetLed(LED_GET_INFO,LED_OFF)
+
+#define LedOnBtTempHum()    SetLed(LED_BT_TEMP_HUM,LED_ON)
+#define LedOffBtTempHum()   SetLed(LED_BT_TEMP_HUM,LED_OFF)
+#define LedOnOtherTempHum()  SetLed(LED_OTHER_TEMP_HUM,LED_ON)
+#define LedOffOtherTempHum() SetLed(LED_OTHER_TEMP_HUM,LED_OFF)
+
+
+
+#define LedClientSendCmd()      {LedOffClient(); Delay_ms(500); LedOnClient();}
+#define LedClientGetRegInfo()   {LedOnGetReg();  Delay_ms(10); LedOffGetReg();}
+
+#define LedBtTempHum()          {LedOnBtTempHum();  Delay_ms(500); LedOffBtTempHum();Delay_ms(500); \
+                                 LedOnBtTempHum();  Delay_ms(500); LedOffBtTempHum();Delay_ms(500); \
+                                 LedOnBtTempHum();  Delay_ms(500); LedOffBtTempHum();}
+#define LedDevTempHum()         {LedOnOtherTempHum(); Delay_ms(500); LedOffOtherTempHum();Delay_ms(500);\
+                                 LedOnOtherTempHum(); Delay_ms(500); LedOffOtherTempHum();Delay_ms(500);\
+                                 LedOnOtherTempHum(); Delay_ms(500); LedOffOtherTempHum();}
+
+
+
+#define LED_SLEEP           LED0
+#define LED_ACTIVE          LED1
 
 #define LED_STATUS_OFF              0   //All OFF
 #define LED_STATUS_ON               1   //ALL ON
@@ -74,10 +119,25 @@ void led_set_state(uint8_t state);
 #define LED_STATUS_ACTIVE           3
 #define LED_STATUS_CLIENT_SEND      4
 #define LED_STATUS_CLIENT_RECEIVE   5
+#define LED_STATUS_TOGGLE           6
+
+#define LED_STATUS_UNPROV           7
+#define LED_STATUS_START_PROV       8
+#define LED_STATUS_PROVING          9
+
+#define LED_STATUS_IVI_UPDATE_ON    10
+#define LED_STATUS_IVI_UPDATE_OFF   11
+#define LED_STATUS_SERVER_TO_CLIENT   12
+
+
+
+
+
 
 
 void SetLed(uchar led_num, uchar status);
 void SetLedStatus(uchar status);
+void SetLedToggle(uchar led);
 
 
 

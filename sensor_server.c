@@ -24,6 +24,9 @@
 /* Sensor headers */
 #include "people_count_sensor.h"
 #include "temperature_sensor.h"
+#include "bus_usart.h"
+#include "modbus_to_mesh.h"
+#include "cmd_to_bt_mesh.h"
 
 /***************************************************************************//**
  * @addtogroup Sensor
@@ -76,37 +79,23 @@ static const sensor_descriptor_t descriptors[NUMBER_OF_SENSORS] = // define prop
         .update_interval = UPDATE_INTERVAL_UNDEFINED
     },
     {
-        .property_id = BT_MODBUS_REG0,
+        .property_id = MODBUS_FC4_REG0,
         .positive_tolerance = TOLERANCE_UNSPECIFIED,
         .negative_tolerance = TOLERANCE_UNSPECIFIED,
         .sampling_function = SAMPLING_UNSPECIFIED,
         .measurement_period = MEASUREMENT_PERIOD_UNDEFINED,
         .update_interval = UPDATE_INTERVAL_UNDEFINED
     },
+
     {
-        .property_id = BT_MODBUS_REG1,
+        .property_id = MODBUS_GET_REGS_VALUE,
         .positive_tolerance = TOLERANCE_UNSPECIFIED,
         .negative_tolerance = TOLERANCE_UNSPECIFIED,
         .sampling_function = SAMPLING_UNSPECIFIED,
         .measurement_period = MEASUREMENT_PERIOD_UNDEFINED,
         .update_interval = UPDATE_INTERVAL_UNDEFINED
     },
-    {
-        .property_id = BT_MODBUS_REG2,
-        .positive_tolerance = TOLERANCE_UNSPECIFIED,
-        .negative_tolerance = TOLERANCE_UNSPECIFIED,
-        .sampling_function = SAMPLING_UNSPECIFIED,
-        .measurement_period = MEASUREMENT_PERIOD_UNDEFINED,
-        .update_interval = UPDATE_INTERVAL_UNDEFINED
-    },
-    {
-        .property_id = BT_MODBUS_REG3,
-        .positive_tolerance = TOLERANCE_UNSPECIFIED,
-        .negative_tolerance = TOLERANCE_UNSPECIFIED,
-        .sampling_function = SAMPLING_UNSPECIFIED,
-        .measurement_period = MEASUREMENT_PERIOD_UNDEFINED,
-        .update_interval = UPDATE_INTERVAL_UNDEFINED
-    },
+
         
     {
         .property_id = DEVICE_FIRMWARE_REVISION,
@@ -143,16 +132,25 @@ uint32 EvtSensorServerEventsProc(PCmdPacket pCmdEvent)
             EvtServerGetRequestProc(pCmdEvent);            
             //SetTaskWork(DeviceSleeping,DEVICE_TASK_ON);
             DeviceSleeping();
-            //SetEventTaskTimer(TIMER_ID_SERVER_SLEEPING,CYCLE_GOTO_SLEEPING,TIMER_EVENT_ONCE); // to sleeping
+            //SetEventTaskTimer(TD_SERVER_SLEEPING,CYCLE_GOTO_SLEEPING,TIMER_EVENT_ONCE); // to sleeping
             break;
+#if MESH_COLUME_ENABLE
+            
         case Evt_ms_server_get_column_req: Trace("Evt_ms_server_get_column_req");
             EvtServerGetColumeRequest(pCmdEvent);
             break;
         case Evt_ms_server_get_series_req: Trace("Evt_ms_server_get_series_req");
             EvtServerGetSeriesReqest(pCmdEvent);
             break;
-        case Evt_ms_server_publish: //Trace("Evt_ms_server_publish Must Modify/OFF Timing"); // Bug richard
+#endif
+            
+        case Evt_ms_server_publish: 
+            
+#ifdef SERVER_AUTO_PUBLISH    
+            Trace("Evt_ms_server_publish Must Modify/OFF Timing"); // Bug richard
             EvtServerPubEvent(pCmdEvent);
+#endif
+            
             break;
         case Evt_ms_setup_server_get_cadence_req: Trace("Evt_ms_setup_server_get_cadence_req");
             EvtSetupServerGetCadenceRequst(pCmdEvent);
@@ -166,11 +164,12 @@ uint32 EvtSensorServerEventsProc(PCmdPacket pCmdEvent)
         case Evt_ms_setup_server_get_setting_req: Trace("Evt_ms_setup_server_get_setting_req");
             EvtSetupServerGetSettingRequest(pCmdEvent);
             break;
-        case Evt_ms_setup_server_set_setting_req: Trace("Evt_ms_server_get_column_req");
+        case Evt_ms_setup_server_set_setting_req: Trace("Evt_ms_setup_server_set_setting_req");
             EvtSetupServerSetSettingRequest(pCmdEvent);
             break;
             
-        default:  break;
+        default:  TraceErr("EvtSensorServerEventsProc");
+        break;
     }
     
     return ret_code;
@@ -226,7 +225,8 @@ void EvtServerGetRequestProc(   PCmdPacket pCmdEvent)
 {TraceProc() ;
     //Trace("gecko_evt_mesh_sensor_server_get_request_id");
     msg_ms_server_get_request_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_server_get_request);
-    uint8_t sensor_data[5];
+    uint8_t sensor_data[10];
+    //uint8_t sensor_data[30];
     uint8_t len = 0;
     Trace16_1(pEvent->property_id);
     if((pEvent->property_id == PEOPLE_COUNT) || (pEvent->property_id == 0))
@@ -248,31 +248,19 @@ void EvtServerGetRequestProc(   PCmdPacket pCmdEvent)
         len += mesh_sensor_data_to_buf(JNC_TEMP_RH, &sensor_data[len], (uint8_t *)&temp_rh);
     }
    
-    if((pEvent->property_id == BT_MODBUS_REG0) || (pEvent->property_id == 0))
+    if((pEvent->property_id == MODBUS_FC4_REG0) || (pEvent->property_id == 0))
      {
          uint16 modbus_reg = GetDevModbusInfo(0);
          Trace1("modbus_reg 0", modbus_reg);
-         len += mesh_sensor_data_to_buf(BT_MODBUS_REG0, &sensor_data[len], (uint8_t *)&modbus_reg);
+         len += mesh_sensor_data_to_buf(MODBUS_FC4_REG0, &sensor_data[len], (uint8_t *)&modbus_reg);
      }
-    if((pEvent->property_id == BT_MODBUS_REG1) || (pEvent->property_id == 0))
+    
+    if((pEvent->property_id == MODBUS_GET_REGS_VALUE) || (pEvent->property_id == 0))
      {
-         uint16 modbus_reg = GetDevModbusInfo(1);
-         Trace1("modbus_reg 1", modbus_reg);
-         len += mesh_sensor_data_to_buf(BT_MODBUS_REG1, &sensor_data[len], (uint8_t *)&modbus_reg);
+        ServerGetReguset(pCmdEvent);
+       // ServerSendDataToClient(pCmdEvent,1); 
+        return;
      }
-    if((pEvent->property_id == BT_MODBUS_REG2) || (pEvent->property_id == 0))
-     {
-         uint16 modbus_reg = GetDevModbusInfo(2);
-         Trace1("modbus_reg 2", modbus_reg);
-         len += mesh_sensor_data_to_buf(BT_MODBUS_REG2, &sensor_data[len], (uint8_t *)&modbus_reg);
-     }
-    if((pEvent->property_id == BT_MODBUS_REG3) || (pEvent->property_id == 0))
-     {
-         uint16 modbus_reg = GetDevModbusInfo(3);
-         Trace1("modbus_reg 3", modbus_reg);
-         len += mesh_sensor_data_to_buf(BT_MODBUS_REG3, &sensor_data[len], (uint8_t *)&modbus_reg);
-     }
-
 
     if(len > 0)
     {
@@ -289,6 +277,8 @@ void EvtServerGetRequestProc(   PCmdPacket pCmdEvent)
 
 
 
+#if MESH_COLUME_ENABLE
+
 
 /***************************************************************************
  * Handling of sensor server get column request event.
@@ -301,7 +291,7 @@ void EvtServerGetRequestProc(   PCmdPacket pCmdEvent)
 void ModBusCmdToDevice(void);
 
 
-uchar DeviceModBusID=1;//2; //1;
+uchar DeviceModBusID=1;//1;//2; //1;
 
 void EvtServerGetColumeRequest(PCmdPacket pCmdEvent)
 { TraceProc() ;
@@ -344,6 +334,9 @@ void EvtServerGetSeriesReqest(PCmdPacket pCmdEvent)
   //                                pEvent->property_id, 0, NULL);
 }
 
+#endif // MESH_COLUME_ENABLE
+
+
 /***************************************************************************
  * Handling of sensor server publish event.
  * It is used to signal the elapse of the publish period, when the server app
@@ -357,8 +350,8 @@ void EvtServerPubEvent(PCmdPacket pCmdEvent)
     msg_ms_server_publish_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_server_publish);
     uint8_t sensor_data[32];
     uint8_t len = 0;
-
-    //TraceErr("EvtServerPubEvent: must adjust timer xxx ms");
+    TraceDec2("EvtServerPubEvent",pEvent->elem_index,pEvent->period_ms);
+    ServerPubModbusRegs();
     return;
 
     count16_t people_count = get_people_count();
@@ -369,7 +362,9 @@ void EvtServerPubEvent(PCmdPacket pCmdEvent)
 
     if(len > 0)
     {
+        Trace("Public Temp&RH");
         Cmd_ms_server_send_status(SENSOR_ELEMENT, PUBLISH_ADDRESS, IGNORED, NO_FLAGS, len, sensor_data);
+        //Cmd_ms_server_send_status(SENSOR_ELEMENT, 0x25, 1, NO_FLAGS, len, sensor_data);
     }
 }
 
@@ -430,6 +425,12 @@ void EvtSetupServerGetSettingsRequest(PCmdPacket pCmdEvent)
 void EvtSetupServerGetSettingRequest(    PCmdPacket pCmdEvent)
 {TraceProc() ;
     msg_ms_setup_server_get_setting_request_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_setup_server_get_setting_request);    
+    ServerGetRegusetToClient(pCmdEvent); 
+    return;
+
+
+
+       
     Cmd_ms_setup_server_send_setting_status(SENSOR_ELEMENT, pEvent->client_address, pEvent->appkey_index,
                                             NO_FLAGS, pEvent->property_id, pEvent->setting_id, 0, NULL);
 }
@@ -444,8 +445,28 @@ void EvtSetupServerGetSettingRequest(    PCmdPacket pCmdEvent)
  ******************************************************************************/
 void EvtSetupServerSetSettingRequest(    PCmdPacket pCmdEvent)
 {TraceProc() ;
+
     msg_ms_setup_server_set_setting_request_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_setup_server_set_setting_request);
+    ServerSetDevice(pEvent);
+    return;
+
+
+
+    
+
+
+    uint32 test=0x11223344;
+    
+    Trace16Ptr_4(pEvent, client_address, flags, property_id, setting_id);
+    PrintDataByte("Setup Data", (PUCHAR)&pEvent->raw_value.data, (UINT)pEvent->raw_value.len);
+    
     Cmd_ms_setup_server_send_setting_status(SENSOR_ELEMENT, pEvent->client_address, pEvent->appkey_index,
-                                            NO_FLAGS, pEvent->property_id, pEvent->setting_id, 0, NULL);
+                                            NO_FLAGS, pEvent->property_id, pEvent->setting_id, 4, (uint8*)&test);
 }
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
 

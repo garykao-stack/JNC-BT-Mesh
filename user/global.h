@@ -4,10 +4,24 @@
  *  Author: richard.huang
  */
 
-#define FW_VER              90 // ==> 0.90
-#define HW_VER              90
+
+// 0.91 ==> 20200407
+// 0.92 ==> 200422
+// 0.93 ==> Add Server Setup Model
+// 0.94 ==> 1.Modify Delay function
+// 0.96 ==> 1. Modify Modbus pointer error, 2. Modbus Reg Reflash about 10~15 minute
+// 0.97 ==> 1. modify USART reponse Timer 2sec
+// 0.98 ==> Add BT Mesh Tempature & Humidity: LED1(Red) Reflash ==> Mesh Tempature& Humidify ON, LED2 Reflash(Blue) Device Temp&Hum ON
+// 0.99 ==> for BT Mesh IV Index Update
+// 0.995 ==> 1. modify USART Tx lose Error 2.
+// 0.996 ==> Modify HardFault Error
+
+#define FW_VER              100 //99.5//98 //97 //94 // ==> 0.90
+#define HW_VER              100
 #define DEVICE_NAME         "JNC-BT-Mesh"
 #define MANUFACTORY_NAME    "JNC"
+#define NODE_DATA_ID        0xA5A5
+
 
 
 #ifndef _GLOBAL_H_
@@ -20,7 +34,6 @@
 #else
 #define Printf(fmt,...) //(0)
 #endif
-
 
 
 
@@ -56,7 +69,7 @@
 #include "ble_msg.h"
 #include "cmd_rsp_evt.h"
 #include "ble_comm.h"
-
+#include "node_data.h"
 #include "ble_event.h"
 #include "mesh_event.h"
 
@@ -112,8 +125,9 @@ typedef struct _EventIDToString_
         Printf("%s\r\n",str)
 #define TraceStr(str1,str2) \
         Printf("%s = %s\r\n",str1,str2)
-#define TraceOk(str) \
-                Printf("\r\nOK! ** %s **\r\n",str)
+#define TraceOk(str)    Printf("\r\nOK! ** %s **\r\n",str)
+#define TraceOk1(str,v1)    Printf("\r\nOK!** %s Vaule=%Xh **\r\n",str,v1)
+
 
 #define TraceErr(str) \
         Printf("\r\n\r\nError! ==**** %s ****==\r\n\r\n",str)
@@ -132,7 +146,7 @@ typedef struct _EventIDToString_
 #define TraceDec1(str,v1) \
         Printf("%s = %ld\r\n",str,(uint32)v1)
 #define TraceDec2(str,v1,v2) \
-        Printf("%s = %ld %s=%ld\r\n",str,(uint32)v1,#v2,(uint32)v2)
+        Printf("%s %s= %ld %s=%ld\r\n",str,#v1,(uint32)v1,#v2,(uint32)v2)
 #define TraceDec3(str,v1,v2,v3) \
         Printf("%s: %s = %ld %s=%ld %s=%ld\r\n",str,#v1,(uint32)v1,#v2,(uint32)v2,#v3,(uint32)v3)
 #define TraceDec4(str,v1,v2,v3,v4) \
@@ -199,16 +213,31 @@ void EventIDtoString(uint32 header);
 
 
 void PrintData(PCHAR pTitle,PUINT16 pbuff, UINT len);
-void PrintDataLen(PCHAR pTitle,PUINT16 pbuff,uint16 size, uchar len);
-void PrintDataLenDec(PCHAR pTitle,PUINT16 pbuff,uint16 size, uchar len);
-
-
 void PrintDataByte(char *pTitle,BYTE* pbuff, UINT len);
 void PrintDataDec(char *pTitle,WORD* pbuff, UINT len);
-
 void PrintDataType(PCHAR pString,PUCHAR pBuff,int size,uchar type);
-void PrintData1(PUCHAR pCmdID, uchar size);
+void PrintDataLen(PCHAR pTitle,PUINT16 pbuff,uint16 size, uchar len);
+void PrintDataLenDec(PCHAR pTitle,PUINT16 pbuff,uint16 size, uchar len);
+void PrintArray8(uint8array *pArrayBuff,int type);
 uint16 ShowResult(char* pString, uint16 result );
+
+
+#ifndef DEBUG_PRINT 
+
+#define PrintData(a,b,c) 
+#define PrintDataByte(a,b,c) 
+#define PrintDataDec(a,b,c) 
+#define PrintDataType(a,b,c,d) 
+#define PrintDataLen(a,b,c,d) 
+#define PrintDataLenDec(a,b,c,d) 
+#define PrintArray8(a,b) 
+#define ShowResult(a,b) 
+
+
+#endif
+
+
+
 void SetStatusOn(uint32 status);
 void SetStatusOff(uint32 status);
 void SetNodeStatus(uint32 status,uchar on_off);
@@ -217,7 +246,8 @@ uint16 WordSwap(uint16 value);
 void WordSwapBuff(PUINT16 pBuff,uchar size);
 
 void JtagStatus(uchar status);
-uint ModbusRtu_CRC16(uchar *updata,uint len);
+uint16   ModbusRtu_CRC16(uchar *updata,uint16 len);
+
 
 
 #define USER_ID_MAX_NUM      16

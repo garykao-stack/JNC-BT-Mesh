@@ -182,6 +182,9 @@
           <name>CCDefines</name>
           <state>BGM13P32F512GA</state>
 <state>MESH_LIB_NATIVE</state>
+<state>NVM3_DEFAULT_MAX_OBJECT_SIZE=512</state>
+<state>ENABLE_LOGGING</state>
+<state>NVM3_DEFAULT_NVM_SIZE=24576</state>
 <state>HAL_CONFIG=1</state>
 
         </option>
@@ -317,6 +320,10 @@
 <state>$PROJ_DIR$/../protocol\bluetooth\bt_mesh\inc\soc</state>
 <state>$PROJ_DIR$/../protocol\bluetooth\bt_mesh\inc</state>
 <state>$PROJ_DIR$/../.</state>
+<state>$PROJ_DIR$/../platform\common\inc</state>
+<state>$PROJ_DIR$/../platform\service\sleeptimer\config</state>
+<state>$PROJ_DIR$/../platform\service\sleeptimer\inc</state>
+<state>$PROJ_DIR$/../platform\service\sleeptimer\src</state>
 <state>$PROJ_DIR$/../platform\emlib\inc</state>
 <state>$PROJ_DIR$/../platform\Device\SiliconLabs\BGM13\Include</state>
 <state>$PROJ_DIR$/../hardware\module\config</state>
@@ -325,6 +332,11 @@
 <state>$PROJ_DIR$/../platform\emdrv\uartdrv\inc</state>
 <state>$PROJ_DIR$/../platform\emdrv\gpiointerrupt\inc</state>
 <state>$PROJ_DIR$/../platform\CMSIS\Include</state>
+<state>$PROJ_DIR$/../platform\emdrv\nvm3\inc</state>
+<state>$PROJ_DIR$/../protocol\bluetooth\ble_stack\inc\soc</state>
+<state>$PROJ_DIR$/../platform\radio\rail_lib\plugin\coexistence\hal\efr32</state>
+<state>$PROJ_DIR$/../platform\radio\rail_lib\plugin\coexistence\common</state>
+<state>$PROJ_DIR$/../platform\radio\rail_lib\plugin</state>
 <state>$PROJ_DIR$/../platform\radio\rail_lib\common</state>
 <state>$PROJ_DIR$/../platform\radio\rail_lib\chip\efr32\efr32xg1x</state>
 <state>$PROJ_DIR$/../platform\radio\rail_lib\protocol\ble</state>
@@ -635,7 +647,7 @@
         </option>
         <option>
           <name>OOCOutputFile</name>
-          <state>soc-btmesh-sensor-server.bin</state>
+          <state>soc-btmesh-sensor-client.bin</state>
         </option>
         <option>
           <name>OOCCommandLineProducer</name>
@@ -698,7 +710,7 @@
         </option>
         <option>
           <name>IlinkOutputFile</name>
-          <state>soc-btmesh-sensor-server.out</state>
+          <state>soc-btmesh-sensor-client.out</state>
         </option>
         <option>
           <name>IlinkDebugInfoEnable</name>
@@ -1175,6 +1187,9 @@
           <name>CCDefines</name>
           <state>BGM13P32F512GA</state>
 <state>MESH_LIB_NATIVE</state>
+<state>NVM3_DEFAULT_MAX_OBJECT_SIZE=512</state>
+<state>ENABLE_LOGGING</state>
+<state>NVM3_DEFAULT_NVM_SIZE=24576</state>
 <state>HAL_CONFIG=1</state>
 
         </option>
@@ -1310,6 +1325,10 @@
 <state>$PROJ_DIR$/../protocol\bluetooth\bt_mesh\inc\soc</state>
 <state>$PROJ_DIR$/../protocol\bluetooth\bt_mesh\inc</state>
 <state>$PROJ_DIR$/../.</state>
+<state>$PROJ_DIR$/../platform\common\inc</state>
+<state>$PROJ_DIR$/../platform\service\sleeptimer\config</state>
+<state>$PROJ_DIR$/../platform\service\sleeptimer\inc</state>
+<state>$PROJ_DIR$/../platform\service\sleeptimer\src</state>
 <state>$PROJ_DIR$/../platform\emlib\inc</state>
 <state>$PROJ_DIR$/../platform\Device\SiliconLabs\BGM13\Include</state>
 <state>$PROJ_DIR$/../hardware\module\config</state>
@@ -1318,6 +1337,11 @@
 <state>$PROJ_DIR$/../platform\emdrv\uartdrv\inc</state>
 <state>$PROJ_DIR$/../platform\emdrv\gpiointerrupt\inc</state>
 <state>$PROJ_DIR$/../platform\CMSIS\Include</state>
+<state>$PROJ_DIR$/../platform\emdrv\nvm3\inc</state>
+<state>$PROJ_DIR$/../protocol\bluetooth\ble_stack\inc\soc</state>
+<state>$PROJ_DIR$/../platform\radio\rail_lib\plugin\coexistence\hal\efr32</state>
+<state>$PROJ_DIR$/../platform\radio\rail_lib\plugin\coexistence\common</state>
+<state>$PROJ_DIR$/../platform\radio\rail_lib\plugin</state>
 <state>$PROJ_DIR$/../platform\radio\rail_lib\common</state>
 <state>$PROJ_DIR$/../platform\radio\rail_lib\chip\efr32\efr32xg1x</state>
 <state>$PROJ_DIR$/../platform\radio\rail_lib\protocol\ble</state>
@@ -1628,7 +1652,7 @@
         </option>
         <option>
           <name>OOCOutputFile</name>
-          <state>soc-btmesh-sensor-server.bin</state>
+          <state>soc-btmesh-sensor-client.bin</state>
         </option>
         <option>
           <name>OOCCommandLineProducer</name>
@@ -1691,7 +1715,7 @@
         </option>
         <option>
           <name>IlinkOutputFile</name>
-          <state>soc-btmesh-sensor-server.out</state>
+          <state>soc-btmesh-sensor-client.out</state>
         </option>
         <option>
           <name>IlinkDebugInfoEnable</name>
@@ -1999,13 +2023,10 @@
   <name>$PROJ_DIR$/../protocol\bluetooth\lib\EFR32XG13X\IAR\libbluetooth_mesh.a</name>
 </file>
 <file>
-  <name>$PROJ_DIR$/../protocol\bluetooth\lib\EFR32XG13X\IAR\libcoex.a</name>
-</file>
-<file>
   <name>$PROJ_DIR$/../protocol\bluetooth\lib\EFR32XG13X\IAR\binapploader.o</name>
 </file>
 <file>
-  <name>$PROJ_DIR$/../protocol\bluetooth\lib\EFR32XG13X\IAR\libpsstore.a</name>
+  <name>$PROJ_DIR$/../platform\emdrv\nvm3\lib\libnvm3_CM4_iar.a</name>
 </file>
 <file>
   <name>$PROJ_DIR$/../platform\radio\rail_lib\autogen\librail_release\librail_config_bgm13p32f512ga_iar.a</name>
@@ -2025,16 +2046,10 @@
   <name>$PROJ_DIR$/../protocol\bluetooth\bt_mesh\src\mesh_sensor.c</name>
 </file>
 <file>
-  <name>$PROJ_DIR$/../temperature_sensor.c</name>
-</file>
-<file>
   <name>$PROJ_DIR$/../main.c</name>
 </file>
 <file>
-  <name>$PROJ_DIR$/../sensor.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../people_count_sensor.c</name>
+  <name>$PROJ_DIR$/../sensor_client.c</name>
 </file>
 <file>
   <name>$PROJ_DIR$/../app.c</name>
@@ -2059,6 +2074,12 @@
 </file>
 <file>
   <name>$PROJ_DIR$/../lcd_driver.c</name>
+</file>
+<file>
+  <name>$PROJ_DIR$/../platform\service\sleeptimer\src\sl_sleeptimer.c</name>
+</file>
+<file>
+  <name>$PROJ_DIR$/../platform\service\sleeptimer\src\sl_sleeptimer_hal_rtcc.c</name>
 </file>
 <file>
   <name>$PROJ_DIR$/../platform\emlib\src\em_assert.c</name>
@@ -2118,7 +2139,28 @@
   <name>$PROJ_DIR$/../platform\emdrv\sleep\src\sleep.c</name>
 </file>
 <file>
+  <name>$PROJ_DIR$/../platform\emdrv\nvm3\src\nvm3_default.c</name>
+</file>
+<file>
+  <name>$PROJ_DIR$/../platform\emdrv\nvm3\src\nvm3_hal_flash.c</name>
+</file>
+<file>
+  <name>$PROJ_DIR$/../platform\emdrv\nvm3\src\nvm3_lock.c</name>
+</file>
+<file>
   <name>$PROJ_DIR$/../pti.c</name>
+</file>
+<file>
+  <name>$PROJ_DIR$/../protocol\bluetooth\ble_stack\src\soc\coexistence-ble.c</name>
+</file>
+<file>
+  <name>$PROJ_DIR$/../protocol\bluetooth\ble_stack\src\soc\coexistence_counters-ble.c</name>
+</file>
+<file>
+  <name>$PROJ_DIR$/../platform\radio\rail_lib\plugin\coexistence\hal\efr32\coexistence-hal.c</name>
+</file>
+<file>
+  <name>$PROJ_DIR$/../platform\radio\rail_lib\plugin\coexistence\common\coexistence.c</name>
 </file>
 <file>
   <name>$PROJ_DIR$/../platform\Device\SiliconLabs\BGM13\Source\system_bgm13.c</name>
@@ -2184,15 +2226,6 @@
   <name>$PROJ_DIR$/../platform\emdrv\gpiointerrupt\src\gpiointerrupt.c</name>
 </file>
 <file>
-  <name>$PROJ_DIR$/../hardware\kit\common\drivers\i2cspm.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../hardware\kit\common\drivers\si7013.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../hardware\kit\common\drivers\tempsens.c</name>
-</file>
-<file>
   <name>$PROJ_DIR$/../init_mcu.c</name>
 </file>
 <file>
@@ -2203,6 +2236,9 @@
 </file>
 <file>
   <name>$PROJ_DIR$/../hardware\kit\common\bsp\bsp_stk.c</name>
+</file>
+<file>
+  <name>$PROJ_DIR$/../hardware\kit\common\drivers\i2cspm.c</name>
 </file>
 <file>
   <name>$PROJ_DIR$/../gatt_db.c</name>

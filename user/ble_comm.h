@@ -28,7 +28,6 @@ typedef struct _EventFun_
 /// Convert miliseconds to timer ticks
 #define TIMER_MS_2_TICKS(ms) ((TIMER_CLK_FREQ * (uint32)ms) / 1000)
 /// Time equal 0 removes the scheduled timer with the same handle
-#define TIMER_REMOVE  0
 
 #define TIMER_EVENT(ms) ((TIMER_CLK_FREQ * (ms)) / 1000)    //richard add
 
@@ -64,9 +63,14 @@ typedef struct _EventFun_
 #define TIMER_5SEC          (TIMER_1SEC*5)
 #define TIMER_6SEC          (TIMER_1SEC*6)
 #define TIMER_7SEC          (TIMER_1SEC*7)
+#define TIMER_8SEC          (TIMER_1SEC*8)
+
 #define TIMER_10SEC         (TIMER_1SEC*10)
 #define TIMER_15SEC         (TIMER_1SEC*15)
 #define TIMER_20SEC         (TIMER_1SEC*20)
+#define TIMER_30SEC         (TIMER_1SEC*30)
+#define TIMER_60SEC         (TIMER_1SEC*60)
+
 
 #define TIMER_1MIN          (TIMER_1SEC*60)
 #define TIMER_2MIN          (TIMER_1MIN*2)
@@ -76,7 +80,7 @@ typedef struct _EventFun_
 
 //#define TIMER_1HR           (TIMER_1MIN*60)
 
-#define TIMER_NO_SIGNAL  (TIMER_1MIN*5)
+#define TIMER_NO_SIGNAL  TIMER_6SEC //TIMER_1MIN //(TIMER_1MIN*1)
 
 
 #define TIMER_ENDING                0
@@ -85,70 +89,103 @@ typedef struct _EventFun_
 #define TIMER_SYS_SOFT_TIMER_10MS   10  //10ms
 
 
-#define TIMER_WAKE_UP       (4*1000)    //sec
-#define TIMER_SLEEPING      TIMER_1SEC //TIMER_5SEC//(5*1000)    //sec
+#define TIMER_WAKE_UP           (4*1000)    //sec
+#define TIMER_SLEEPING          TIMER_1SEC //TIMER_5SEC//(5*1000)    //sec
 
 #define TIMER_SCAN_SERVER_WAITING   TIMER_1SEC
 #define TIMER_GET_PROPERTY          (TIMER_SLEEPING+200)
-#define TIMER_WAITING_PROPERTY      TIMER_2SEC
+#define TIMER_WAITING_PROPERTY  TIMER_2SEC
+
+#define TIMER_CHECK_SEQ         TIMER_5SEC //check seq num
+#define TIMER_IV_INDEX_ENDING   TIMER_10SEC //
+
+#define TIMER_SYS_SETUP         TIMER_20SEC
+
+
+#define TIMER_UNPROVISION       TIMER_500MS
+#define TIMER_PROVISION         TIMER_500MS     
+
+#define TIMER_IVI_UPDATE        TIMER_1SEC //TIMER_500MS     
+
 
 
 /*******************************************************************************
  * Timer handles defines.
  ******************************************************************************/
 
-#define TIMER_ID_PROCESS_OFF        0x00
+#define TD_PROCESS_OFF        0x00
 
-#define TIMER_ID_TASK_CLIENT_SCAN_SERVER   1
-#define TIMER_ID_TASK_GET_PROPERTY       2
-#define TIMER_ID_SERVER_WAKE_UP     3
-#define TIMER_ID_SERVER_SLEEPING    4
+#define TD_TASK_CLIENT_SCAN_SERVER   1
+#define TD_TASK_GET_PROPERTY       2
+#define TD_SERVER_WAKE_UP     3
+#define TD_SERVER_SLEEPING    4
 
-#define TIMER_ID_HANDLE_WAITING     6
+#define TD_HANDLE_WAITING     6
 
-#define TIMER_ID_TASK_USART_TX      7  //for USART RX Timeout
-#define TIMER_ID_TASK_USART_RX      8  //for USART RX Timeout
-#define TIMER_ID_TASK_DEVICE_TIMER  9  //for Server Power Model
-#define TIMER_ID_TASK_GET_CIN_VALUE 10 // to get one sensor CIN value
+#define TD_TASK_USART_TX      7  //for USART RX Timeout
+#define TD_TASK_USART_RX      8  //for USART RX Timeout
+#define TD_TASK_DEVICE_TIMER  9  //for Server Power Model
+#define TD_TASK_GET_CIN_VALUE 10 // to get one sensor CIN value
 
-#define TIMER_ID_RESTART            11
-#define TIMER_ID_FACTORY_RESET      12
-#define TIMER_ID_PROVISIONING       13
+#define TD_RESTART            11
+#define TD_FACTORY_RESET      12
+#define TD_PROVISIONING       13
 
-#define TIMER_ID_TASK_MM_CLIENT     14
-#define TIMER_ID_TASK_MM_SERVER     15
+//#define TD_TASK_MM_CLIENT     14
+//#define TD_TASK_MM_SERVER     15
 
-#define TIMER_ID_PROXY_CONNECT      5
 
-#define TIMER_ID_PROCESS_TASK       30
+//#define TD_PROXY_CONNECT      5
 
-#define TIMER_ID_DEVICE_TASK        31  // for timer counter
+//#define TD_PROCESS_TASK       30
 
-#define TIMER_ID_TASK_10MS          40  // for 10 ms interval
-#define TIMER_ID_TASK_100MS         41  // for 100 ms interval
-#define TIMER_ID_TASK_1SEC          42  // for 1 sec interval
-#define TIMER_ID_TASK_10SEC         43  // for 10 sec interval
+//#define TD_DEVICE_TASK        31  // for timer counter
 
-#define TIMER_ID_USART_RX           50  // for 10 ms
+#define TD_CHECK_DEV_NODE   14  //to check all of th node status for 10sec
 
-#define TIMER_ID_SYS_RESET          60  // for 10 ms
+/*
+#define TD_TASK_10MS          40  // for 10 ms interval
+#define TD_TASK_100MS         41  // for 100 ms interval
+#define TD_TASK_1SEC          42  // for 1 sec interval
+#define TD_TASK_10SEC         43  // for 10 sec interval
+*/
+#define TD_USART_RX           50  // for 10 ms
 
+#define TD_SYS_RESET          60  // for 10 ms
+
+#define TD_GET_SENSOR_INFO    70  // for 1 sec once
+#define TD_GET_SENSOR_ENDING  71
+
+#define TD_LED_TOGGLE         75  // for 1 sec once
+
+#define TD_EXIT_IVUPDATE_STATE 77
+
+#define TD_SYS_SETUP_RESET     78
+
+#define TD_SET_MODBUS_CMD     79      // limit modbus cmd timing
+
+
+
+// LED Status
+#define TD_UNPROVISION        80
+#define TD_NO_EVENT           81  // check BT event or to reset
 
 
 #define TIMER_PROCESS_TASK          TIMER_30MS  // 10ms
-#define TIMER_DEVICE_TASK           TIMER_50MS  // 10ms
+#define TIMER_DEVICE_TASK           TIMER_10MS  //TIMER_50MS  // 10ms
 #define TIMER_SYS_RESET             TIMER_50MS  // 10ms
 
-
-
-
-
-#define TX_POWER_HI                 190 //for +10db
+#define BT_RSSI                     0
+#define COMP_TX_POWER               -50
+#define COMP_RX_POWER               -50
+#define TX_POWER_HI                 100 //for +10db
 #define TX_POWER_MID                50  //for +10db
 #define TX_POWER_LO                 0   //for +10db
 
+#define TIMER_NODE_SLEEPING         1000    //xx sec
 
 
+// NS ==> NODE_STATUS
 /// Richard: for Mesh node status ////////////////////
 #define STATUS_CLIENT               BIT0  // 0: Server 1: Client
 #define STATUS_WAKE_UP              BIT1  // for 0: Sleeping: 1:wake-up
@@ -162,10 +199,17 @@ typedef struct _EventFun_
 // for Client Node
 #define STATUS_SCAN_SERVER_NODE     BIT9  // 0: Scan Server Node 1: Get server property
 //#define STATUS_GET_PROPERTY         BIT8  // 
-#define STATUS_SPI_ENABLE           BIT10  // 
+#define STATUS_SPI_ENABLE           BIT10  //
+#define STATUS_GET_SENSOR_ENDING    BIT11  // 
+#define STATUS_SET_MODBUS_CMD       BIT12  // 
+
 
 
 // for Server Node
+#define STATUS_GET_SENSOR_INFO      BIT13  // to get all sensor data
+#define STATUS_SERVER_MODBUS_TIME_OUT  BIT14  // to get all sensor data
+#define STATUS_SERVER_SET_DEVICE    BIT15  //client want to set/write device.
+
 
 
 // for ModBus & RS485
@@ -173,11 +217,19 @@ typedef struct _EventFun_
 #define STATUS_USART_TX_OK          BIT17   // Tx Ok
 #define STATUS_MOD_BUS              BIT18  // 1: ModBus cmd
 #define STATUS_JNC_CMD              BIT19  // 1: JNC cmd
-#define STATUS_MODBUS_MESH          BIT20  // 1: Modbus to BT Mesh
+//#define STATUS_PROVISIONING         BIT20  // BLE connect from Host(App/PC)
+
+#if MESH_COLUME_ENABLE
+
 #define STATUS_MODBUS_MESH_PENDING  BIT21  // 1: RS485 to BT Mesh
+#define STATUS_MODBUS_MESH          BIT22  // 1: Modbus to BT Mesh
 
+#endif
 
-#define STATUS_PROVISIONING         BIT20  // BLE connect from Host(App/PC)
+#define STATUS_SERVER_TO_CLIENT     BIT23  // Send data to client node
+#define STATUS_IVI_UPDATE           BIT24  // Enter IV index stage
+#define STATUS_TEMP_HUM             BIT25  // Temp&Hum from SD(external)=0 or BT itself =1
+
 
 #define BLE_LINK_STATUS     (STATUS_PROXY_CONNECT | STATUS_BLE_CONNECT)
 
@@ -190,6 +242,41 @@ typedef struct _EventFun_
 
 #define CYCLE_PROXY_CONNECT_WAITING     500 //500ms
 #define CYCLE_GOTO_SLEEPING             200
+
+
+#define MESH_SENSOR_MODEL_SERVER    0
+#define MESH_SENSOR_MODEL_CLIENT    1
+#define MESH_NODE_FRIEND            2
+#define MESH_NODE_LPN               3
+#define MESH_NODE                   4
+
+
+#define BT_NODE_ROLE_PRE_DEF        0   // by predefine
+#define BT_NODE_ROLE_SERVER         1   // change to server node
+#define BT_NODE_ROLE_SETUP_SERVER   2   // 
+#define BT_NODE_ROLE_CLIENT         3   // 
+#define BT_NODE_ROLE_FRIEND         4   // 
+#define BT_NODE_ROLE_LPN            5   // 
+
+#define BT_NODE_BT_TEMP_HUM         6   // 
+
+
+
+
+
+#define BT_NODE_ROLE_FACTORY_RESET  10   // reset bt node to unprovision
+#define BT_NODE_ROLE_OTHER          20
+
+
+
+
+
+
+
+#define MODEL_ID_SERVER             0x1100
+#define MODEL_ID_SETUP_SERVER       0x1101
+#define MODEL_ID_CLIENT             0x1102
+
 
 
 
@@ -221,16 +308,31 @@ typedef struct
 }_MeshNodeInfo,*_PMeshNodeInfo;
 
 
-typedef struct
+typedef struct _TimerEventTask1_
 {   
-    uint16  Event;    
+ //   uint16  Event;    
     PTimerTask  pTimerTask; // process task pointer
     uchar   TaskStage;
     uint16  TaskTimer;        // 0: task enable, 0xFE: alway exec, 0xFF: disable, other: timer--
     uint16  TaskTimerValue;     // default value
     uint16  TaskTimeOut;
     uint16  TaskTimeOutValue;
+    struct _TimerEventTask_ *pItself;
+}_TimerEventTask1,*_PTimerEventTask1;
+
+
+typedef struct _TimerEventTask_
+{   
+    PTimerTask  pTimerTask; // process task pointer
+    uchar   TaskStage;
+//    uint16  TaskTimer;        // 0: task enable, 0xFE: alway exec, 0xFF: disable, other: timer--
+//    uint16  TaskTimerValue;     // default value
+    uint16  TaskTimeOut;
+    uint16  TaskTimeOutValue;
+    struct _TimerEventTask_ *pItself;
 }_TimerEventTask,*_PTimerEventTask;
+
+
 
 
 #define DEVICE_TASK_ON               0x0000
@@ -265,6 +367,33 @@ typedef struct
 #define DEVICE_TASK_TIMER_DEF           2
 #define DEVICE_TASK_TIMEOUT_DEF         3
 #define DEVICE_TASK_STAGE               4
+
+
+
+extern uint8_t init_done;
+extern uint8_t registered_devices;
+extern uint16 CountNodeEvent;
+
+#define TASK_TIME_OUT           (TIMER_1SEC)
+#define TASK_TIME_OUT_1         (TIMER_1SEC/TIMER_DEVICE_TASK)
+#define TASK_TIME_OUT_2         (TIMER_2SEC/TIMER_DEVICE_TASK)
+#define TASK_TIME_OUT_3         (TIMER_3SEC/TIMER_DEVICE_TASK)
+#define TASK_TIME_OUT_4         (TIMER_4SEC/TIMER_DEVICE_TASK)
+#define TASK_TIME_OUT_8         (TIMER_8SEC/TIMER_DEVICE_TASK)
+
+
+#define TASK_TIMER              (TIMER_100MS)
+#define TASK_TIMER_1            (TASK_TIMER/TIMER_DEVICE_TASK)
+#define TASK_TIMER_2            (TASK_TIMER/TIMER_DEVICE_TASK)
+#define TASK_TIMER_3            (TASK_TIMER/TIMER_DEVICE_TASK)
+#define TASK_TIMER_4            (TASK_TIMER/TIMER_DEVICE_TASK)
+
+#define TASK_TIMER_WAKEUP       (TIMER_5SEC/TIMER_DEVICE_TASK)
+#define TASK_TIMER_SLEEPING     (TIMER_1SEC/TIMER_DEVICE_TASK)
+
+
+#define DEVICE_TASK_ACTIVE_MS       2//10    //10ms
+#define DEVICE_TASK_ACTIVE_TICKS    TIMER_MS_2_TICKS(DEVICE_TASK_ACTIVE_MS)    //10ms
 
 
 
@@ -303,18 +432,32 @@ uchar GetTimerTaskIndexStatus(uchar task_id);
 void  SetTimerTaskCounter(uchar task_id, uint16 counter);
 uint16 GetTimerTaskIndexCounter(uchar task_id);
 
-void TimerEventTaskProc();
-void TimerEventCountProc();
+void DeviceTaskProc();
+void CheckTaskCounter();
 _PTimerEventTask GetTimerEventTask(PTimerTask p_timer_task);
 void SetDeviceTask(PTimerTask p_timer_task, uint16 set_item,uint16 value);
 void SetTimerTaskEvent(uint16 event, uchar status);
 bool GetTimerTaskEvent(uint16 event);
 void SetTaskTimeOut(PTimerTask p_task);
+void SetCurrTaskTimeOut();
+
 void SetTaskStage(PTimerTask p_task,uchar stage);
 void SetTaskWork(PTimerTask p_task,uint16 status);
 void DeviceWakeUp();
 void DeviceSleeping();
 void DeviceTaskInit();
+void GetTimerRtcc(PTimerRtcc p_timer);
+void ShowTimerRTC();
+bool CheckDeviceTaskActive();
+bool CheckDeviceTaskActive1ms();
+
+_PTimerEventTask GetDeviceTaskTbl();
+void TimerLedStatus();
+void ResetEventCounter(uchar event);
+
+
+
+
 
 
 

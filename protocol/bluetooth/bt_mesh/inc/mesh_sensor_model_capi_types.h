@@ -83,7 +83,7 @@ typedef enum mesh_sensor_event_type {
 /** Sensor Property ID, 16-bit ID referencing a device property */
 typedef uint16_t sensor_property_id_t;
 /** Sensor Property ID 0x0000 is prohibited */
-#define SENSOR_PROPERY_ID_INVALID 0x0000;
+#define SENSOR_PROPERY_ID_INVALID DEVICE_PROPERTY_INVALID
 
 /*
  * Sensor parameters
