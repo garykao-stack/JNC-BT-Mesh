@@ -48,6 +48,9 @@ void init_temperature_sensor();
  ******************************************************************************/
 temperature_8_t get_temperature();
 uint32  GetTempAndRh();
+int16 GetTempRh(uchar select);
+uint16 GetTempAndRH(int16 *Temp, uint16 *humidity);
+
 
 
 /** @} (end addtogroup TemperatureSensor) */

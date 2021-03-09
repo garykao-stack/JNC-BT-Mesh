@@ -54,12 +54,15 @@ void led_set_state(uint8_t state);
 
 #define LED0        0
 #define LED1        1
+#define LED2        2
 
 #define LED_RED     0
 #define LED_BLUE    1
+#define LED_GREEN   2
 
 
-#if BOARD_T3_SIMULATION || BOARD_T3
+
+#if (BOARD_ACTION == BOARD_JNC_V10)
 #define LED_ON_FUN      GPIO_PinOutSet
 #define LED_OFF_FUN     GPIO_PinOutClear
 #define LED_ON          HIGH
@@ -75,12 +78,12 @@ void led_set_state(uint8_t state);
 
 
 
-#define LED_SERVER          LED0
-#define LED_CLIENT          LED1
-#define LED_GET_INFO        LED0
-#define LED_BT_TEMP_HUM     LED0
-#define LED_OTHER_TEMP_HUM  LED1
-#define LED_IVI_UPDATE      LED1
+#define LED_SERVER          LED_RED
+#define LED_CLIENT          LED_BLUE
+#define LED_GET_INFO        LED_RED
+#define LED_BT_TEMP_HUM     LED_RED
+#define LED_OTHER_TEMP_HUM  LED_BLUE
+#define LED_IVI_UPDATE      LED_BLUE
 
 
 #define LedOnClient()       SetLed(LED_CLIENT,LED_ON)
@@ -112,6 +115,7 @@ void led_set_state(uint8_t state);
 #define LED_SLEEP           LED0
 #define LED_ACTIVE          LED1
 
+
 #define LED_STATUS_OFF              0   //All OFF
 #define LED_STATUS_ON               1   //ALL ON
 
@@ -128,6 +132,12 @@ void led_set_state(uint8_t state);
 #define LED_STATUS_IVI_UPDATE_ON    10
 #define LED_STATUS_IVI_UPDATE_OFF   11
 #define LED_STATUS_SERVER_TO_CLIENT   12
+
+#define LED_STATUS_SERVER_IO_CHANGE  13
+#define LED_STATUS_SERVER_TO_RS485   14
+#define LED_STATUS_SERVER_TO_SILICON 15
+
+
 
 
 

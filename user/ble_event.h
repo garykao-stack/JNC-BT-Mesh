@@ -271,6 +271,8 @@ uint32  EvtSmConfirmBoundingProc(PCmdPacket pEvent);
 
 ////////////////////////////////////////////////////////////////////////
 void enter_to_dfu_ota(uint8_t connection);
+void SetAdvertise(uchar status);
+
 
 
 #endif

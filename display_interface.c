@@ -19,6 +19,11 @@
 #include <stdio.h>
 #include "display_interface.h"
 
+#ifdef ENABLE_LOGGING
+#define log(...) printf(__VA_ARGS__)
+#else
+#define log(...)
+#endif
 
 /***********************************************************************************************//**
  * @addtogroup disp_interface
@@ -27,27 +32,26 @@
 
 /// Display Interface
 display_interface_t display_interface = DEFAULT_DISPLAY_INTERFACE;
-void DI_Config(init_func_t init, print_func_t print)
-{
-  display_interface.init = init;
-  display_interface.print = print;
-}
 
-
-#ifdef FEATURE_LCD_SUPPORT  //richard add
 /*******************************************************************************
  * Configure Display Interface.
  *
  * @param[in] init   Pointer to display initialization function.
  * @param[in] print  Pointer to display print function.
  ******************************************************************************/
+void DI_Config(init_func_t init, print_func_t print)
+{//log("DI_Config");
+  display_interface.init = init;
+  display_interface.print = print;
+}
+
 /*******************************************************************************
  * Initialize Display Interface.
  ******************************************************************************/
 void DI_Init(void)
-{
+{//log("DI_Config");
   if (display_interface.init == NULL) {
-    Printf("DI_Init: Display interface is NULL.\r\n");
+    log("DI_Init: Display interface is NULL.\r\n");
     return;
   }
 
@@ -63,32 +67,12 @@ void DI_Init(void)
  ******************************************************************************/
 void DI_Print(char *str, uint8_t row)
 {
-  if (display_interface.print == NULL) 
-    {
-    Printf("DI_Print: %s\r\n", str); return;
-    }
+  if (display_interface.print == NULL) {
+    log("DI_Print: %s\r\n", str);
+    return;
+  }
 
   display_interface.print(str, row);
 }
-
-#else // no LCD Display
-
-#include "bus_spi.h"
-void DI_Init(void)
-{
-   SpiInit(); 
-}
-
-void DI_Print(char *str, uint8_t row)
-{
-    Trace(str);
-    
-}
-
-
-#endif
-
-
-
 
 /** @} (end addtogroup disp_interface) */

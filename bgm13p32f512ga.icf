@@ -50,12 +50,10 @@ define block nvm3
 define block application with fixed order, alignment = 2048
 {
   readonly section .intvec,  
-  readonly section .application_properties,
   readonly 
 };
 
 keep { section .intvec };
-keep { section .application_properties };
 keep { section .binbootloader };
 keep { section .binapploader };
 

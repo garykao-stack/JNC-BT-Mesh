@@ -1,7 +1,7 @@
 /***************************************************************************//**
  * @file  main.c
- * @brief Silicon Labs BT Mesh Sensor Client Example Project
- * This example implements mesh sensor client node.
+ * @brief Silicon Labs BT Mesh Sensor Server Example Project
+ * This example implements mesh sensor server node.
  *******************************************************************************
  * # License
  * <b>Copyright 2018 Silicon Laboratories Inc. www.silabs.com</b>
@@ -23,14 +23,14 @@
 #include "init_app.h"
 
 /* Bluetooth stack headers */
+#include "gatt_db.h"
 #include <mesh_sizes.h>
 
 /* Device initialization header */
 #include "hal-config.h"
-#include "hal-config-app-common.h" //richard add
+
 /* Application code */
 #include "app.h"
-
 
 #define JNC_OTA  
 /***************************************************************************//**
@@ -44,12 +44,10 @@
  ******************************************************************************/
 
 /// Maximum number of simultaneous Bluetooth connections
-#define MAX_CONNECTIONS 2 // 4 //8   //2 richard 
+#define MAX_CONNECTIONS 2
 
 /// Heap for Bluetooth stack
-uint8_t bluetooth_stack_heap[DEFAULT_BLUETOOTH_HEAP(MAX_CONNECTIONS) + BTMESH_HEAP_SIZE + 1760*5];
-
-
+uint8_t bluetooth_stack_heap[DEFAULT_BLUETOOTH_HEAP(MAX_CONNECTIONS) + BTMESH_HEAP_SIZE + 1760*6];
 
 /// Bluetooth advertisement set configuration
 ///
@@ -68,41 +66,44 @@ static gecko_bluetooth_ll_priorities linklayer_priorities = GECKO_BLUETOOTH_PRIO
 
 /// Bluetooth stack configuration
 static gecko_configuration_t config =
-{ 
- // .config_flags=0,
- // .sleep.flags=SLEEP_FLAGS_DEEP_SLEEP_ENABLE,           // Enable Sleep EM2   !!!!
+{
+  .sleep.flags = SLEEP_FLAGS_DEEP_SLEEP_ENABLE,//richard
 
   .bluetooth.max_connections = MAX_CONNECTIONS,
   .bluetooth.max_advertisers = MAX_ADVERTISERS,
   .bluetooth.heap = bluetooth_stack_heap,
   .bluetooth.heap_size = sizeof(bluetooth_stack_heap) - BTMESH_HEAP_SIZE,
-  .bluetooth.sleep_clock_accuracy = 100,
+#if defined(FEATURE_LFXO)
+  .bluetooth.sleep_clock_accuracy = 100, // ppm
+#elif defined(PLFRCO_PRESENT)
+  .bluetooth.sleep_clock_accuracy = 500, // ppm
+#endif
   .bluetooth.linklayer_priorities = &linklayer_priorities,
   .gattdb = &bg_gattdb_data,
   .btmesh_heap_size = BTMESH_HEAP_SIZE,
-#if (HAL_PA_ENABLE)
   .pa.config_enable = 1, // Set this to be a valid PA config
 #if defined(FEATURE_PA_INPUT_FROM_VBAT)
-  //Richard: enable
   .pa.input = GECKO_RADIO_PA_INPUT_VBAT, // Configure PA input to VBAT
-  .pa.pa_mode=0, 
 #else
   .pa.input = GECKO_RADIO_PA_INPUT_DCDC,
 #endif // defined(FEATURE_PA_INPUT_FROM_VBAT)
-#endif // (HAL_PA_ENABLE)
-  .max_timers = 32, //16, richard
-  .rf.tx_gain = COMP_TX_POWER, 
-  .rf.rx_gain = COMP_RX_POWER, 
-  //.rf.flags = GECKO_RF_CONFIG_ANTENNA,   // Enable antenna configuration.
-  //.rf.antenna = GECKO_RF_ANTENNA,   // Select antenna path!
-
-
-  // Richard Add
+  .max_timers = 16,
+  .rf.flags = GECKO_RF_CONFIG_ANTENNA,   // Enable antenna configuration.
+  .rf.antenna = GECKO_RF_ANTENNA,   // Select antenna path!
+      .max_timers = 32, //16, richard
+      .rf.tx_gain = COMP_TX_POWER, 
+      .rf.rx_gain = COMP_RX_POWER, 
+      //.rf.flags = GECKO_RF_CONFIG_ANTENNA,   // Enable antenna configuration.
+      //.rf.antenna = GECKO_RF_ANTENNA,   // Select antenna path!
+    
+    
+      // Richard Add
 #ifdef JNC_OTA  
-    .ota.flags = 0,
-    .ota.device_name_len = 7,
-    .ota.device_name_ptr = "JNC-OTA",
+        .ota.flags = 0,
+        .ota.device_name_len = 7,
+        .ota.device_name_ptr = "JNC-OTA",
 #endif  
+  
 };
 
 /***************************************************************************//**
@@ -111,11 +112,13 @@ static gecko_configuration_t config =
 int main(void)
 {
   // Initialize device
-  initMcu(); 
+  initMcu();
   // Initialize board
   initBoard();
   // Initialize application
   initApp();
+  initVcomEnable();
+
   // Minimize advertisement latency by allowing the advertiser to always
   // interrupt the scanner.
   linklayer_priorities.scan_max = linklayer_priorities.adv_min + 1;

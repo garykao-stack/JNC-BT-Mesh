@@ -30,7 +30,6 @@ SUBDIRS := \
 . \
 hardware/kit/common/bsp \
 hardware/kit/common/drivers \
-iar/Debug/Obj \
 platform/Device/SiliconLabs/BGM13/Source/IAR \
 platform/Device/SiliconLabs/BGM13/Source \
 platform/emdrv/dmadrv/src \
@@ -38,7 +37,6 @@ platform/emdrv/gpiointerrupt/src \
 platform/emdrv/nvm3/src \
 platform/emdrv/sleep/src \
 platform/emdrv/spidrv/src \
-platform/emdrv/uartdrv/src \
 platform/emlib/src \
 platform/middleware/glib/dmd/display \
 platform/middleware/glib/glib \
@@ -50,4 +48,5 @@ protocol/bluetooth/bt_mesh/src \
 protocol/bluetooth/lib/EFR32XG13X/IAR \
 user \
 user/bus_drv \
+user/util \
 

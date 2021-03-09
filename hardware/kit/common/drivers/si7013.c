@@ -6,15 +6,27 @@
  * <b>Copyright 2018 Silicon Laboratories Inc. www.silabs.com</b>
  *******************************************************************************
  *
- * The licensor of this software is Silicon Laboratories Inc. Your use of this
- * software is governed by the terms of Silicon Labs Master Software License
- * Agreement (MSLA) available at
- * www.silabs.com/about-us/legal/master-software-license-agreement. This
- * software is distributed to you in Source Code format and is governed by the
- * sections of the MSLA applicable to Source Code.
+ * SPDX-License-Identifier: Zlib
+ *
+ * The licensor of this software is Silicon Laboratories Inc.
+ *
+ * This software is provided 'as-is', without any express or implied
+ * warranty. In no event will the authors be held liable for any damages
+ * arising from the use of this software.
+ *
+ * Permission is granted to anyone to use this software for any purpose,
+ * including commercial applications, and to alter it and redistribute it
+ * freely, subject to the following restrictions:
+ *
+ * 1. The origin of this software must not be misrepresented; you must not
+ *    claim that you wrote the original software. If you use this software
+ *    in a product, an acknowledgment in the product documentation would be
+ *    appreciated but is not required.
+ * 2. Altered source versions must be plainly marked as such, and must not be
+ *    misrepresented as being the original software.
+ * 3. This notice may not be removed or altered from any source distribution.
  *
  ******************************************************************************/
-#include "global.h"
 
 #include <stddef.h>
 #include "si7013.h"
@@ -37,6 +49,10 @@
 /*******************************************************************************
  *******************************   DEFINES   ***********************************
  ******************************************************************************/
+
+/** @cond DO_NOT_INCLUDE_WITH_DOXYGEN */
+
+/** @endcond */
 
 /*******************************************************************************
  **************************   GLOBAL FUNCTIONS   *******************************
@@ -102,7 +118,7 @@ int32_t Si7013_Measure(I2C_TypeDef *i2c, uint8_t addr, uint32_t *data,uint8_t co
  *   Returns number of bytes read on success. Otherwise returns error codes
  *   based on the I2CDRV.
  *****************************************************************************/
-int32_t Si7013_StartNoHoldMeasure(I2C_TypeDef *i2c, uint8_t addr, uint8_t command)
+static int32_t Si7013_StartNoHoldMeasure(I2C_TypeDef *i2c, uint8_t addr, uint8_t command)
 
 {
   I2C_TransferSeq_TypeDef    seq;
@@ -285,8 +301,7 @@ int32_t Si7013_MeasureRHAndTemp(I2C_TypeDef *i2c, uint8_t addr, uint32_t *rhData
                                 int32_t *tData)
 {
   int ret = Si7013_Measure(i2c, addr, rhData, SI7013_READ_RH);
- // TraceDec1("ret 1 RH",*rhData);
-  
+
   if (ret == 2) {
     /* convert to milli-percent */
     *rhData = (((*rhData) * 15625L) >> 13) - 6000;
@@ -295,7 +310,6 @@ int32_t Si7013_MeasureRHAndTemp(I2C_TypeDef *i2c, uint8_t addr, uint32_t *rhData
   }
 
   ret = Si7013_Measure(i2c, addr, (uint32_t *) tData, SI7013_READ_TEMP);
- // TraceDec1("ret 2 Temp",*tData);
 
   if (ret == 2) {
     *tData = (((*tData) * 21965L) >> 13) - 46850; /* convert to milli-degC */

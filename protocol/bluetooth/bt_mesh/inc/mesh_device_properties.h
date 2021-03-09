@@ -697,7 +697,7 @@ typedef struct mesh_device_property {
     /** Voltage statistics */
     voltage_statistics_t voltage_statistics;
     //Richard Add
-    uint32 JncTempRh;   // Richard Addfor JNC Tempature and Relative Humidity
+    uint32_t JncTempRh;   // Richard Addfor JNC Tempature and Relative Humidity
   };
 } mesh_device_property_t;
 
@@ -1056,36 +1056,84 @@ typedef enum mesh_device_properties_e {
   JNC_TEMP_RH                                     = 0x0091,          // for Tempature and Relative humidity 4 bytes
   
   // for modbus
-  JNC_MODBUS_GET_WATER_LEVEL                      = 0x0092,          //
-  JNC_MODBUS_GET_TEMPATURE                        = 0x0093,          // 
-  JNC_MODBUS_GET_HUMIDITY                         = 0x0094,          //
+  JNC_MODBUS_GET_WATER_LEVEL                    = 0x0092,          //
+  JNC_MODBUS_GET_TEMPATURE                      = 0x0093,          // 
+  JNC_MODBUS_GET_HUMIDITY                       = 0x0094,          //
 
 //
-  JNC_SERVER_SLEEPING                  = 0x0095,
+  JNC_SERVER_SLEEPING                           = 0x0095,
   
   //for Modbus FC4
-  MODBUS_FC4_REG0                            = 0x2000,
-  MODBUS_FC4_REG1                            = 0x2001,
-  MODBUS_FC4_REG2                            = 0x2002,
-  MODBUS_FC4_REG3                            = 0x2003,
-  MODBUS_FC4_REG4                            = 0x2004,
-  MODBUS_FC4_REG5                            = 0x2005,
-  MODBUS_FC4_REG6                            = 0x2006,
-  MODBUS_FC4_REG7                            = 0x2007,
-  MODBUS_FC4_REG8                            = 0x2008,
-  MODBUS_FC4_REG9                            = 0x2009,
-  MODBUS_FC4_REG10                           = 0x200A,
-  MODBUS_FC4_REG60                           = 0x200B,
-  //for FC1
-  MODBUS_FC1_REG1                            = 0x200C,
-  MODBUS_FC1_REG7                            = 0x200D,
+  MODBUS_FC4_REG0                               = 0x2000,
 
   
-  MODBUS_GET_REGS_VALUE                      = 0x2020,  //My_Device_Property  
-  MODBUS_SET_REGS_VALUE                      = 0x2021,  //My_Device_Property
+  MODBUS_GET_REGS_VALUE                         = 0x2020,   //My_Device_Property  
+  MODBUS_SET_REGS_VALUE                         = 0x2021,   
+  
+  ///////////////////////////////////////////////////////////////////////////////////////
+#if 1
+
+  // for v1.06
+  NODE_GET_ALL_SENSOR                           = 0x8030,     // for all sensor info
+  NODE_GET_TEMP                                 = 0x8031,     // for Temperature
+  NODE_GET_RH                                   = 0x8032,     // for Humidity
+  NODE_GET_BATTERY_POWER                        = 0x8033,     // for Battery Power
+  NODE_GET_TEMP_RH                              = 0x8034,     // for temperature and humidity
+  NODE_GET_AIP_POWER_WATT                       = 0x8035,     // for AIP/Watt
 
   
-  JNC_DEF_ENDING       = 0xF000          // 
+  NODE_GET_WATER_LEVEL                          = 0x803D,     // get water level info
+  NODE_GET_OIL_LEVEL                            = 0x803E,     // get oil level info
+  NODE_GET_STATUS                               = 0x803F,     // For Node status 8 bits: 1. Switch Open(Urgent), 2. bettry Low
+
+
+#else   
+  //Old define ver1.05
+  
+  NODE_GET_ALL_SENSOR                           = 0x803F,     // for all sensor info
+  NODE_GET_TEMP                                 = 0x8031,     // for Temperature
+  NODE_GET_RH                                   = 0x8032,     // for Humidity
+  NODE_GET_BATTERY_POWER                        = 0x8036,    // for Battery Power
+  NODE_GET_TEMP_RH                              = 0x8033,     // for temperature and humidity
+  NODE_GET_WATER_LEVEL                          = 0x8034,     // get water level info
+  NODE_GET_OIL_LEVEL                            = 0x8035,     // get oil level info
+  
+  
+  NODE_GET_STATUS                               = 0x8030,     // For Node status 8 bits: 1. Switch Open(Urgent), 2. bettry Low
+  
+#endif  
+  ///////////////////////////////////////////////////////////////////////////////////////
+  NODE_SET_STATUS_CLEAN                         = 0x8040,     // for Set Node function 
+  NODE_SET_SLEEPING                             = 0x8041,     // for Set Node function
+  
+  //for AIP
+  NODE_SET_AIP_POWER_OFF                        = 0x8042,     // for Set AIP Power ON 201215
+  NODE_SET_AIP_POWER_25                         = 0x8043,     // for Set AIP Power OFF 201215
+  NODE_SET_AIP_POWER_50                         = 0x8044,     // for Set Node function
+  NODE_SET_AIP_POWER_75                         = 0x8045,     // for Set Node function
+  NODE_SET_AIP_POWER_100                        = 0x8046,     // for Set Node function
+
+ // for A308M
+  NODE_SET_WRITE_NEW_BIAS                       = 0x8049,     // for A308M
+  NODE_SET_RESET_BIAS_X                         = 0x804A,     // for A308M
+  NODE_SET_RESET_BIAS_Y                         = 0x804B,     // for A308M
+  NODE_SET_RESET_BIAS_Z                         = 0x804C,     // for A308M
+  
+  ///////////////////////////////////////////////////////////////////////////////////////
+  // 1. Switch Open, 2. bettry Low
+  NODE_GET_URGENT_STATUS                        = 0x8050,     // for Node Urgent Status, 8 bits, can not sleeping  
+  NODE_GET_STATUS1                              = 0x8051,     // Get node status 1
+  NODE_GET_STATUS2                              = 0x8052,     // Get node status 1
+  NODE_GET_STATUS3                              = 0x8053,     // Get node status 1
+  NODE_GET_STATUS4                              = 0x8054,     // Get node status 1
+  NODE_GET_STATUS5                              = 0x8055,     // Get node status 1
+  NODE_GET_STATUS6                              = 0x8056,     // Get node status 1
+  NODE_GET_STATUS7                              = 0x8057,     // Get node status 1
+  NODE_GET_STATUS8                              = 0x8058,     // Get node status 1
+  NODE_GET_STATUs9                              = 0x8059,     // Get node status 1
+  
+  
+  JNC_DEF_ENDING                                = 0xF000          // 
 } mesh_device_properties_t;
 
 #if 0

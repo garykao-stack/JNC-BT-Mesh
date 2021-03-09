@@ -30,18 +30,19 @@
 
 
 // Custom macros
-#define BRD4306B            1
-#define JNC_BOARD_BT_MESH   2
-#define CUSTOM_BOARD        JNC_BOARD_BT_MESH
+#define BRD4306B                1
+#define JNC_BOARD_MESH          2
+
 
 #ifdef EMBER_AF_BOARD_TYPE
 #undef EMBER_AF_BOARD_TYPE
 #endif
 
 //#define EMBER_AF_BOARD_TYPE BRD4306B 
-#define EMBER_AF_BOARD_TYPE JNC_BOARD_BT_MESH 
+#define EMBER_AF_BOARD_TYPE JNC_BOARD_MESH 
+
+
 
 
 
 #endif // __BLE_CONFIG__
-

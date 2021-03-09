@@ -62,7 +62,6 @@ __weak void NMI_Handler(void)
 
 __weak void HardFault_Handler(void)
 {
-    Reset_Handler(); //richard add to debug
   while (true) {
   }
 }

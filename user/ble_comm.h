@@ -16,6 +16,8 @@ typedef uint16*     PResult;
 typedef uint8array* PEvtRespData;
 
 typedef uint32 (*PFunEvent)(struct gecko_cmd_packet* pEvent);
+typedef bool (*PFunSensor)(void);
+
 
 
 typedef struct _EventFun_
@@ -85,15 +87,19 @@ typedef struct _EventFun_
 
 #define TIMER_ENDING                0
 
-#define TIMER_SYS_SOFT_TIMER_100MS  100  //10ms
-#define TIMER_SYS_SOFT_TIMER_10MS   10  //10ms
+#define STAGE_TIMER_COUNT       10 //10ms every time
+#define WAIT_MS(x)              ((x)/STAGE_TIMER_COUNT) // x must > 10ms
+#define WAIT_SEC(x)             ((1000*x)/STAGE_TIMER_COUNT)
+
+#define TIMER_STAGE_WAITING     (TIMER_1MS*STAGE_TIMER_COUNT)
+#define TIMER_MAX_WAKE_UP       TIMER_10SEC    // max wake up time 0: do not to sleeping
+#define TIMER_PRE_SLEEPING      TIMER_3SEC      //prepare to sleeping  
+#define TIMER_SLEEPING          TIMER_10SEC
 
 
-#define TIMER_WAKE_UP           (4*1000)    //sec
-#define TIMER_SLEEPING          TIMER_1SEC //TIMER_5SEC//(5*1000)    //sec
 
-#define TIMER_SCAN_SERVER_WAITING   TIMER_1SEC
-#define TIMER_GET_PROPERTY          (TIMER_SLEEPING+200)
+//#define TIMER_SCAN_SERVER_WAITING   TIMER_1SEC
+#define TIMER_GET_PROPERTY      (TIMER_SLEEPING+200)
 #define TIMER_WAITING_PROPERTY  TIMER_2SEC
 
 #define TIMER_CHECK_SEQ         TIMER_5SEC //check seq num
@@ -105,7 +111,9 @@ typedef struct _EventFun_
 #define TIMER_UNPROVISION       TIMER_500MS
 #define TIMER_PROVISION         TIMER_500MS     
 
-#define TIMER_IVI_UPDATE        TIMER_1SEC //TIMER_500MS     
+#define TIMER_IVI_UPDATE        TIMER_1SEC //TIMER_500MS
+
+
 
 
 
@@ -171,6 +179,14 @@ typedef struct _EventFun_
 #define TD_NO_EVENT           81  // check BT event or to reset
 
 
+//sleep
+#define TD_NODE_SLEEP       90
+#define TD_NODE_WAKE_UP     91
+
+//Timer
+#define TD_STAGE_TIMER       100
+
+
 #define TIMER_PROCESS_TASK          TIMER_30MS  // 10ms
 #define TIMER_DEVICE_TASK           TIMER_10MS  //TIMER_50MS  // 10ms
 #define TIMER_SYS_RESET             TIMER_50MS  // 10ms
@@ -179,8 +195,8 @@ typedef struct _EventFun_
 #define COMP_TX_POWER               -50
 #define COMP_RX_POWER               -50
 #define TX_POWER_HI                 100 //for +10db
-#define TX_POWER_MID                50  //for +10db
-#define TX_POWER_LO                 0   //for +10db
+#define TX_POWER_MID                50  //for +50db
+#define TX_POWER_LO                 0   //for +0db
 
 #define TIMER_NODE_SLEEPING         1000    //xx sec
 
@@ -188,7 +204,7 @@ typedef struct _EventFun_
 // NS ==> NODE_STATUS
 /// Richard: for Mesh node status ////////////////////
 #define STATUS_CLIENT               BIT0  // 0: Server 1: Client
-#define STATUS_WAKE_UP              BIT1  // for 0: Sleeping: 1:wake-up
+#define STATUS_SLEEPING             BIT1  // for 0:Wake up 1: Sleeping
 #define STATUS_FULL_POWER           BIT2  // device can not sleeping
 #define STATUS_FRIEND               BIT3
 #define STATUS_LPN                  BIT4
@@ -199,7 +215,7 @@ typedef struct _EventFun_
 // for Client Node
 #define STATUS_SCAN_SERVER_NODE     BIT9  // 0: Scan Server Node 1: Get server property
 //#define STATUS_GET_PROPERTY         BIT8  // 
-#define STATUS_SPI_ENABLE           BIT10  //
+//#define STATUS_SPI_ENABLE           BIT10  //
 #define STATUS_GET_SENSOR_ENDING    BIT11  // 
 #define STATUS_SET_MODBUS_CMD       BIT12  // 
 
@@ -209,6 +225,7 @@ typedef struct _EventFun_
 #define STATUS_GET_SENSOR_INFO      BIT13  // to get all sensor data
 #define STATUS_SERVER_MODBUS_TIME_OUT  BIT14  // to get all sensor data
 #define STATUS_SERVER_SET_DEVICE    BIT15  //client want to set/write device.
+
 
 
 
@@ -258,26 +275,18 @@ typedef struct _EventFun_
 #define BT_NODE_ROLE_FRIEND         4   // 
 #define BT_NODE_ROLE_LPN            5   // 
 
-#define BT_NODE_BT_TEMP_HUM         6   // 
+#define BT_NODE_BT_TEMP_HUM         6   //
+
+///// New Firmware
+
+#define KEY_SERVER_TO_RS485         7   //
 
 
 
 
 
-#define BT_NODE_ROLE_FACTORY_RESET  10   // reset bt node to unprovision
+#define KEY_FACTORY_RESET           10   // reset bt node to unprovision
 #define BT_NODE_ROLE_OTHER          20
-
-
-
-
-
-
-
-#define MODEL_ID_SERVER             0x1100
-#define MODEL_ID_SETUP_SERVER       0x1101
-#define MODEL_ID_CLIENT             0x1102
-
-
 
 
 

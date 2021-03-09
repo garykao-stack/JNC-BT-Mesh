@@ -32,35 +32,8 @@
 #include "mx25flash_spi.h"
 
 #include "bsp.h"
+#include "init_board.h"
 
-void SystemPower(uchar status)
-{
-    if(status == ON) {GPIO_PinOutSet(SYSTEM_POWER_PORT,SYSTEM_POWER_PIN);}
-    else {GPIO_PinOutClear(SYSTEM_POWER_PORT,SYSTEM_POWER_PIN);}
-}
-
-//
-// Hardware Reset PIN PA2
-//
-void BtMeshReset()
-{TraceProc();
-#ifdef HARDWARE_RESET
-    GPIO_PinModeSet(HARDWARE_RESET_PORT, HARDWARE_RESET_PIN, gpioModePushPull, 0); // PA2 Hardware Reset
-    GPIO_PinOutSet(HARDWARE_RESET_PORT,HARDWARE_RESET_PIN);    //
-    Delay_ms(20);
-    GPIO_PinOutClear(HARDWARE_RESET_PORT,HARDWARE_RESET_PIN);
-#else
-    Cmd_sys_reset(0);
-#endif
-}
-
-
-void MeshBoardInit()
-{
-    GPIO_PinModeSet(SYSTEM_POWER_PORT, SYSTEM_POWER_PIN, gpioModePushPull, 1); //TX 
-    GPIO_PinModeSet(HARDWARE_RESET_PORT, HARDWARE_RESET_PIN, gpioModePushPull, 0); // PA2 Hardware Reset
-    SystemPower(ON);
-}
 
 
 
@@ -116,3 +89,50 @@ void initVcomEnable(void)
   GPIO_PinModeSet(BSP_VCOM_ENABLE_PORT, BSP_VCOM_ENABLE_PIN, gpioModePushPull, HAL_VCOM_ENABLE);
 #endif // HAL_VCOM_ENABLE
 }
+void MeshBoardInit()
+{
+#ifdef SILICON_EVA_BOARD
+    return;
+#endif
+
+    GPIO_PinModeSet(SYSTEM_POWER_PORT, SYSTEM_POWER_PIN, gpioModePushPull, 1); //TX 
+    GPIO_PinModeSet(HARDWARE_RESET_PORT, HARDWARE_RESET_PIN, gpioModePushPull, 0); // PA2 Hardware Reset
+    SystemPower(ON);
+}
+
+//
+// Other device Power OFF
+//
+void SystemPower(uchar status)
+{
+#ifdef SILICON_EVA_BOARD
+        return;
+#endif
+
+    if(status == ON) 
+        {Trace("System Power ON");
+         GPIO_PinOutSet(SYSTEM_POWER_PORT,SYSTEM_POWER_PIN);
+         SetLedStatus(LED_STATUS_ACTIVE);
+        }
+    else 
+        {Trace("System Power OFF");
+        GPIO_PinOutClear(SYSTEM_POWER_PORT,SYSTEM_POWER_PIN);
+        SetLedStatus(LED_STATUS_OFF);
+        }
+}
+
+//
+// Hardware Reset PIN PA2
+//
+void BtMeshReset()
+{TraceProc();
+#ifdef HARDWARE_RESET
+    GPIO_PinModeSet(HARDWARE_RESET_PORT, HARDWARE_RESET_PIN, gpioModePushPull, 0); // PA2 Hardware Reset
+    GPIO_PinOutSet(HARDWARE_RESET_PORT,HARDWARE_RESET_PIN);    //
+    Delay_ms(20);
+    GPIO_PinOutClear(HARDWARE_RESET_PORT,HARDWARE_RESET_PIN);
+#else
+    Cmd_sys_reset(0);
+#endif
+}
+

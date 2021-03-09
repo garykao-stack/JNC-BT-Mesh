@@ -22,6 +22,11 @@
 #include "display_interface.h"
 #include "si7013.h"
 
+#ifdef ENABLE_LOGGING
+#define log(...) printf(__VA_ARGS__)
+#else
+#define log(...)
+#endif
 
 /***************************************************************************//**
  * @addtogroup Sensor
@@ -33,7 +38,6 @@
  * @{
  ******************************************************************************/
 
-#define VALUE_IS_NOT_KNOWN  (0xFF) ///< Temperature value is not known
 
 /// Temperature
 static temperature_8_t temperature = VALUE_IS_NOT_KNOWN;
@@ -47,7 +51,7 @@ void display_temperature(void)
     DI_Print("Temperature: UNKNOWN", DI_ROW_TEMPERATURE);
   } else {
     char tmp[21];
-    snprintf(tmp, 21, "Temp: %3d.%1dC ", temperature / 2, (temperature * 5) % 10);
+    snprintf(tmp, 21, "Temperature: %3d.%1dC ", temperature / 2, (temperature * 5) % 10);
     DI_Print(tmp, DI_ROW_TEMPERATURE);
   }
 }
@@ -57,11 +61,14 @@ void display_temperature(void)
  ******************************************************************************/
 void init_temperature_sensor()
 {
+#ifdef FEATURE_I2C_SENSOR
   bool status = Si7013_Detect(I2C0, SI7021_ADDR, NULL);
   if (!status) {
-    printf("I2C Error\r\n");
+    printf("Si7021 disconnect Error\r\n");
   }
+#endif
   get_temperature();
+
 }
 
 /*******************************************************************************
@@ -90,8 +97,9 @@ temperature_8_t get_temperature(void)
     temperature = VALUE_IS_NOT_KNOWN;
   } else {
 
-  TraceDec2("Temp&Humi", tempRH, tempData);
+  TraceDec2("Temp&Humi 1", tempRH, tempData);
     tempData = (((tempData * 2) + 499) / 1000);
+  //TraceDec1("Temp 1",tempData);
     temperature = (temperature_8_t)tempData;
   }
 #endif
@@ -100,10 +108,88 @@ temperature_8_t get_temperature(void)
   return temperature;
 }
 
-/*
-const int16 jnc_temp[16]={-555,-444,-333,-222,-111,00,111,333,555,777,999,101,202,303,404,505};
-const int16 jnc_rh[16]  ={000,102,103,104,104,105,106,107,108,109,111,112,113,114,115,116};
-*/
+
+//
+// Get Temperture and Humidity
+// 0: Tempature 1: Humidity
+uint16 GetTempRH(uchar select)
+{
+    uint32  tempRH = 0; 
+    int32_t tempData = 0;
+
+    uint16 ret_code;
+    // Sensor relative humidity and temperature measurement returns 0 on success, nonzero otherwise 
+    
+    if(Si7013_MeasureRHAndTemp(I2C0, SI7021_ADDR, &tempRH, &tempData) != 0) 
+   // Si7013_StartNoHoldMeasureRHAndTemp(I2C0, SI7021_ADDR); Delay_ms(100);
+   // if(Si7013_ReadNoHoldRHAndTemp(I2C0, SI7021_ADDR, &tempRH, &tempData) != 0) 
+        {ret_code = VALUE_IS_NOT_KNOWN;}
+    else if ((tempData > 63500) || (tempData < -64000)) 
+        ret_code = VALUE_IS_NOT_KNOWN;
+
+    if(ret_code != VALUE_IS_NOT_KNOWN)
+        {
+    
+        tempRH /=100; if(tempRH > 1000) tempRH = 1000;
+        tempData /=100;
+        TraceDec2("Temp&Humi 2", tempRH, tempData);
+    
+        if(select == 0)  {return (int16)tempData;} //tempature
+        else {return (int16)tempRH;} //humidity }
+        }
+    else {TraceErr("GetTempRH");}
+
+    return ret_code;
+}
+
+
+//
+// Get Temperture and Humidity
+// 0: Tempature 1: Humidity
+uint16 GetTempAndRH(int16 *Temp, uint16 *humidity)
+{
+    uint32  tempRH = 0; 
+    int32_t tempData = 0;
+
+    uint16 ret_code=0;
+    
+    if(Si7013_MeasureRHAndTemp(I2C0, SI7021_ADDR, &tempRH, &tempData) != 0) 
+        {//TraceDec2("GetTempRH 1",tempData,tempRH);
+        ret_code = VALUE_IS_NOT_KNOWN;
+        }
+    else if ((tempData > 63500) || (tempData < -64000))
+        {//TraceDec2("GetTempRH 2",tempData,tempRH);
+        ret_code = VALUE_IS_NOT_KNOWN;
+        }
+    else if ((tempRH > 100000))
+        {//TraceDec2("GetTempRH 3",tempData,tempRH);
+         tempRH = 100000;   
+        }    
+    else if((tempRH == 0) && (tempData == 0))
+        {//TraceDec2("GetTempRH 4",tempData,tempRH);
+        ret_code = VALUE_IS_NOT_KNOWN;;
+        }
+
+
+    
+    if(ret_code != VALUE_IS_NOT_KNOWN)
+        {//TraceDec2("GetTempRH Ok",tempData,tempRH);
+        tempRH /=100; if(tempRH >= 1000) tempRH = 1000;
+        *humidity =tempRH;
+        tempData /=100; if(tempData < 800) *Temp = tempData;
+        TraceDec3("Temp&Humi 3", tempRH, tempData,*Temp);
+        }
+    else 
+        {
+            
+         ret_code = VALUE_IS_NOT_KNOWN;TraceDec2("GetTempRH 6",tempData,tempRH);
+        }
+
+    return ret_code;
+}
+
+
+
 uchar temp_rh_index=0;
 //
 //return tempature and relative humidity
@@ -113,8 +199,6 @@ uint32  GetTempAndRh()
     
     uint32 ret_code=0;
     ret_code = GetTempHumi();
-    //TraceDec2("GetTempAndRh: Tempature & Humidity", (int16)HIWORD(ret_code),(int16)LOWORD(ret_code));
-
 /*
     uint16 temp_value,rh_value;
     temp_value = (uint16)jnc_temp[temp_rh_index];
@@ -129,6 +213,9 @@ uint32  GetTempAndRh()
     return ret_code;
     
 }
+
+
+
 
 
 

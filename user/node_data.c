@@ -13,6 +13,7 @@
 #include "leds.h"
 #include "sensor_client.h"
 #include "bus_usart.h"
+#include "Mesh_Node.h"
 
 #include "node_data.h"
 
@@ -35,19 +36,14 @@ word LevelDataRead[12];
 void NodeDataInit()
 {TraceProc();
 
-    TraceDec1("MeshNodeData", sizeof(MeshNodeData));
+    TraceDec1("MeshNodeData Size", sizeof(_Mesh_Node_Data));
     pMeshNodeData = &MeshNodeData;
     pAdjValue = &AdjustValue;
     ReadNodeData();
-   // PrintDataByte("MeshNodeData", (PUCHAR)pMeshNodeData,NODE_DATA_SIZE);
+    //PrintDataByte("MeshNodeData", (PUCHAR)pMeshNodeData,NODE_DATA_SIZE);
    // PrintDataByte("Adjust Value", (PUCHAR)pAdjValue,ADJUST_VALUE_SIZE);
     if(pMeshNodeData->DataInitID != NODE_DATA_ID) MeshNodeDataReset();
-    
-
-
     return;
-
-
 }
 
 
@@ -56,19 +52,20 @@ void MeshNodeDataReset()
 {TraceProc();
 
     memset(&MeshNodeData,0,NODE_DATA_SIZE);
-    pMeshNodeData->DataInitID=NODE_DATA_ID;
-    pMeshNodeData->StructVer=100; //1.0.0    
-    pMeshNodeData->FwVer=FW_VER;  //1.0.0
-    pMeshNodeData->HwVer=HW_VER; //1.0.0
-    pMeshNodeData->MeshNodeRole = BT_NODE_ROLE_SERVER;
+    pMeshNodeData->DataInitID=NODE_DATA_ID;    
+    pMeshNodeData->StructVer=100;
     pMeshNodeData->MeshNodeID = 0;
+    pMeshNodeData->MeshNodeRole = NR_DEFAULT;
+    pMeshNodeData->SensorClass = SENSOR_AIP; //SENSOR_CLASS_PT485;
+    pMeshNodeData->BaudRate=USART_BAUDRATE_DEFAULT; //for 9600
     pMeshNodeData->TxPower=TX_POWER_HI;
     pMeshNodeData->CTune = BSP_CLK_HFXO_CTUNE;
     pMeshNodeData->TxGain = COMP_TX_POWER;
     pMeshNodeData->RxGain = COMP_RX_POWER;
-    pMeshNodeData->Sleeping=TIMER_NODE_SLEEPING;
-    pMeshNodeData->BaudRate=USART_BAUDRATE_DEFAULT; //for 115200
-    pMeshNodeData->SensorClass = SENSOR_CLASS_SD;
+    pMeshNodeData->SleepingTimer=TIMER_NODE_SLEEPING;
+    pMeshNodeData->TempDiff=0;
+    pMeshNodeData->HumidityDiff=0;
+
 
     pAdjValue->TempGain = 1.0;
     pAdjValue->TempOffset = 0.0;
@@ -78,8 +75,7 @@ void MeshNodeDataReset()
     pAdjValue->UserTempOffset = 0.0;
     pAdjValue->UserRhGain = 1.0;
     pAdjValue->UserRhOffset = 0.0;
-
-    
+ 
     WriteNodeData();
    
 }
@@ -88,7 +84,9 @@ void MeshNodeDataReset()
 
 
 
-
+#define WRITE_MESH_NODE_ALL         0
+#define WRITE_MESH_NODE_DATA        1
+#define WRITE_MESH_ADJ_VALUE        2
 
 
 // write node data to PS key

@@ -55,6 +55,7 @@
 #define LCD_ROW_HUE          6    /**< 6th row, HSL hue */
 #define LCD_ROW_DELTAUV      7    /**< 7th row, delta UV */
 #define LCD_ROW_SATURATION   7    /**< 7th row, HSL saturation */
+#define LCD_ROW_ILLUMINANCE  7    /**< 7th row, illuminance value */
 #define LCD_ROW_MAX          9    /**< up to 9 rows available on screen */
 
 #define LCD_ROW_LEN         32    /**< up to 32 characters per each row */
@@ -71,7 +72,7 @@ void LCD_init(void);
  * @param[in] row  Selects which line of LCD display is written,
  *                 possible values are defined as LCD_ROW_xxx.
  ******************************************************************************/
-void LCD_write(char *str, uint8 row);
+void LCD_write(char *str, uint8_t row);
 
 /** @} (end addtogroup lcd_driver) */
 /** @} (end addtogroup disp_interface) */

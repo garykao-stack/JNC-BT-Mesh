@@ -43,12 +43,12 @@
  * LED initialization. Configure LED pins as outputs.
  ******************************************************************************/
 void led_init(void)
-{
-  // configure LED0 and LED1 as outputs
+{//TraceProc();
+  // configure LED0 and LED_BLUE as outputs
   GPIO_PinModeSet(BSP_LED0_PORT, BSP_LED0_PIN, gpioModePushPull, LED_DEFAULT_STATE);
   GPIO_PinModeSet(BSP_LED1_PORT, BSP_LED1_PIN, gpioModePushPull, LED_DEFAULT_STATE);
-  SetLedStatus(LED_STATUS_OFF);
-    
+  GPIO_PinModeSet(BSP_LED2_PORT, BSP_LED2_PIN, gpioModePushPull, LED_DEFAULT_STATE);
+  SetLedStatus(LED_STATUS_OFF);   
 }
 
 /*******************************************************************************
@@ -62,11 +62,13 @@ void led_set_state(uint8_t state)
     case LED_STATE_OFF:
       TURN_LED_OFF(BSP_LED0_PORT, BSP_LED0_PIN);
       TURN_LED_OFF(BSP_LED1_PORT, BSP_LED1_PIN);
+      TURN_LED_OFF(BSP_LED2_PORT, BSP_LED2_PIN);
       break;
 
     case LED_STATE_ON:
       TURN_LED_ON(BSP_LED0_PORT, BSP_LED0_PIN);
       TURN_LED_ON(BSP_LED1_PORT, BSP_LED1_PIN);
+      TURN_LED_ON(BSP_LED2_PORT, BSP_LED2_PIN);
       break;
 
     case LED_STATE_PROV:
@@ -89,22 +91,37 @@ void SetLedStatus(uchar status)
    switch(status) 
     {
         case LED_STATUS_OFF: // Alll of the LED OFF
-            SetLed(LED_SLEEP,OFF);   SetLed(LED_ACTIVE,OFF); break;
+            SetLed(LED_RED,OFF);   SetLed(LED_BLUE,OFF); SetLed(LED_GREEN,OFF);break;
         case LED_STATUS_ON: // Alll of the LED ON
-            SetLed(LED_SLEEP,ON);   SetLed(LED_ACTIVE,ON);   break;
+            SetLed(LED_RED,ON);   SetLed(LED_BLUE,ON); SetLed(LED_GREEN,ON);  break;
         case LED_STATUS_SLEEP:  SetLed(LED_SLEEP,OFF);  break;
         case LED_STATUS_ACTIVE: SetLed(LED_SLEEP,ON);   break;
         
-        case LED_STATUS_UNPROV:     SetLedToggle(LED0);SetLedToggle(LED1); break;
-        case LED_STATUS_START_PROV: SetLed(LED0,OFF);SetLed(LED1,ON); break;            
-        case LED_STATUS_PROVING:    SetLedToggle(LED0);SetLedToggle(LED1); break;
+        case LED_STATUS_UNPROV:     SetLedToggle(LED_RED);SetLedToggle(LED_BLUE); break;
+        case LED_STATUS_START_PROV: SetLed(LED_RED,OFF);SetLed(LED_BLUE,ON); break;            
+        case LED_STATUS_PROVING:    SetLedToggle(LED_RED);SetLedToggle(LED_BLUE); break;
             
         case LED_STATUS_IVI_UPDATE_ON:  SetLedToggle(LED_IVI_UPDATE); break;
         case LED_STATUS_IVI_UPDATE_OFF: SetLed(LED_IVI_UPDATE,OFF); break;
         
-        case LED_STATUS_SERVER_TO_CLIENT:// SetLedToggle(LED0); break;
-             SetLed(LED0,ON); Delay_ms(500); SetLed(LED0,OFF);break;
-            
+        case LED_STATUS_SERVER_TO_CLIENT:// SetLedToggle(LED_RED); break;
+             SetLed(LED_RED,ON); Delay_ms(500); SetLed(LED_RED,OFF);break;
+        
+        case LED_STATUS_SERVER_IO_CHANGE:   //from Built-in or RS-485
+             SetLed(LED_GREEN,ON); Delay_ms(300); SetLed(LED_GREEN,OFF);Delay_ms(300);
+             SetLed(LED_GREEN,ON); Delay_ms(300); SetLed(LED_GREEN,OFF);Delay_ms(300);
+             SetLed(LED_GREEN,ON); Delay_ms(300); SetLed(LED_GREEN,OFF);
+             break;
+
+        case LED_STATUS_SERVER_TO_RS485:   Trace("LED_STATUS_SERVER_TO_RS485");//from Built-in or RS-485
+             SetLed(LED_GREEN,ON);
+             break;
+        case LED_STATUS_SERVER_TO_SILICON:  Trace("LED_STATUS_SERVER_TO_SILICON"); //from Built-in or RS-485
+             SetLed(LED_GREEN,OFF);
+             break;
+
+
+             
         default: SetLed(LED_SLEEP,OFF); SetLed(LED_ACTIVE,OFF); break;    
     };
 }
@@ -116,29 +133,34 @@ void SetLed(uchar led_num, uchar status)
 {
    // return; // debug
     
-    if(led_num == LED0 && status == ON)       
+    if(led_num == LED_RED && status == ON)       
         LED_ON_FUN(BSP_LED0_PORT,  BSP_LED0_PIN);
-    else if(led_num == LED0 && status == OFF)   
+    else if(led_num == LED_RED && status == OFF)   
         LED_OFF_FUN(BSP_LED0_PORT, BSP_LED0_PIN);
-    else if(led_num == LED1 && status == ON)    
+    else if(led_num == LED_BLUE && status == ON)    
         LED_ON_FUN(BSP_LED1_PORT,  BSP_LED1_PIN);
-    else if(led_num == LED1 && status == OFF)   
+    else if(led_num == LED_BLUE && status == OFF)   
         LED_OFF_FUN(BSP_LED1_PORT, BSP_LED1_PIN);
-    
-   //  LED_ON_FUN(BSP_LED0_PORT,  BSP_LED0_PIN);
-   //  LED_ON_FUN(BSP_LED1_PORT,  BSP_LED1_PIN);
+   else if(led_num == LED_GREEN && status == ON)    
+       LED_ON_FUN(BSP_LED2_PORT,  BSP_LED2_PIN);
+   else if(led_num == LED_GREEN && status == OFF)   
+       LED_OFF_FUN(BSP_LED2_PORT, BSP_LED2_PIN);
 }
 
 void SetLedToggle(uchar led)
 {
-    if(led == LED0)
+    if(led == LED_RED)
         {
             GPIO_PinOutToggle(BSP_LED0_PORT,BSP_LED0_PIN);
         }
-    else
+    else if(led == LED_BLUE)
         {
             GPIO_PinOutToggle(BSP_LED1_PORT,BSP_LED1_PIN);
-          
+        }
+    
+    else if(led == LED_GREEN)
+        {
+            GPIO_PinOutToggle(BSP_LED2_PORT,BSP_LED2_PIN);
         }
 }
 

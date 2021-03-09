@@ -1,6 +1,9 @@
 #include "global.h"
 #include "device_bus.h"
 #include "bus_i2c.h"
+#include "em_adc.h"
+#include "bus_usart.h"
+
 #include "eeprom.h"
 #include "si7013.h"
 
@@ -10,33 +13,32 @@
 #define BT_NODE_FUN_BT_MODBUS       BIT1    //0 disable, 1: enable
 #define BT_NODE_FUN_BT_MESH         BIT2
 
+#define EEPROM_TEST     0
 
-
+#if EEPROM_TEST //for EEPROM Test
 
 uchar test_buff11[16]={0x12,0x34,0x56,0x78,0x90,0x06,0x07,0x08,0x09,0x10,0x11,0x12,0x13,0x14,0x15,0x16};
-
-void Si7021Init()
-{
-    
-}
-
-
 UCHAR WriteEepromTestTbl[16]={0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F};
 UCHAR ReadEepromTestTbl[16];
 
-void I2CInit()
-{TraceProc();
+#endif
 
+void I2CInit()
+{//TraceProc();
+
+    BpAdcInit();
+    GetBpValue();
 
 #if (HAL_I2CSENSOR_ENABLE) //I2C0 Initialize I2C peripheral
     I2CSPM_Init_TypeDef i2cInit = I2CSPM_INIT_DEFAULT;
     I2CSPM_Init(&i2cInit);
     Delay_ms(50);
 
- #if 0 //for EEPROM Test
-    EepromWriteBytes(0x10,16,WriteEepromTestTbl);
-    EepromReadBytes(0x10,16,ReadEepromTestTbl);
-    PrintDataByte("EEPROM Test", ReadEepromTestTbl,16);
+ #if EEPROM_TEST //for EEPROM Test
+    PrintDataByte("EEPROM Test 1", WriteEepromTestTbl,16);
+    EepromWriteBytes(0x10,16,WriteEepromTestTbl); Delay_ms(100);
+    EepromReadBytes(0x10,16,ReadEepromTestTbl); Delay_ms(100);  
+    PrintDataByte("EEPROM Test 2", ReadEepromTestTbl,16);
  #endif
  
 #endif //HAL_I2CSENSOR_ENABLE
@@ -47,140 +49,15 @@ void I2CInit()
     GetTempHumi(); //while(1);
     while(1);
 #endif    
-
-
-#if 0
-    uchar   read_byte;
-    uint16   read_word;
-    uint32  read_dword;
-    
-    uint16 addr=0;
-    uchar  counter=0;
-    //byte test
-    memset(test_buff13,0,32);
-    for(counter=0; counter<32; counter++)
-        {//TraceDec2("counter", counter,test_buff13[counter]);
-            addr++;
-        
-         if(EepromWriteByte(addr,counter) == FALSE) TraceErr("EepromWriteByte");
-         if(EepromReadByte(addr,&test_buff13[counter]) == FALSE) TraceErr("EepromReadByte");
-         //TraceDec2("counter", counter,test_buff13[counter]);
-        }
-    PrintDataByte("EepromWriteByte", test_buff13,32);
-
-    //byte test
-    memset(test_buff13,0,32);
-    for(counter=0; counter<16; counter++)
-        {//TraceDec2("counter", counter,test_buff13[counter]);
-            addr++;
-        
-         if(EepromWriteWord(addr,(uint16)counter+0x10) == FALSE) TraceErr("EepromWriteWord");
-         if(EepromReadWord(addr,(PUINT16)&test_buff13[counter*2]) == FALSE) TraceErr("EepromReadWord");
-         //TraceDec2("counter", counter,test_buff13[counter]);
-        }
-    PrintData("EepromWriteWord", (PUINT16)test_buff13,16);
-
-    //byte test
-    memset(test_buff13,0,32);
-    for(counter=0; counter<8; counter++)
-        {//TraceDec2("counter", counter,test_buff13[counter]);
-            addr++;
-         if(EepromWriteDword(addr,(uint32)counter+0x20) == FALSE) TraceErr("EepromWriteDword");
-         if(EepromReadDword(addr,(PUINT32)&test_buff13[counter*4]) == FALSE) TraceErr("EepromReadDword");
-         //TraceDec2("counter", counter,test_buff13[counter]);
-        }
-    PrintData("EepromWriteDWord", (PUINT16)test_buff13,16);
-
-        
-    
-    if(EepromWriteBytes(addr,16,test_buff11) == FALSE) TraceErr("EepromWriteBytes");
-    if(EepromReadBytes(addr,16,test_buff13) == FALSE) TraceErr("EepromReadBytes");
-    PrintDataByte("EepromWriteBytes", test_buff13,16);
-    
-    
-    while(1);
-#endif
-
-  //  EepromInit();
 }
  
-
-
-typedef struct         //for Power On initial
-{
-    uint16  DeviceInfoID;       // 0xAA55 to check EEPROM is new or old
-    uchar   SysDataInittVer;    // for EEPROM data structure ID
-    uint16  MeshNodeID;
-    uchar   MeshNodeRole;       // 0:Server 1:Client 2:Friend 3:LPN 4:BLE Master 5:BLE Slave    
-    uint32  MeshNodeFun;        // BT-Modbus/BT-Mesh-Sensor/BT-Mesh
-    uchar   ServerNodeNum;      // Total Server Node Num
-    uchar   TxPower;            // setup Tx power
-    uchar   TxGain;             //
-    uchar   RxGain;             // 
-    uint16  CTune;              // for BLE RF sensivity
-    uint32  SleepingTimer;      // xxxx Sec
-    uchar   ModbusID;           // 1 ~ 0xFE
-    uchar   BaudRate;           // {2400, 4800, 9600, 19200, 38400, 57600, 115200, 128000, 256000, 460800, 921600, 1382400,1843200,2764800};
-    uchar   Reserve[10];
-}_MeshNodeSysData,*_PMeshNodeSysData;
-
-#define MESH_SYS_DATA_EEPROM_ADDR       0x0000
-
-// for MeshNodeRole
-#define MESH_NODE_ROLE_SERVER        0
-#define MESH_NODE_ROLE_CLIENT        1
-#define MESH_NODE_ROLE_FRIEND        2
-#define MESH_NODE_ROLE_LPN           3
-#define MESH_NODE_ROLE_MASTER        4
-#define MESH_NODE_ROLE_SALVE         5
-#define MESH_NODE_ROLE_DEFAULT       MESH_NODE_ROLE_SERVER
-
-// for MeshNodeFun
-#define MESH_NODE_FUN_SENSOR        0   // sensor client/server
-#define MESH_NODE_FUN_MODBUS        1   // for Modbus protocol
-#define MESH_NODE_FUN_BT_MESH       2   //
-#define MESH_NODE_FUN_DEFAULT       MESH_NODE_FUN_SENSOR
-
-// ServerNodeNum
-#define SERVER_NODE_NUM_DEFAULT     1
-
-#define TX_POWER_DEFAULT            TX_POWER_HI   
-
-
-
-#define MeshSysDataDefault      /**/\
-{                               /**/\
-    DEVICE_INFO_ID,             /**/\
-    100,                        /* ver: 1.00*/\
-    MESH_NODE_ROLE_DEFAULT,     /**/\
-    MESH_NODE_FUN_DEFAULT,      /**/\
-    SERVER_NODE_NUM_DEFAULT,    /**/\
-    TX_POWER_DEFAULT,           /**/\
-    -100,                       /**/\
-    -100,                       /**/\
-    BSP_CLK_HFXO_CTUNE,         /**/\
-    10,                         /**/\
-    1,                          /**/\
-    6,                          /**/\
-}   
-
-
-
-
-typedef struct
-{
-    uint16  DeviceInfoID;       //  0xAA55 to check EEPROM is new or old
-    uchar   DeviceType;         //50cm/100cm
-    uint16  SensorData[12*8];   // for calibration
-}_WaterLevel,*_PWaterLevel;
-
 
 
 //
 //
 //
 void EepromInit()
-{TraceProc();
+{//TraceProc();
     _PMeshNodeSysData pEeprom=0;
     uint16 DeviceInfoID;
     DeviceInfoID = EepromReadWord1((uint16)pEeprom); Trace16_1(DeviceInfoID);
@@ -192,24 +69,24 @@ void EepromInit()
 // Eeprom Write default data
 //
 bool EepromToDefault()
-{TraceProc();
+{//TraceProc();
     bool ret_code = TRUE;
     _MeshNodeSysData mesh_sys_data;
     memset(&mesh_sys_data,0,sizeof(_MeshNodeSysData));
    
     mesh_sys_data.DeviceInfoID = DEVICE_INFO_ID;
-    mesh_sys_data.SysDataInittVer = 100;    // for 1.00
+    mesh_sys_data.SysDataInittVer = FW_VER;    // for 1.00
     mesh_sys_data.MeshNodeID = 0;
     mesh_sys_data.MeshNodeRole = MESH_NODE_ROLE_DEFAULT;
     mesh_sys_data.MeshNodeFun = MESH_NODE_FUN_DEFAULT;
     mesh_sys_data.ServerNodeNum = 1;
     mesh_sys_data.TxPower = TX_POWER_DEFAULT;
-    mesh_sys_data.TxGain = -100;
-    mesh_sys_data.RxGain = -100;
+    mesh_sys_data.TxGain = COMP_TX_POWER;
+    mesh_sys_data.RxGain = COMP_RX_POWER;
     mesh_sys_data.CTune = BSP_CLK_HFXO_CTUNE ;
     mesh_sys_data.SleepingTimer = 10; //10 sec
     mesh_sys_data.ModbusID = 1;
-    mesh_sys_data.BaudRate = 6; //115200
+    mesh_sys_data.BaudRate = USART_BAUDRATE_DEFAULT; //115200
 
     EepromWriteBytes(MESH_SYS_DATA_EEPROM_ADDR,sizeof(_MeshNodeSysData),(PUCHAR)&mesh_sys_data);
     
@@ -278,29 +155,15 @@ bool EepromWriteDword(uint16 addr,uint32 value)
 
 bool EepromWriteBytes(uint16 addr,uint16 buff_num,PUCHAR p_buff)
 {
-    
     bool ret_code = TRUE;
-    if(EEPROM_Write(I2C_EEPROM,I2C_ADDR_EEPROM,addr,p_buff,buff_num) < 0) 
-        {ret_code = FALSE; TraceErr("EepromWriteBytes");}
+    int write_bytes;
+    write_bytes = EEPROM_Write(I2C_EEPROM,I2C_ADDR_EEPROM,addr,p_buff,buff_num);
+    if(write_bytes < buff_num) 
+        {ret_code = FALSE; TraceDec1("EepromWriteBytes Error",write_bytes);}
+    else
+        TraceDec1("EEPROM Write Ok ", write_bytes);
     return ret_code;
 }
-
-uchar EepromReadByte1(uint16 addr)
-{
-    uchar ret_value = 0xFF;
-    if(EEPROM_Read(I2C_EEPROM,I2C_ADDR_EEPROM,addr,(PUCHAR)&ret_value,1) < 0)  
-       TraceErr("EepromReadByte");
-    return ret_value;
-}
-
-uint16 EepromReadWord1(uint16 addr)
-{
-    uint16 ret_value = 0xFFFF;
-    if(EEPROM_Read(I2C_EEPROM,I2C_ADDR_EEPROM,addr,(PUCHAR)&ret_value,2) < 0)  
-       TraceErr("EepromReadWord");
-    return ret_value;
-}
-
 
 
 
@@ -331,17 +194,17 @@ uint32 GetTempHumi()
 }
 
 
-
 //
 //
 //
 int16 GetTempature()
 {
-    int32 ret_byte;
-    int32 tempature;    
+    int32 ret_byte=0;
+    int32 tempature=0;
+    ret_byte = Si7013_Measure(I2C_SI7021, I2C_ADDR_SI7021, (PUINT32)&tempature, SI7013_READ_RH);
     ret_byte = Si7013_Measure(I2C_SI7021, I2C_ADDR_SI7021, (PUINT32)&tempature, SI7013_READ_TEMP);
 
-    //Trace1("GetTempature 1",tempature);
+   // Trace1("GetTempature 1",tempature);
     
     if (ret_byte == 2) {
       tempature = (((17552*tempature)/65536) - 4685)/10;
@@ -352,7 +215,7 @@ int16 GetTempature()
    //TraceDec1("GetTempature 2-1",(int16)tempature);
     //if((int16)tempature < -100) 
       //  {TraceDec1("GetTempature 2-2",(int16)tempature);tempature = -100;}
-    
+    TraceDec1("GetTempature 2",tempature);
     return (int16)tempature;
     //return -100;
 }
@@ -377,78 +240,207 @@ int16 GetHumidity()
 
 }
 
+//const uint16 AdcValue[22]={2700,};
+#define ADC_VOL_MAX     2670 //2650
+#define ADC_VOL_MIN     1800 //1900
+#define ADC_DIFF        (ADC_VOL_MAX - ADC_VOL_MIN)
+uchar BatteryPower;
 
+#define BATTERY_POWER_DIFF      3
 
 //
+// return battery power
 //
-//
-int16 GetTempature1()
+uchar GetBatteryPower()
 {
-    int32 ret_byte;
-    uint32 tempature;
-    
-    ret_byte = Si7013_Measure(I2C_SI7021, I2C_ADDR_SI7021, &tempature, SI7013_READ_TEMP);
+    uint16 adc_value;
+    uchar power_percent;
+    uint16 power_diff;
+    adc_value = (uint16)GetBpValue();
+    if(adc_value > ADC_VOL_MAX) adc_value = ADC_VOL_MAX;
+    if(adc_value <= ADC_VOL_MIN) adc_value = ADC_VOL_MIN;
+    power_percent = (adc_value - ADC_VOL_MIN)*100/ADC_DIFF;
 
-    //Trace1("GetTempature 1",tempature);
-    
-    if (ret_byte == 2) {
-      tempature = (((tempature) * 21965L) >> 13) - 46850; // convert to milli-degC  ((tempature*175.72)/65536) -46.85
-    } else {
-      tempature = RET_VALUE_ERROR;
-    }
-    TraceDec1("GetTempature 2",tempature);
-    return (int16)tempature;
+    if(power_percent >= BatteryPower)
+        {//power on/ power error
+         //TraceDec2("Test1",power_percent,BatteryPower);
+          if((power_percent - BatteryPower) > BATTERY_POWER_DIFF)
+            {//TraceDec2("Test2",power_percent,BatteryPower);
+            BatteryPower = power_percent;
+            }
+        }
+    else 
+        {// normal
+            //TraceDec2("Test3",power_percent,BatteryPower);
+          if((BatteryPower - power_percent) < BATTERY_POWER_DIFF)
+            {//TraceDec2("Test4",power_percent,BatteryPower);
+             BatteryPower = power_percent;
+            }
+        }
+    TraceDec1("Power Percent",BatteryPower);
+    return BatteryPower; //75;
 }
 
-//
-//
-//
-int16 GetHumidity1()
-{
-    int32 ret_byte;
-    uint32 humidity;
-    
-    ret_byte = Si7013_Measure(I2C_SI7021, I2C_ADDR_SI7021, &humidity, SI7013_READ_RH);
-    Trace1("humidity 1",humidity);
-    if (ret_byte == 2) {/* convert to milli-percent */
-      humidity = (((humidity) * 15625L) >> 13) - 6000;
-    } else {
-      humidity = RET_VALUE_ERROR;
-    }
-    TraceDec1("GetHumidity 2",humidity);
-    return (int16)humidity;
 
+#define adcFreq             16000000
+#define ADC_REF_VOLTAGE     3300
+
+volatile uint32_t sample;
+volatile uint32_t millivolts;
+
+
+/**************************************************************************//**
+ * @brief  Initialize ADC function for Battery PPower
+ *****************************************************************************/
+void BpAdcInit (void)
+{TraceProc();
+
+  // Enable ADC0 clock
+  CMU_ClockEnable(cmuClock_ADC0, true);
+
+  // Declare init structs
+  ADC_Init_TypeDef init = ADC_INIT_DEFAULT;
+  ADC_InitSingle_TypeDef initSingle = ADC_INITSINGLE_DEFAULT;
+
+  // Modify init structs and initialize
+  init.prescale = ADC_PrescaleCalc(adcFreq, 0); // Init to max ADC clock for Series 1
+
+  initSingle.diff       = false;        // single ended
+  initSingle.reference  = _ADC_SINGLECTRL_REF_VDD; //v3.3
+  initSingle.resolution = adcRes12Bit;  // 12-bit resolution
+  initSingle.acqTime    = adcAcqTime4;  // set acquisition time to meet minimum requirement
+
+  // Select ADC input. See README for corresponding EXP header pin.
+  initSingle.posSel = adcPosSelAPORT3YCH11; //for PA3 
+  init.timebase = ADC_TimebaseCalc(0);
+
+  ADC_Init(ADC0, &init);
+  ADC_InitSingle(ADC0, &initSingle); 
+  Delay_ms(50);
+}
+
+
+//
+// Get Battery Power xx%
+//
+uint32 GetBpValue()
+{
+    uint32 adc_value;
+    
+    ADC_Start(ADC0, adcStartSingle); // Start ADC conversion
+    while(!(ADC0->STATUS & _ADC_STATUS_SINGLEDV_MASK)); // Wait for conversion to be complete
+    
+    adc_value = ADC_DataSingleGet(ADC0); // Get ADC result
+ //   TraceDec1("Battery Voltage 1", adc_value);
+    adc_value = (adc_value * ADC_REF_VOLTAGE) / 4096; // Calculate input voltage in mV
+
+    
+  //  TraceDec1("Battery Voltage 2", adc_value);
+    return adc_value;
+}
+
+
+////
+void TempAdcInit(void) 
+{
+
+    CMU_ClockEnable(cmuClock_ADC0, true);
+    /* Base the ADC configuration on the default setup. */
+    ADC_Init_TypeDef       init  = ADC_INIT_DEFAULT;
+    ADC_InitSingle_TypeDef init_single = ADC_INITSINGLE_DEFAULT;
+
+    /* Initialize timebases */
+    init.timebase = ADC_TimebaseCalc(0);
+    init.prescale = ADC_PrescaleCalc(400000, 0);
+    ADC_Init(ADC0, &init);
+
+    /* Set input to temperature sensor. Reference must be 1.25V */
+    init_single.reference   = adcRef1V25;
+    init_single.acqTime     = adcAcqTime8; /* Minimum time for temperature sensor */
+    init_single.posSel      = adcPosSelTEMP;
+    ADC_InitSingle(ADC0, &init_single);
+    Delay_ms(50);
+}
+
+uint32 GetAdcTemp(void)
+{
+  ADC_Start(ADC0, adcStartSingle);
+  while ( ( ADC0->STATUS & ADC_STATUS_SINGLEDV ) == 0 );
+  return ADC_DataSingleGet(ADC0);
 }
 
 
 
-int32_t Si7013_MeasureRHAndTemp1(I2C_TypeDef *i2c, uint8_t addr, uint32_t *rhData, int32_t *tData)
+// Convert ADC temperature sensor readings into milli-celcius
+int32_t convert_to_millicelsius(int32_t adc_sample)
 {
-  int ret = Si7013_Measure(i2c, addr, rhData, SI7013_READ_RH);
- // TraceDec1("ret 1 RH",*rhData);
-  
-  if (ret == 2) {
-    /* convert to milli-percent */
-    *rhData = (((*rhData) * 15625L) >> 13) - 6000;
-  } else {
-    return -1;
+  const float TGRAD_ADCTH = 1.835; // TGRAD_ADCTH = 1.835 mV/degC (from datasheet)
+  const uint32_t VFS = 1250; // VFS = 1250 mV
+  const uint32_t NUM_STEPS_12BIT = 4096;
+  float T_Celsius;
+
+  /* Factory calibration temperature from device information page. */
+  const uint32_t CAL_TEMP0 = ((DEVINFO->CAL & _DEVINFO_CAL_TEMP_MASK) >> _DEVINFO_CAL_TEMP_SHIFT);
+
+  /* _DEVINFO_ADC0CAL3_TEMPREAD1V25_MASK is not correct in
+     current CMSIS. This is a 12-bit value, not 16-bit. */
+  const uint32_t CAL_VALUE0 = ((DEVINFO->ADC0CAL3 & _DEVINFO_ADC0CAL3_TEMPREAD1V25_MASK) >> _DEVINFO_ADC0CAL3_TEMPREAD1V25_SHIFT);
+
+  if ((CAL_TEMP0 == 0xFF) || (CAL_VALUE0 == 0xFFF)) {
+    /* The temperature sensor is not calibrated */
+    return -100.0;
   }
 
-  ret = Si7013_Measure(i2c, addr, (uint32_t *) tData, SI7013_READ_TEMP);
- // TraceDec1("ret 2 Temp",*tData);
+  // e.g. EFRxG13 datasheet section 27.3.10.9 Temperature Measurement for below formula
+  int32_t readout_difference = CAL_VALUE0 - adc_sample;
+  T_Celsius = ((float) readout_difference * VFS);
+  T_Celsius /= (NUM_STEPS_12BIT * (-1 * TGRAD_ADCTH));
 
-  if (ret == 2) {
-    *tData = (((*tData) * 21965L) >> 13) - 46850; /* convert to milli-degC */
-  } else {
-    return -1;
-  }
-
-  return 0;
+  /* Calculate offset from calibration temperature */
+  T_Celsius = (float) CAL_TEMP0 - T_Celsius;
+  return (int32_t) (T_Celsius * 1000);
+  //return (int32_t) (T_Celsius * 10);
 }
 
-   
+
+int16 GetBuildInTemp()
+{
+    int32_t built_in_Temp;
+    TempAdcInit();
+    built_in_Temp = convert_to_millicelsius(GetAdcTemp());
+    TraceDec1("built_in_Temp ", built_in_Temp);
+
+    return (int16)built_in_Temp;
+}
 
 
+
+//Function for taking a single temperature measurement with EFR32 internal temperature sensor.
+void measure_temperature()
+{
+  uint8_t htm_temperature_buffer[5]; /* Stores the temperature data in the Health Thermometer (HTM) format. */
+  uint8_t flags = 0x00;   /* HTM flags set as 0 for Celsius, no time stamp and no temperature type. */
+  int32_t temperature_data;     /* Stores the Temperature data read from the sensor. */
+  uint32_t temperature;   /* Stores the temperature data read from the sensor in the correct format */
+  uint8_t *p = htm_temperature_buffer; /* Pointer to HTM temperature buffer needed for converting values to bitstream. */
+
+  //richard add
+  TempAdcInit();
+
+
+  /* Convert flags to bitstream and append them in the HTM temperature data buffer (htm_temperature_buffer) */
+ // UINT8_TO_BITSTREAM(p, flags);
+
+  temperature_data = convert_to_millicelsius(GetAdcTemp()); 
+
+  /* Convert sensor data to correct temperature format */
+  temperature = FLT_TO_UINT32(temperature_data, -3);
+  TraceDec1("temperature_data ", temperature_data);
+  Trace1("temperature", temperature);
+  /* Convert temperature to bitstream and place it in the HTM temperature data buffer (htm_temperature_buffer) */
+  //UINT32_TO_BITSTREAM(p, temperature);
+  PrintDataByte("Built-in Temp",htm_temperature_buffer,5);
+}
 
 
 

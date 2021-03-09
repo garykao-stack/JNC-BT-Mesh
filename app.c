@@ -20,7 +20,7 @@
 #include "leds.h"
 
 
-//#include"node_data.h"
+#include"Mesh_node.h"
 
 #include "device_bus.h"
 //#include "modbus.h"
@@ -87,7 +87,7 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
     
     //DeviceInit();    
     //printf("SDK Version %s\r\n",Mesh_SDK_VER); 
-    printf("Firmware Version ==> %1.3f\r\n", FW_VER/100.0);
+    printf("Firmware Version ==> %1.3f %02d Sec \r\n\r\n", FW_VER/100.0, TIMER_GET_INFO_SLEEPING);
     
     gecko_stack_init(pConfig);
     gecko_bgapi_classes_init();
@@ -104,25 +104,27 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
     // for button & LED. Initialization is done in this order so that default
     // configuration will be "button" for those radio boards with shared pins.
     // led_init() is called later as needed to (re)initialize the LEDs
+    UDELAY_Calibrate();
     led_init();  
-    button_init(); 
+    button_init();
+    DeviceInit();
     //enable_button_interrupts(); // must disable because buttom that triggle INT
     BleCommInit(); 
 
-    if(MeshNodeStatus & STATUS_CLIENT)
-        {Trace("Client Node Init");
+    //if(MeshNodeStatus & STATUS_CLIENT)
+    if(NodeRole == NR_CLIENT)
+        {Trace("Client Node Init 1");
          gecko_bgapi_class_mesh_sensor_client_init();
         }
         
     else
-        {Trace("Server Node Init");
+        {Trace("Server Node Init 2");
          gecko_bgapi_class_mesh_sensor_server_init();
          gecko_bgapi_class_mesh_sensor_setup_server_init();
         }
     BleEventInit();
     MeshEventInit();
-    
-    DeviceInit();
+   // DeviceInit();
    // ModbusRtuInit();
     
 }
@@ -135,6 +137,9 @@ void WaterLeveMeshProc(void);
 void ComPortProc(void);
 
 uint32  debug_count=0;
+void ServerNodeTask();
+void ClientNodeTask();
+
 
 void appMain(gecko_configuration_t *pConfig)
 {
@@ -142,7 +147,7 @@ void appMain(gecko_configuration_t *pConfig)
     BleMeshNodeInit(pConfig);
     PCmdPacket pEvent;
     
-    while (1) 
+    while(1)
     {
     // Event pointer for handling events
 
@@ -158,21 +163,16 @@ GetMeshEvent:
         if(BleMeshEventProc(pEvent,BleEventFun) == FALSE)
             if(BleMeshEventProc(pEvent,MeshEventFun) == FALSE)
                 EventIDtoStringProc(pEvent);
-        goto GetMeshEvent;
-        } 
-
-    
-    //if(GetNodeStatus(STATUS_PROVISIONED) && !GetNodeStatus(STATUS_BLE_CONNECT) )
-    if(CheckRunDevTask() == TRUE)
-        {
-          //ComPortProc();    
-          DeviceTaskProc();
-          
+			continue;
         }
-
-        // for System Crash Debug
-        //if(debug_count++ > 300) {SetLedToggle(LED1); debug_count=0;}
-
+    
+    if(!CheckRunDevTask()) continue;
+        
+   // if(GetMeshNodeStatus(STATUS_CLIENT)) 
+   if(NodeRole == NR_CLIENT)
+        ClientNodeTask();
+    else 
+        ServerNodeTask();
     } 
 }
 
@@ -180,8 +180,8 @@ bool CheckRunDevTask()
 {
     bool ret_code=TRUE;
 
-    //if(!GetNodeStatus(STATUS_PROVISIONED) || GetNodeStatus(STATUS_IVI_UPDATE) || GetNodeStatus(STATUS_BLE_CONNECT) )    
-    if(!GetNodeStatus(STATUS_PROVISIONED) ||  GetNodeStatus(STATUS_BLE_CONNECT) )    
+    //if(!GetMeshNodeStatus(STATUS_PROVISIONED) || GetMeshNodeStatus(STATUS_IVI_UPDATE) || GetMeshNodeStatus(STATUS_BLE_CONNECT) )    
+    if(!GetMeshNodeStatus(STATUS_PROVISIONED) ||  GetMeshNodeStatus(STATUS_BLE_CONNECT) )    
         ret_code = FALSE;
 
     return ret_code;
@@ -200,7 +200,7 @@ bool BleMeshEventProc(PCmdPacket pEvent, PEventFun pEventFun)
     uint32 event_id;
     if(NULL == pEvent) return ret_code;
     event_id = BGLIB_MSG_ID(pEvent->header); //get event ID
-
+ //    EventIDtoStringProc(pEvent);
     while(pEventFun->pEventProc != NULL)
     {
         if(pEventFun->EventID == event_id)   // to process the event
@@ -213,5 +213,6 @@ bool BleMeshEventProc(PCmdPacket pEvent, PEventFun pEventFun)
     };
     return ret_code;
 }
+
 
 

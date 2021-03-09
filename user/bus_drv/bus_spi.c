@@ -21,7 +21,7 @@ void SpiInit(void) //void initUSART1 (void)
 {TraceProc();
     
     Ecode_t error_code;
-    if(!GetNodeStatus(STATUS_SPI_ENABLE)) return;
+    if(!GetMeshNodeStatus(STATUS_SPI_ENABLE)) return;
 
     // SpiPinCS = SPI_CS_PIN;
     // Configure GPIO mode for master
@@ -79,7 +79,7 @@ void SpiSetCS(uchar status)
     GPIO_Port_TypeDef port;
     uint16  pin;
     uchar   device_id;
-if(!GetNodeStatus(STATUS_SPI_ENABLE)) return;    
+if(!GetMeshNodeStatus(STATUS_SPI_ENABLE)) return;    
 #if AUTO_CS    
     return;
 #endif
@@ -107,7 +107,7 @@ void SpiSetAllCS(uchar status)
 {//TraceProc();
     _PDeviceSpi p_deviceCs;
     p_deviceCs = DeviceSpi;
-    if(!GetNodeStatus(STATUS_SPI_ENABLE)) return;
+    if(!GetMeshNodeStatus(STATUS_SPI_ENABLE)) return;
 
     while(p_deviceCs->DeviceID != END_TBL)
         {
@@ -122,7 +122,7 @@ bool SpiWrite(PUCHAR tx_buff,uchar size)
 {//TraceProc();
     Ecode_t err_code; 
     bool ret_code=false;
-    if(!GetNodeStatus(STATUS_SPI_ENABLE)) return FALSE;
+    if(!GetMeshNodeStatus(STATUS_SPI_ENABLE)) return FALSE;
     
       // Transmit data using a blocking transmit function
     SpiSetCS(LOW);
@@ -139,7 +139,7 @@ bool SpiRead(PUCHAR cmd_buff, int cmd_size,PUCHAR rx_buff,int rx_size)
 
     bool ret_code=false;
     Ecode_t err_code;
-    if(!GetNodeStatus(STATUS_SPI_ENABLE)) return FALSE;
+    if(!GetMeshNodeStatus(STATUS_SPI_ENABLE)) return FALSE;
     
     SpiSetCS(LOW); //Trace("DMA 1-1");
     err_code = SPIDRV_MTransmitB(SpiHandleMaster, cmd_buff, cmd_size); // send cmd

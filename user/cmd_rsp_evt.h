@@ -902,7 +902,7 @@ typedef struct gecko_cmd_packet*    PRspPacket;    // richard Add
 #define Evt_l2cap_coc_channel_disconnected             gecko_evt_l2cap_coc_channel_disconnected_id
 #define Evt_l2cap_coc_data                             gecko_evt_l2cap_coc_data_id
 #define Evt_l2cap_command_rejected                     gecko_evt_l2cap_command_rejected_id
-#define Evt_cte_receiver_iq_report                     gecko_evt_cte_receiver_iq_report_id
+//#define Evt_cte_receiver_iq_report                     gecko_evt_cte_receiver_iq_report_id
 #define Evt_ms_server_get_req                          gecko_evt_mesh_sensor_server_get_request_id
 #define Evt_ms_server_get_column_req                   gecko_evt_mesh_sensor_server_get_column_request_id
 #define Evt_ms_server_get_series_req                   gecko_evt_mesh_sensor_server_get_series_request_id

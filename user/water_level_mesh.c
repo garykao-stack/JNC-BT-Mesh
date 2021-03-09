@@ -87,7 +87,7 @@ void WaterLeveMeshProc(void)
 {//TraceProc();
 
     uchar scan_cin_status, scan_cin_stage;
-    if(!GetNodeStatus(STATUS_WAKE_UP) || GetNodeStatus(STATUS_CLIENT) || GetNodeStatus(STATUS_BLE_CONNECT))
+    if(GetMeshNodeStatus(STATUS_SLEEPING) || NodeRole == NR_CLIENT || GetMeshNodeStatus(STATUS_BLE_CONNECT))
         return;
 
     // start to scan CINx value

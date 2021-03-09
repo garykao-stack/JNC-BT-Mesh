@@ -8,35 +8,36 @@
 #pragma pack(push) 
 #pragma pack(1)     //mapping to one byte
 
-//current 47 bytes
+//current 47 bytes, Max 56 bytes
 typedef struct 
 {
   uint16    DataInitID;         // 0xA5A5
-  uint16    StructVer;          // for this structure version: 100 ==>  1.00  
-  uint16    FwVer;              // for this structure version: 100 ==>  1.00
-  uint16    HwVer;              // for this structure version: 100 ==>  1.00
+  uint16    StructVer;          // 1.00
   uchar     MeshNodeRole;       // Server=1 /Setup Server=2 /Client=3 /Friend=4 /LPN=5
-  uchar     MeshNodeID;         // 1 ~ 254
+  uint16    MeshNodeID;         // 1 ~ 254
   uchar     TotalNodes;         // for client node
-  uint16    ClientAddr;
-  uint16    ServerAddr;
+  uint16    SleepingTimer;      // 0: sleeping diable  >1: over 1 that sleeping mode active for timer
+  uchar     BaudRate;           // default:6: 0:2400,1:4800,2:9600,3:19200,4:38400,5:57600,6:115200  
+  uchar     SensorClass;        // PT485,AIP,A308M,SD,AIQS,WaterLevel...
   uint16    ElemIndex;
   uint16    ElementAddr;
   uint16    IvIndex,AppkeyIndex,NetkeyIndex;
   uint16    NetKey,AppKey,DeviceKey;
-  uint16    Sleeping;           // 0: sleeping diable  >1: over 1 that sleeping mode active for timer
-  uchar     BaudRate;           //  default:6: 0:2400,1:4800,2:9600,3:19200,4:38400,5:57600,6:115200  
-  uchar     SensorClass;        //SD,AIQS,WaterLevel...
   uchar     TxPower;            // for BLE power
   uchar     CTune;              // for BLE RF sensivity
   int16     TxGain,RxGain;      //
   ////// to add other Items
   uint16    Status;
+  short     TempDiff,HumidityDiff;// for Temp & RH calibration ±12.7°C and ±20%
+  uint16    Reserver2;          // 
+  uint16    Reserver1;          // 
   uint32    Reserver[1];
 } _Mesh_Node_Data,*_PMesh_Node_Data;
 
 // Mesh Node Status
-#define NODE_TEMP_HUM           BIT0    //0: from other device 1: from BT itself
+#define NODE_TEMP_HUM               BIT0    //0: from other device 1: from BT itself
+#define NODE_SERVER_TO_RS485        BIT1    //0: from other device 1: from BT itself
+
 
 typedef struct
 {
@@ -65,8 +66,8 @@ typedef struct
 #define PS_KEY_ADJUST_VALUE     0x4001
 
 
-#define PS_KEY_WL_CAL           0x4003  // for 96x2bytes
-#define PS_KEY_WL_CAL_1         0x4003  // for 50bytes
+#define PS_KEY_WL_CAL           0x4003  // for 96x2 bytes
+#define PS_KEY_WL_CAL_1         0x4003  // for 50   bytes
 #define PS_KEY_WL_CAL_2         0x4004
 #define PS_KEY_WL_CAL_3         0x4005
 #define PS_KEY_WL_CAL_4         0x4006
@@ -78,15 +79,13 @@ typedef struct
 #define CAL_DATA_BACKUP_ADDR        (CAL_DATA_ADDR+0x100+16)    // to backup calibration data
 
 
-#define ONE_LEVEL_BUFF_SIZE     (12*2)
+#define ONE_LEVEL_BUFF_SIZE         (12*2)
 #define ERROR_PS_KEY_TOO_LEN        0x018A      // PS data too length
 
 
 void UD_Flash_Error(msc_Return_TypeDef err);
 
-#define SENSOR_CLASS_SD         1
-#define SENSOR_CLASS_AIQS       2
-#define SENSOR_CLASS_WL         3
+
 
 extern _PMesh_Node_Data pMeshNodeData;
 extern _PAdjustValue    pAdjValue;

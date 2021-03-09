@@ -20,6 +20,7 @@
 #include "mesh_sensor.h"
 #include "sensor_client.h"
 #include "cmd_to_bt_mesh.h"
+#include "Mesh_Node.h"
 
 
 
@@ -36,8 +37,8 @@ const mesh_device_properties_t ServerProperties[MAX_PROPERTIES] =
     PRESENT_AMBIENT_TEMPERATURE, 
     PEOPLE_COUNT, 
     JNC_MODBUS_CMD,
-    JNC_TEMP_RH,    //for Tempature and Relative Hunidity
-    MODBUS_FC4_REG0,
+    JNC_TEMP_RH,    //for Tempature and Relative Humidity
+   // MODBUS_FC4_REG0,
     DEVICE_FIRMWARE_REVISION
 };
 
@@ -72,7 +73,7 @@ void SensorClientNodeInit(void)
     NodeWakeUp();
     Cmd_ms_client_init();
 #ifdef FRIEND_NODE        
-    FriendStatus(ON);
+    NodeFriend(ON);
 #endif 
 }
 
@@ -83,7 +84,7 @@ void SensorClientNodeInit(void)
 //******************************************************************************************************
 void StartScanServerNode()
 {TraceProc();
-    if(GetNodeStatus(STATUS_CLIENT) != TRUE) return; // server dot scan
+    if(NodeRole != NR_CLIENT) return;
     
     DI_Print("                     ",DI_ROW_SENSOR_DATA+0);
     DI_Print("                     ",DI_ROW_SENSOR_DATA+1);
@@ -124,8 +125,8 @@ uint32 EvtMeshSensorClientProc(PCmdPacket pEvent)
                 break;
             case Evt_ms_client_status:              //Trace("Evt_ms_client_status");
                 //HandleServerProperty(pClientStatus);
-                
-                HandleModbusBtMesh(pClientStatus); // for Modbus debug
+                //HandleModbusBtMesh(pClientStatus); // for Modbus debug
+                ClientPropertyEvent(pClientStatus); // richard: for new property
                 break;
 #if MESH_COLUME_ENABLE
             
@@ -258,7 +259,7 @@ void ClientGetServerDataProc()
     switch(GetPropertyStage)
     {
     case GET_PROPERTY_PENDING:  //Trace("GET_PROPERTY_PENDING");
-         if(GetNodeStatus(BLE_LINK_STATUS) != TRUE) GetPropertyStage = GET_PROPERTY_INIT;
+         if(GetMeshNodeStatus(BLE_LINK_STATUS) != TRUE) GetPropertyStage = GET_PROPERTY_INIT;
         break;
     case GET_PROPERTY_INIT:     Trace("GET_PROPERTY_INIT");
         GetPropertyStage = GET_PROPERTY_START;        
@@ -698,7 +699,7 @@ PMeshNode AddServerNode(word server_addr)
 PMeshNode DeleteServerNode(word server_addr)
 {TraceProc();
     PMeshNode p_node;
-    uint16  loop;
+//    uint16  loop;
     p_node = GetServerNode(server_addr);
 
     if(!p_node)
@@ -801,7 +802,7 @@ void DisplayProperty(PMeshNode p_node,uint8_t property_len,mesh_device_propertie
     count16_t people_count;
     temperature_8_t temperature;
     uint32 temp_rh;
-    float jnc_temp,jnc_temp_point,jnc_rh;
+    float jnc_temp,jnc_rh;
     memset(tmp,0,21);
     switch(property_id)
         {

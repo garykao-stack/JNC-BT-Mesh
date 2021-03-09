@@ -178,6 +178,10 @@ uint8_t mesh_sensor_data_to_buf(uint16_t property_id, uint8_t *ptr, uint8_t *val
     case PRESENT_DEVICE_OPERATING_EFFICIENCY:
     case PRESENT_INPUT_RIPPLE_VOLTAGE:
     case PRESENT_RELATIVE_OUTPUT_RIPPLE_VOLTAGE:
+    // Richard one byte
+    case NODE_GET_BATTERY_POWER:
+    case NODE_GET_STATUS:
+    case NODE_GET_AIP_POWER_WATT:
     {
       uint8_to_buf(ptr++, 1);
       uint8_to_buf(ptr++, *(uint8_t*)value);
@@ -208,6 +212,10 @@ uint8_t mesh_sensor_data_to_buf(uint16_t property_id, uint8_t *ptr, uint8_t *val
     case TIME_SINCE_PRESENCE_DETECTED:
     case PRESENT_INPUT_VOLTAGE:
     case PRESENT_OUTPUT_VOLTAGE:
+//richard
+    case NODE_GET_TEMP:
+    case NODE_GET_RH:
+    case NODE_GET_TEMP_RH:
     {
       uint8_to_buf(ptr++, 2);
       uint16_to_buf(ptr, *(uint16_t*)value);
@@ -447,6 +455,9 @@ mesh_device_property_t mesh_sensor_data_from_buf(uint16_t property_id, const uin
     case PRESENT_DEVICE_OPERATING_EFFICIENCY:
     case PRESENT_INPUT_RIPPLE_VOLTAGE:
     case PRESENT_RELATIVE_OUTPUT_RIPPLE_VOLTAGE:
+    // Richard one byte
+    case NODE_GET_BATTERY_POWER:
+    case NODE_GET_STATUS:                
     {
       property.uint8 = uint8_from_buf(ptr);
     } break;
@@ -473,6 +484,10 @@ mesh_device_property_t mesh_sensor_data_from_buf(uint16_t property_id, const uin
     case TIME_SINCE_PRESENCE_DETECTED:
     case PRESENT_INPUT_VOLTAGE:
     case PRESENT_OUTPUT_VOLTAGE:
+//Richard
+    case NODE_GET_TEMP:
+    case NODE_GET_RH:        
+    case NODE_GET_TEMP_RH:
     {
       property.uint16 = uint16_from_buf(ptr);
     } break;

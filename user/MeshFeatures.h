@@ -20,6 +20,10 @@ Result NodeFriend(uint8 status);
 Result NodeProxy(uint8 status);
 Result  NodeRelay(uint8 status);
 Result NodeLpn(uint8 status);
+Result NodeBeacon(uint8 status);
+Result NodeRelay(uint8 status);
+
+
 
 
 
@@ -30,6 +34,7 @@ uint32 EvtMeshFriendProc(PCmdPacket pEvent);
 //
 Result NodeSleeping(void);
 Result NodeWakeUp(void);
+
 
 
 

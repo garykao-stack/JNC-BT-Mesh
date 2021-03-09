@@ -22,18 +22,18 @@ void ComPortInit()
 #if MESH_COLUME_ENABLE
     
     ModbusToMeshInit();
-    SetNodeStatus(STATUS_MODBUS_MESH,ON); // debug for
+    SetMeshNodeStatus(STATUS_MODBUS_MESH,ON); // debug for
     
 #endif // MESH_COLUME_ENABLE
     
-    CmdToBtMeshInit();
+   // CmdToBtMeshInit();
 }
 
 
 void ComPortProc(void)
 {//TraceProc();
  //   uchar response_num;
-    UsartMonitor();
+//    UsartMonitor();
     return;
 }
 
@@ -46,11 +46,11 @@ uchar ProtocolProc()
     uchar loop;
     PUCHAR pTxBuff;    
 
-    if(GetNodeStatus(STATUS_MOD_BUS))
+    if(GetMeshNodeStatus(STATUS_MOD_BUS))
         ModBusProc();
-    else if(GetNodeStatus(STATUS_JNC_CMD))       
+    else if(GetMeshNodeStatus(STATUS_JNC_CMD))       
         JncCmdProc();
-    else if(GetNodeStatus(STATUS_MODBUS_MESH))
+    else if(GetMeshNodeStatus(STATUS_MODBUS_MESH))
         ModbusToMeshClientProc();
     else TraceErr("ProtocolProc 1");
 

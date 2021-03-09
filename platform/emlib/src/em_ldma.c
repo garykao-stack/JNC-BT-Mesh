@@ -1,7 +1,6 @@
 /***************************************************************************//**
  * @file
  * @brief Direct memory access (LDMA) module peripheral API
- * @version 5.8.3
  *******************************************************************************
  * # License
  * <b>Copyright 2018 Silicon Laboratories Inc. www.silabs.com</b>
@@ -202,14 +201,7 @@ void LDMA_Init(const LDMA_Init_t *init)
   LDMA->REQDIS  = 0;
 
   /* Enable the LDMA error interrupt. */
-#if defined (LDMA_IEN_ERRORIEN)
-  LDMA->IEN = LDMA_IEN_ERRORIEN;
-#elif defined (LDMA_IEN_ERROR)
   LDMA->IEN = LDMA_IEN_ERROR;
-#else
-  #error "IEN register not defined!!!"
-#endif
-
 #if defined (LDMA_HAS_SET_CLEAR)
   LDMA->IF_CLR = 0xFFFFFFFFU;
 #else

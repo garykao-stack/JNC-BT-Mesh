@@ -1,0 +1,321 @@
+/*
+ * Global.h
+ *  Created on: 2020/09/09
+ *  Author: richard.huang
+ */
+
+
+#ifndef _MEAH_NODE_H_
+#define _MEAH_NODE_H_
+#pragma pack(push)
+#pragma pack(1)     //mapping to one byte
+
+
+typedef struct _NodeStageInfo
+{
+    uchar   Stage;
+    uint16  Timer;
+}NodeStageInfo,*PNodeStageInfo;
+
+typedef struct _NodeHeader_
+{
+    uint8   SensorClass;    // for sensor class for server node
+    uint8   Status;
+    uint8   BatteryPower;   // 0 ~ 100%    
+}_NodeHeader,*PNodeHeader;
+// Status
+#define SERVER_NO_RESPONSE          BIT0    //server node no response
+#define SERVER_FULL_POWER           BIT1    //server full power that can not sleeping
+
+typedef struct _Si7021Info_
+{
+    int16   Tempature;      // -40°C ~ 85°C
+    uint16  Humidity;       // 0% ~ 100%
+}_Si7021Info,*PSi7021Info;
+
+typedef struct _PT485Info_
+{
+    int16   Tempature;      // -40°C ~ 85°C
+}_PT485Info,*PPT485Info;
+
+typedef struct _AIPInfo_
+{
+    uint16  AipPower;       //00%, 25%, 50%, 75%, 100%, power consumption
+    uint16  AipPowerStatus;
+}_AIPInfo,*PAIPInfo;
+
+typedef struct _A308mInfo_
+{
+    int16   Tempature;      // -20 ~ 50°C
+    uint16  Xrms;      
+    uint16  XSpeed;
+    uint16  Yrms;
+    uint16  YSpeed;
+    uint16  Zrms;
+    uint16  ZSpeed;
+    uint16  XFFT_Fre;      //Frequency
+    uint16  XFFT_Str;      //Stength    
+    uint16  YFFT_Fre;      //Frequency
+    uint16  YFFT_Str;      //Stength
+    uint16  ZFFT_Fre;      //Frequency
+    uint16  ZFFT_Str;      //Stength
+}_A308mInfo,*PA308mInfo;
+
+
+typedef struct _WaterLevelInfo_
+{
+    uint16   WaterLevel;
+    uint16   OilLevel;
+}_WaterLevelInfo,*PWaterLevelInfo;
+
+typedef struct _SdInfo_
+{
+    int16   Tempature;      // -40°C ~ 85°C
+    uint16  Humidity;       // 0% ~ 100%
+    uint16  CO2;
+    uint16  PM25;      //for PM2.5
+    uint16  HCHO;
+}_SdInfo,*PSdInfo;
+
+typedef struct _IaqslInfo_
+{
+    int16   Tempature;      // -40°C ~ 85°C
+    uint16  Humidity;       // 0% ~ 100%
+    uint16  CO2;            //
+    uint16  PM25;           //for PM2.5
+    uint16  HCHO;           //
+    uint16  CO;             //
+    uint16  TVOC;
+    uint16  O3;
+    uint16  PM10;           //for PM10
+}_IaqsInfo,*PIaqsInfo;
+
+typedef struct _UltarSound_
+{
+    uint16  Distance;       
+    uint16  SetDistance;
+    uint16  Distance100; 
+    uint16  Distance200;
+    uint16  Distance300;
+    uint16  Distance400;
+    uint16  Distance500;
+    uint16  Distance600;
+    uint16  Distance700; 
+    uint16  Distance800;
+}_UltraSoundInfo,*PUltraSoundInfo;
+
+typedef struct _SensorInfo_
+{    
+        _NodeHeader Header;
+union{
+        _Si7021Info Si7021Info;
+        _PT485Info  PT485;
+        _AIPInfo    AipInfo;
+        _A308mInfo  A308mInfo;
+        _WaterLevelInfo WaterLevelInfo;
+        _SdInfo     SdInfo;
+        _IaqsInfo   IaqsInfo;
+        _UltraSoundInfo UltraSound;
+     };
+}_SensorInfo,*PSensorInfo;
+
+#define SERVER_LEADING_SIZE     3
+typedef struct _ServerInfo_
+{
+    uint16 ProperityID;
+    uchar  NodeInfoSize;    
+    _SensorInfo SensorInfo;
+}_ServerInfo,*PServerInfo;
+
+
+typedef struct _ClientInfo_
+{
+    uint16  ServerID;
+    uint8   Count;
+    uint16  Status;
+    _SensorInfo SensorInfo;
+}_ClientInfo,*PClientInfo;
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+typedef struct _NodeEventInfo_
+{
+    uint16      ElemIndex;
+    uint16      ClientAddr;
+    uint16      ServerAddr;
+    uint16      AppkeyIndex;
+    uint8       Flags;
+    uint16      PropertyID;
+    uint16      SettingID;
+    uint8array  SensorData;
+    uint16      PropertyValue;
+}_NodeEventInfo, *PNodeEventInfo;
+
+
+#pragma pack(pop)
+
+
+// Sensor class;
+#define SENSOR_DISCONNECT     0
+#define SENSOR_SI7021         1       //for tempature & Humidity   
+#define SENSOR_PT485          2
+#define SENSOR_AIP            3
+#define SENSOR_WATER_LEVEL    4
+#define SENSOR_IAQS           5
+#define SENSOR_JNC_SD         6
+
+#define OTHER_MODBUS_CMD      7     //for other modbus cmd
+#define SENSOR_ULTRA_SOUND    8     //
+
+
+
+#define SENSOR_A308M          10      //for 
+#define BTM_SENSOR            SENSOR_SI7021    //to BT Mesh Built-in sensor for temp&RH
+
+// for ServerStatus
+#define AIP_POWER_STATUS_MASK          (BIT1|BIT0) // BIT0,BIT1: 00    00%
+#define AIP_POWER_STATUS_00             0           // BIT0,BIT1: 00    00%      
+#define AIP_POWER_STATUS_25             BIT0        // BIT0,BIT1: 01    25%
+#define AIP_POWER_STATUS_75             BIT1        // BIT0,BIT1: 10    75%
+#define AIP_POWER_STATUS_100            AIP_POWER_STATUS_MASK// BIT1,BIT2: 11  100%
+//#define SetAipPowerStatus(status)       ServerNodeInfo.ServerStatus = (ServerNodeInfo.ServerStatus & ~AIP_POWER_STATUS_MASK)|status
+
+
+
+#define NODE_STAGE_INFO_NUM         8
+
+//for Client and Server
+#define USART_MONITOR_CLIENT_PROC   0
+//////////////////////////////////////////////////////////////////////
+//for Client Node
+#define CLIENT_GET_NODE_INFO_PROC   1
+#define CLIENT_TO_HOST_STAGE_PROC   2
+#define NODE_IVI_UPDATE_PROC        3
+#define CLIENT_SET_NODE_INFO_PROC   4
+
+// for Server Node
+#define SERVER_GET_INFO_PROC        1
+#define SERVER_SET_NODE_PROC        2
+#define SENSOR_INFO_PROC            3
+#define SENSOR_RS485_INFO_PROC      4
+
+
+
+#define SERVER_NODE_MAX             50
+
+#define TIMER_GET_INFO_FULL_POWER   1 //2 //5 // xxx Sec
+#define TIMER_GET_INFO_SLEEPING     60 //15 // xxx sec
+#define TIMER_SERVER_SLEEPING       (TIMER_GET_INFO_SLEEPING - 2)    
+#define TIMER_CLI_WAIT_INFO         WAIT_SEC(2)//WAIT_SEC(4) //WAIT_SEC(3)
+#define TIMER_SERVER_DELAY          40  //ms
+#define TIMER_SERVER_SENS_INFO      (pMeshNodeData->MeshNodeID*TIMER_SERVER_DELAY)
+
+
+
+#define MODEL_ID_SERVER             0x1100
+#define MODEL_ID_SETUP_SERVER       0x1101
+#define MODEL_ID_CLIENT             0x1102
+
+
+//NodeRole: define node role
+//Node Role ==> NR_
+#define NR_SERVER               0
+#define NR_SETUP_SERVER         1
+#define NR_CLIENT               2
+#define NR_FRIEND               3
+#define NR_LPN                  4
+#define NR_MASTER               5
+#define NR_SLAVE                6
+#define NR_DEFAULT              NR_SERVER
+
+
+// NodeStatus
+// define node status: ==> NS_XXXXX
+#define NS_PROVISIONING         BIT0    // node is provisioning by provisioner
+#define NS_SYS_URGENT           BIT1    // system urgent: do not sleeping
+#define NS_SLEEPING             BIT2    //
+#define NS_PROXY_ON             BIT3    //
+#define NS_LINKING              BIT4    // BLE/Proxy link
+#define NS_IVI_UPDATE           BIT5    // waiting IV index update
+#define NS_TASK_ACTION          BIT6    // 10ms action
+#define NS_GET_INFO_ACT         BIT7    // BT Mesh Get info Event action
+#define NS_FULL_POWER           BIT8    // do not sleeping(connect USB power)
+#define NS_SET_NODE_ACT         BIT9    // BT Mesh Set info Event action
+
+
+///Client node
+#define NS_USART_RX_EVENT       BIT10    //
+#define NS_CLIENT_GET_INFO      BIT11    //
+#define NS_CLIENT_SET_INFO      BIT12    //
+
+
+//Server node
+#define NS_GET_SENSOR_INFO      BIT16    // star to get sensor information
+#define NS_GET_SENSOR_ERR       BIT17    // 
+#define NS_GET_SENSOR_OK        BIT18    // get sensor info ending
+#define NS_SERVER_RS485_ENABLE  BIT19    // RS-485 Enable: Get info from RS-485 sensor
+
+
+// Device
+#define NS_USART_RX_ACTION      BIT24    // 
+#define NS_USART_TX_ENDING      BIT25    //
+
+#define NS_RELAY_ONLY           BIT30   // only for relay role 
+//#define NS_SIMLUATION           BIT31    // node simulation active
+
+
+#define NS_DO_NOT_SLEEPING      (NS_SYS_URGENT|NS_LINKING|NS_IVI_UPDATE)    // node do not sleeping
+
+
+
+
+
+#define ActiveStage()               pStageInfo->Stage
+#define ToNextStage(stage)          pStageInfo->Stage = stage 
+#define ToWaitingStage(stage,timer) pStageInfo->Stage = stage; pStageInfo->Timer = timer
+
+//#define ToNextSensorStage(stage) SensorStage = stage
+
+// ServerStatus
+#define SS_RS485                BIT0        // 0: disable, 1: enable RS-485 enable
+#define SS_DEVICE_POWER         BIT1        // 0: ON, 1: OFF device power ON/OFF
+
+
+
+void MeshNodeInit();
+
+
+void SetMeshNodeStage(uint16 stage);
+void SetWaitTimer(uint16 timer);
+bool CheckWaitTimeOut();
+void SetNodeStatus(uint32 status, uchar on_off);
+bool GetNodeStatus(uint32 status);
+PNodeStageInfo GetNodeStageInfo(uchar value);
+bool SetNodeSleeping(uchar status);
+void SetSleeping(uint8 status);
+void SetSleepingTimer(uchar status);
+void CheckNodeTimerCount();
+void SetNodePublish(uchar status);
+
+
+
+
+extern PFunSensor pFunSensor;
+extern uint32   NodeStatus;
+extern uint16   NodeStage;
+extern uint16   WaitingTimer;
+extern uchar    NodeRole;
+extern PNodeStageInfo pStageInfo;
+extern PNodeEventInfo  pNodeEventInfo;
+extern uchar CountErr;
+extern uint16 GetInfoCycle;
+extern uchar   UsartRxCount;   // Receive data from Rx bytes
+#include "Mesh_Client.h"
+#include "Mesh_Server.h"
+
+#endif //_MEAH_NODE_H_
+
+

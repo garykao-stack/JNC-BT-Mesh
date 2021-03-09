@@ -23,13 +23,13 @@ uchar  SpiStatus,I2cStatus;
 
 
 void DeviceInit() 
-{TraceProc();
+{//TraceProc();
     DeviceBusInit();    // must first
     DeviceAllInit();
 }
 
 void DeviceBusInit()
-{TraceProc();
+{//TraceProc();
     SpiStatus = I2cStatus = 0;
 
     UsartInit();
@@ -39,7 +39,7 @@ void DeviceBusInit()
 }
 
 void DeviceAllInit()
-{TraceProc();
+{//TraceProc();
     //AD7147Init(); 
     //WaterLevelMeshInit();
     ComPortInit();

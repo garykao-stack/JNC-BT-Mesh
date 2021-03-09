@@ -187,6 +187,7 @@
 <state>NVM3_DEFAULT_NVM_SIZE=24576</state>
 <state>HAL_CONFIG=1</state>
 
+
         </option>
         <option>
           <name>CCPreprocFile</name>
@@ -321,9 +322,9 @@
 <state>$PROJ_DIR$/../protocol\bluetooth\bt_mesh\inc</state>
 <state>$PROJ_DIR$/../.</state>
 <state>$PROJ_DIR$/../platform\common\inc</state>
-<state>$PROJ_DIR$/../platform\service\sleeptimer\config</state>
 <state>$PROJ_DIR$/../platform\service\sleeptimer\inc</state>
 <state>$PROJ_DIR$/../platform\service\sleeptimer\src</state>
+<state>$PROJ_DIR$/../platform\service\sleeptimer\config</state>
 <state>$PROJ_DIR$/../platform\emlib\inc</state>
 <state>$PROJ_DIR$/../platform\Device\SiliconLabs\BGM13\Include</state>
 <state>$PROJ_DIR$/../hardware\module\config</state>
@@ -351,6 +352,7 @@
 <state>$PROJ_DIR$/../hardware\kit\common\bsp</state>
 <state>$PROJ_DIR$/../platform\halconfig\inc\hal-config</state>
 <state>$PROJ_DIR$/../hardware\kit\common\halconfig</state>
+
 
         </option>
         <option>
@@ -647,7 +649,7 @@
         </option>
         <option>
           <name>OOCOutputFile</name>
-          <state>soc-btmesh-sensor-client.bin</state>
+          <state>soc-btmesh-sensor-server.bin</state>
         </option>
         <option>
           <name>OOCCommandLineProducer</name>
@@ -710,7 +712,7 @@
         </option>
         <option>
           <name>IlinkOutputFile</name>
-          <state>soc-btmesh-sensor-client.out</state>
+          <state>soc-btmesh-sensor-server.out</state>
         </option>
         <option>
           <name>IlinkDebugInfoEnable</name>
@@ -1192,6 +1194,7 @@
 <state>NVM3_DEFAULT_NVM_SIZE=24576</state>
 <state>HAL_CONFIG=1</state>
 
+
         </option>
         <option>
           <name>CCPreprocFile</name>
@@ -1326,9 +1329,9 @@
 <state>$PROJ_DIR$/../protocol\bluetooth\bt_mesh\inc</state>
 <state>$PROJ_DIR$/../.</state>
 <state>$PROJ_DIR$/../platform\common\inc</state>
-<state>$PROJ_DIR$/../platform\service\sleeptimer\config</state>
 <state>$PROJ_DIR$/../platform\service\sleeptimer\inc</state>
 <state>$PROJ_DIR$/../platform\service\sleeptimer\src</state>
+<state>$PROJ_DIR$/../platform\service\sleeptimer\config</state>
 <state>$PROJ_DIR$/../platform\emlib\inc</state>
 <state>$PROJ_DIR$/../platform\Device\SiliconLabs\BGM13\Include</state>
 <state>$PROJ_DIR$/../hardware\module\config</state>
@@ -1356,6 +1359,7 @@
 <state>$PROJ_DIR$/../hardware\kit\common\bsp</state>
 <state>$PROJ_DIR$/../platform\halconfig\inc\hal-config</state>
 <state>$PROJ_DIR$/../hardware\kit\common\halconfig</state>
+
 
         </option>
         <option>
@@ -1652,7 +1656,7 @@
         </option>
         <option>
           <name>OOCOutputFile</name>
-          <state>soc-btmesh-sensor-client.bin</state>
+          <state>soc-btmesh-sensor-server.bin</state>
         </option>
         <option>
           <name>OOCCommandLineProducer</name>
@@ -1715,7 +1719,7 @@
         </option>
         <option>
           <name>IlinkOutputFile</name>
-          <state>soc-btmesh-sensor-client.out</state>
+          <state>soc-btmesh-sensor-server.out</state>
         </option>
         <option>
           <name>IlinkDebugInfoEnable</name>
@@ -2019,231 +2023,637 @@
   </group>
   <group>
     <name>lib</name>
-<file>
-  <name>$PROJ_DIR$/../protocol\bluetooth\lib\EFR32XG13X\IAR\libbluetooth_mesh.a</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../protocol\bluetooth\lib\EFR32XG13X\IAR\binapploader.o</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emdrv\nvm3\lib\libnvm3_CM4_iar.a</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\radio\rail_lib\autogen\librail_release\librail_config_bgm13p32f512ga_iar.a</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\radio\rail_lib\autogen\librail_release\librail_module_efr32xg13_iar_release.a</name>
-</file>
+      <file>
+        <name>$PROJ_DIR$/../protocol\bluetooth\lib\EFR32XG13X\IAR\libbluetooth_mesh.a</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$/../protocol\bluetooth\lib\EFR32XG13X\IAR\binapploader.o</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$/../platform\emdrv\nvm3\lib\libnvm3_CM4_iar.a</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$/../platform\radio\rail_lib\autogen\librail_release\librail_config_bgm13p32f512ga_iar.a</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$/../platform\radio\rail_lib\autogen\librail_release\librail_module_efr32xg13_iar_release.a</name>
+      </file>
+
 
   </group>
-<file>
-  <name>$PROJ_DIR$/../protocol\bluetooth\bt_mesh\src\mesh_lib.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../protocol\bluetooth\bt_mesh\src\mesh_serdeser.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../protocol\bluetooth\bt_mesh\src\mesh_sensor.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../main.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../sensor_client.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../app.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../buttons.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../leds.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../graphics.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../protocol\bluetooth\bt_mesh\src\bg_application_properties.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../dcd.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../display_interface.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../lcd_driver.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\service\sleeptimer\src\sl_sleeptimer.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\service\sleeptimer\src\sl_sleeptimer_hal_rtcc.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emlib\src\em_assert.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emlib\src\em_cmu.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emlib\src\em_core.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emlib\src\em_emu.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emlib\src\em_system.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emlib\src\em_gpio.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emlib\src\em_i2c.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emlib\src\em_rmu.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emlib\src\em_rtcc.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emlib\src\em_usart.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emlib\src\em_eusart.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emlib\src\em_msc.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emlib\src\em_timer.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emlib\src\em_burtc.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emlib\src\em_cryotimer.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emlib\src\em_crypto.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emlib\src\em_se.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\Device\SiliconLabs\BGM13\Source\IAR\startup_bgm13.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emdrv\sleep\src\sleep.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emdrv\nvm3\src\nvm3_default.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emdrv\nvm3\src\nvm3_hal_flash.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emdrv\nvm3\src\nvm3_lock.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../pti.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../protocol\bluetooth\ble_stack\src\soc\coexistence-ble.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../protocol\bluetooth\ble_stack\src\soc\coexistence_counters-ble.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\radio\rail_lib\plugin\coexistence\hal\efr32\coexistence-hal.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\radio\rail_lib\plugin\coexistence\common\coexistence.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\Device\SiliconLabs\BGM13\Source\system_bgm13.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\middleware\glib\glib\bmp.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\middleware\glib\dmd\display\dmd_display.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\middleware\glib\glib\glib.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\middleware\glib\glib\glib_bitmap.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\middleware\glib\glib\glib_circle.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\middleware\glib\glib\glib_font_narrow_6x8.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\middleware\glib\glib\glib_font_normal_8x8.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\middleware\glib\glib\glib_font_number_16x20.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\middleware\glib\glib\glib_line.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\middleware\glib\glib\glib_polygon.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\middleware\glib\glib\glib_rectangle.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\middleware\glib\glib\glib_string.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../hardware\kit\common\drivers\display.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../hardware\kit\common\drivers\displayls013b7dh03.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../hardware\kit\common\drivers\displaypalemlib.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../hardware\kit\common\drivers\mx25flash_spi.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../hardware\kit\common\drivers\udelay.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../hardware\kit\common\drivers\retargetserial.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../hardware\kit\common\drivers\retargetio.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../platform\emdrv\gpiointerrupt\src\gpiointerrupt.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../init_mcu.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../init_board.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../init_app.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../hardware\kit\common\bsp\bsp_stk.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../hardware\kit\common\drivers\i2cspm.c</name>
-</file>
-<file>
-  <name>$PROJ_DIR$/../gatt_db.c</name>
-</file>
+  <file>
+    <name>$PROJ_DIR$/../protocol\bluetooth\bt_mesh\src\mesh_lib.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../protocol\bluetooth\bt_mesh\src\mesh_serdeser.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../protocol\bluetooth\bt_mesh\src\mesh_sensor.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../sensor.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../temperature_sensor.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../main.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../people_count_sensor.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../app.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../buttons.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../leds.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../graphics.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../protocol\bluetooth\bt_mesh\src\bg_application_properties.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../dcd.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../display_interface.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../lcd_driver.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\service\sleeptimer\src\sl_sleeptimer.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\service\sleeptimer\src\sl_sleeptimer_hal_prortc.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\service\sleeptimer\src\sl_sleeptimer_hal_rtcc.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emlib\src\em_assert.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emlib\src\em_cmu.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emlib\src\em_core.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emlib\src\em_emu.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emlib\src\em_system.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emlib\src\em_gpio.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emlib\src\em_i2c.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emlib\src\em_rmu.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emlib\src\em_rtcc.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emlib\src\em_usart.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emlib\src\em_eusart.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emlib\src\em_msc.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emlib\src\em_timer.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emlib\src\em_burtc.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emlib\src\em_cryotimer.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emlib\src\em_crypto.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emlib\src\em_se.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\Device\SiliconLabs\BGM13\Source\IAR\startup_bgm13.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emdrv\sleep\src\sleep.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emdrv\nvm3\src\nvm3_default.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emdrv\nvm3\src\nvm3_hal_flash.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emdrv\nvm3\src\nvm3_lock.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../pti.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../protocol\bluetooth\ble_stack\src\soc\coexistence-ble.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../protocol\bluetooth\ble_stack\src\soc\coexistence_counters-ble.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\radio\rail_lib\plugin\coexistence\hal\efr32\coexistence-hal.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\radio\rail_lib\plugin\coexistence\common\coexistence.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\Device\SiliconLabs\BGM13\Source\system_bgm13.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\middleware\glib\glib\bmp.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\middleware\glib\dmd\display\dmd_display.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\middleware\glib\glib\glib.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\middleware\glib\glib\glib_bitmap.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\middleware\glib\glib\glib_circle.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\middleware\glib\glib\glib_font_narrow_6x8.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\middleware\glib\glib\glib_font_normal_8x8.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\middleware\glib\glib\glib_font_number_16x20.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\middleware\glib\glib\glib_line.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\middleware\glib\glib\glib_polygon.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\middleware\glib\glib\glib_rectangle.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\middleware\glib\glib\glib_string.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../hardware\kit\common\drivers\display.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../hardware\kit\common\drivers\displayls013b7dh03.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../hardware\kit\common\drivers\displaypalemlib.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../hardware\kit\common\drivers\mx25flash_spi.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../hardware\kit\common\drivers\udelay.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../hardware\kit\common\drivers\retargetserial.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../hardware\kit\common\drivers\retargetio.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emdrv\gpiointerrupt\src\gpiointerrupt.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../hardware\kit\common\drivers\i2cspm.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../hardware\kit\common\drivers\si7013.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../hardware\kit\common\drivers\tempsens.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../init_mcu.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../init_board.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../init_app.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../hardware\kit\common\bsp\bsp_stk.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../gatt_db.c</name>
+  </file>
 
 
 
-  </project>
+  <file>
+    <name>$PROJ_DIR$/../platform\service\sleeptimer\src\sl_sleeptimer.c</name>
+    <configuration>
+      <name>Debug</name>
+      <settings>
+        <name>ICCARM</name>
+        <data>
+          <option>
+            <name>CCAllowList</name>
+            <version>1</version>
+            <state>11111110</state>
+          </option>
+          <option>
+            <name>CCOptLevel</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategy</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+          <option>
+            <name>CCOptLevelSlave</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategySlave</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+        </data>
+      </settings>
+    </configuration>
+    <configuration>
+      <name>Release</name>
+      <settings>
+        <name>ICCARM</name>
+        <data>
+          <option>
+            <name>CCAllowList</name>
+            <version>1</version>
+            <state>11111110</state>
+          </option>
+          <option>
+            <name>CCOptLevel</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategy</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+          <option>
+            <name>CCOptLevelSlave</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategySlave</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+        </data>
+      </settings>
+    </configuration>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\service\sleeptimer\src\sl_sleeptimer_hal_prortc.c</name>
+    <configuration>
+      <name>Debug</name>
+      <settings>
+        <name>ICCARM</name>
+        <data>
+          <option>
+            <name>CCAllowList</name>
+            <version>1</version>
+            <state>11111110</state>
+          </option>
+          <option>
+            <name>CCOptLevel</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategy</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+          <option>
+            <name>CCOptLevelSlave</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategySlave</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+        </data>
+      </settings>
+    </configuration>
+    <configuration>
+      <name>Release</name>
+      <settings>
+        <name>ICCARM</name>
+        <data>
+          <option>
+            <name>CCAllowList</name>
+            <version>1</version>
+            <state>11111110</state>
+          </option>
+          <option>
+            <name>CCOptLevel</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategy</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+          <option>
+            <name>CCOptLevelSlave</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategySlave</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+        </data>
+      </settings>
+    </configuration>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\service\sleeptimer\src\sl_sleeptimer_hal_rtcc.c</name>
+    <configuration>
+      <name>Debug</name>
+      <settings>
+        <name>ICCARM</name>
+        <data>
+          <option>
+            <name>CCAllowList</name>
+            <version>1</version>
+            <state>11111110</state>
+          </option>
+          <option>
+            <name>CCOptLevel</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategy</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+          <option>
+            <name>CCOptLevelSlave</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategySlave</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+        </data>
+      </settings>
+    </configuration>
+    <configuration>
+      <name>Release</name>
+      <settings>
+        <name>ICCARM</name>
+        <data>
+          <option>
+            <name>CCAllowList</name>
+            <version>1</version>
+            <state>11111110</state>
+          </option>
+          <option>
+            <name>CCOptLevel</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategy</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+          <option>
+            <name>CCOptLevelSlave</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategySlave</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+        </data>
+      </settings>
+    </configuration>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emlib\src\em_cmu.c</name>
+    <configuration>
+      <name>Debug</name>
+      <settings>
+        <name>ICCARM</name>
+        <data>
+          <option>
+            <name>CCAllowList</name>
+            <version>1</version>
+            <state>11111110</state>
+          </option>
+          <option>
+            <name>CCOptLevel</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategy</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+          <option>
+            <name>CCOptLevelSlave</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategySlave</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+        </data>
+      </settings>
+    </configuration>
+    <configuration>
+      <name>Release</name>
+      <settings>
+        <name>ICCARM</name>
+        <data>
+          <option>
+            <name>CCAllowList</name>
+            <version>1</version>
+            <state>11111110</state>
+          </option>
+          <option>
+            <name>CCOptLevel</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategy</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+          <option>
+            <name>CCOptLevelSlave</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategySlave</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+        </data>
+      </settings>
+    </configuration>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emlib\src\em_emu.c</name>
+    <configuration>
+      <name>Debug</name>
+      <settings>
+        <name>ICCARM</name>
+        <data>
+          <option>
+            <name>CCAllowList</name>
+            <version>1</version>
+            <state>11111110</state>
+          </option>
+          <option>
+            <name>CCOptLevel</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategy</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+          <option>
+            <name>CCOptLevelSlave</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategySlave</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+        </data>
+      </settings>
+    </configuration>
+    <configuration>
+      <name>Release</name>
+      <settings>
+        <name>ICCARM</name>
+        <data>
+          <option>
+            <name>CCAllowList</name>
+            <version>1</version>
+            <state>11111110</state>
+          </option>
+          <option>
+            <name>CCOptLevel</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategy</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+          <option>
+            <name>CCOptLevelSlave</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategySlave</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+        </data>
+      </settings>
+    </configuration>
+  </file>
+  <file>
+    <name>$PROJ_DIR$/../platform\emdrv\sleep\src\sleep.c</name>
+    <configuration>
+      <name>Debug</name>
+      <settings>
+        <name>ICCARM</name>
+        <data>
+          <option>
+            <name>CCAllowList</name>
+            <version>1</version>
+            <state>11111110</state>
+          </option>
+          <option>
+            <name>CCOptLevel</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategy</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+          <option>
+            <name>CCOptLevelSlave</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategySlave</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+        </data>
+      </settings>
+    </configuration>
+    <configuration>
+      <name>Release</name>
+      <settings>
+        <name>ICCARM</name>
+        <data>
+          <option>
+            <name>CCAllowList</name>
+            <version>1</version>
+            <state>11111110</state>
+          </option>
+          <option>
+            <name>CCOptLevel</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategy</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+          <option>
+            <name>CCOptLevelSlave</name>
+            <state>3</state>
+          </option>
+          <option>
+            <name>CCOptStrategySlave</name>
+            <version>0</version>
+            <state>2</state>
+          </option>
+        </data>
+      </settings>
+    </configuration>
+  </file>
+</project>

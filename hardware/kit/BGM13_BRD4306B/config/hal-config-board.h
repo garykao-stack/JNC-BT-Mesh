@@ -156,23 +156,27 @@
 
 #define BSP_LED_PRESENT                               (1)
 
-#if BOARD_T3_SIMULATION || BOARD_T3
-
+#if (BOARD_ACTION == BOARD_JNC_V10)
 #define BSP_LED0_PIN                                  (14U)
 #define BSP_LED0_PORT                                 (gpioPortD)
 #define BSP_LED1_PIN                                  (15U)
 #define BSP_LED1_PORT                                 (gpioPortD)
+#define BSP_LED2_PIN                                  (11U)
+#define BSP_LED2_PORT                                 (gpioPortB)
 
 #else
 #define BSP_LED0_PIN                                  (6U)
 #define BSP_LED0_PORT                                 (gpioPortF)
 #define BSP_LED1_PIN                                  (7U)
 #define BSP_LED1_PORT                                 (gpioPortF)
+#define BSP_LED2_PIN                                  (11U)
+#define BSP_LED2_PORT                                 (gpioPortB)
+
 #endif
 
 
-#define BSP_LED_COUNT                                 (2U)
-#define BSP_LED_INIT                                  { { BSP_LED0_PORT, BSP_LED0_PIN }, { BSP_LED1_PORT, BSP_LED1_PIN } }
+#define BSP_LED_COUNT                                 (3U)
+#define BSP_LED_INIT                                  { { BSP_LED0_PORT, BSP_LED0_PIN }, { BSP_LED1_PORT, BSP_LED1_PIN },{ BSP_LED2_PORT, BSP_LED2_PIN } }
 #define BSP_LED_POLARITY                              (0)
 
 // [LED]$
@@ -191,7 +195,9 @@
 
 // $[PA]
 #define FEATURE_PA_INPUT_FROM_VBAT                      // for Tx Power
-#define BSP_PA_VOLTAGE                                (3300U) //(1800U) //richard 3300U
+#define BSP_PA_VOLTAGE                                (3300U) //richard 3300U(Hi-Power)
+//#define BSP_PA_VOLTAGE                                (1800U) //(1800U-Lo-Power) 
+
 // [PA]$
 
 // $[PCNT0]
@@ -207,7 +213,8 @@
 
 // [PRS]$
 
-// $[PTI]
+// $[PTI] disable
+
 #define PORTIO_PTI_DFRAME_PIN                         (13U)
 #define PORTIO_PTI_DFRAME_PORT                        (gpioPortB)
 #define PORTIO_PTI_DFRAME_LOC                         (6U)
@@ -233,6 +240,7 @@
 
 #define VCOM_USART0
 //#define VCOM_USART2
+
 
 
 #ifdef VCOM_USART0
@@ -481,6 +489,7 @@
 
 #define HARDWARE_RESET_PORT     (gpioPortA)
 #define HARDWARE_RESET_PIN      (2)
+
 
 
 

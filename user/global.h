@@ -15,12 +15,21 @@
 // 0.99 ==> for BT Mesh IV Index Update
 // 0.995 ==> 1. modify USART Tx lose Error 2.
 // 0.996 ==> Modify HardFault Error
+// 1.0.4 ==> to Add RS-485 to Server Node
+// 1.0.5 ==> Add key1 change BT/PT485, clean old code
+// 1.0.6 ==> Updat SDK v1.7.2.1, modify mesh_device_properties define
+// 1.0.7 ==> Add mobus set command
+// 1.0.8 ==> Add A308M Read
+// 1.0.9 ==> Add A308M Write
+// 1.1.0 ==> Modify Si7021 Temp and RH
 
-#define FW_VER              100 //99.5//98 //97 //94 // ==> 0.90
+
+#define FW_VER              110 //103 //99.5//98 //97 //94 // ==> 0.90
 #define HW_VER              100
 #define DEVICE_NAME         "JNC-BT-Mesh"
 #define MANUFACTORY_NAME    "JNC"
 #define NODE_DATA_ID        0xA5A5
+#define MODEL_NAME          "BTM-01"
 
 
 
@@ -38,6 +47,9 @@
 
 
 #include "base_def.h"
+// Utility
+#include "infrastructure.h"
+
 /* standard library headers */
 #include <stdint.h>
 #include <string.h>
@@ -74,6 +86,13 @@
 #include "mesh_event.h"
 
 
+#ifdef DEBUG_PRINT
+    #define PrintRx(string) PrintDataByte(#string, UsartGetBuff(USART_ID_RX), MODBUS_CMD_NUM)
+#else
+    #define PrintRx(string)
+#endif    
+
+
 
 
 #define PRINT_TYPE_HEX          0
@@ -89,6 +108,7 @@
 #define SWO_PORT        2
 
 #define DEBUG_PORT      UART_PORT //SWO_PORT  //richard
+#define VALUE_IS_NOT_KNOWN  (0xFFFF)
 
 
 
@@ -150,7 +170,7 @@ typedef struct _EventIDToString_
 #define TraceDec3(str,v1,v2,v3) \
         Printf("%s: %s = %ld %s=%ld %s=%ld\r\n",str,#v1,(uint32)v1,#v2,(uint32)v2,#v3,(uint32)v3)
 #define TraceDec4(str,v1,v2,v3,v4) \
-        Printf("%s: %s = %ld %s=%ld %s=%ld %s=%ld\r\n",str,#v1,(uint32)v1,#v2,(uint32)v2,#v3,(uint32)v3,uint32)v4)
+        Printf("%s: %s = %ld %s=%ld %s=%ld %s=%ld\r\n",str,#v1,(uint32)v1,#v2,(uint32)v2,#v3,(uint32)v3,#v4,(uint32)v4)
 
 
 #define Trace32_1(v1) \
@@ -201,7 +221,6 @@ typedef struct _EventIDToString_
 #define Trace32Ptr_4(ptr,v1,v2,v3,v4) \
         Printf("%s=%08lXh %s=%08lXh \r\n %s=%08lXh %s=%08lXh \r\n",#v1,(uint32)ptr->v1,#v2,(uint32)ptr->v2,#v3,(uint32)ptr->v3,#v4,(uint32)ptr->v4)
 
-
 extern uint32  MeshNodeStatus;
 extern uint32  TraceProcCount;
 
@@ -240,13 +259,16 @@ uint16 ShowResult(char* pString, uint16 result );
 
 void SetStatusOn(uint32 status);
 void SetStatusOff(uint32 status);
-void SetNodeStatus(uint32 status,uchar on_off);
-bool GetNodeStatus(uint32 status);
+void SetMeshNodeStatus(uint32 status,uchar on_off);
+bool GetMeshNodeStatus(uint32 status);
 uint16 WordSwap(uint16 value);
+void DWordSwap(PUCHAR p_value);
 void WordSwapBuff(PUINT16 pBuff,uchar size);
 
 void JtagStatus(uchar status);
-uint16   ModbusRtu_CRC16(uchar *updata,uint16 len);
+uint16 TwoValueDiff(uint16 value_a, uint16 value_b);
+uchar WordToByte(word value);
+word ByteToWord(uchar value);
 
 
 

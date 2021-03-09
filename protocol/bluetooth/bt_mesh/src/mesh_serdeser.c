@@ -263,6 +263,53 @@ int mesh_lib_serialize_request(const struct mesh_generic_request *req,
       *msg_used = msg_off;
       break;
 
+    case mesh_lighting_request_hsl:
+    case mesh_lighting_request_hsl_default:
+      if (msg_len < 6) {
+        return -1;
+      }
+      uint16_to_buf(&msg_buf[msg_off], req->hsl.lightness);
+      msg_off += 2;
+      uint16_to_buf(&msg_buf[msg_off], req->hsl.hue);
+      msg_off += 2;
+      uint16_to_buf(&msg_buf[msg_off], req->hsl.saturation);
+      msg_off += 2;
+      *msg_used = msg_off;
+      break;
+
+    case mesh_lighting_request_hsl_hue:
+      if (msg_len < 2) {
+        return -1;
+      }
+      uint16_to_buf(&msg_buf[msg_off], req->hsl_hue);
+      msg_off += 2;
+      *msg_used = msg_off;
+      break;
+
+    case mesh_lighting_request_hsl_saturation:
+      if (msg_len < 2) {
+        return -1;
+      }
+      uint16_to_buf(&msg_buf[msg_off], req->hsl_saturation);
+      msg_off += 2;
+      *msg_used = msg_off;
+      break;
+
+    case mesh_lighting_request_hsl_range:
+      if (msg_len < 8) {
+        return -1;
+      }
+      uint16_to_buf(&msg_buf[msg_off], req->hsl_range.hue_min);
+      msg_off += 2;
+      uint16_to_buf(&msg_buf[msg_off], req->hsl_range.hue_max);
+      msg_off += 2;
+      uint16_to_buf(&msg_buf[msg_off], req->hsl_range.saturation_min);
+      msg_off += 2;
+      uint16_to_buf(&msg_buf[msg_off], req->hsl_range.saturation_max);
+      msg_off += 2;
+      *msg_used = msg_off;
+      break;
+
     default:
       return -1;
   }
@@ -451,6 +498,44 @@ int mesh_lib_deserialize_request(struct mesh_generic_request *req,
       req->kind = kind;
       req->ctl_temperature_range.min = uint16_from_buf(&msg_buf[msg_off]);
       req->ctl_temperature_range.max = uint16_from_buf(&msg_buf[msg_off + 2]);
+      break;
+
+    case mesh_lighting_request_hsl:
+    case mesh_lighting_request_hsl_default:
+      if (msg_len - msg_off != 6) {
+        return -1;
+      }
+      req->kind = kind;
+      req->hsl.lightness = uint16_from_buf(&msg_buf[msg_off + 0]);
+      req->hsl.hue = uint16_from_buf(&msg_buf[msg_off + 2]);
+      req->hsl.saturation = uint16_from_buf(&msg_buf[msg_off + 4]);
+      break;
+
+    case mesh_lighting_request_hsl_hue:
+      if (msg_len - msg_off != 2) {
+        return -1;
+      }
+      req->kind = kind;
+      req->hsl_hue = uint16_from_buf(&msg_buf[msg_off]);
+      break;
+
+    case mesh_lighting_request_hsl_saturation:
+      if (msg_len - msg_off != 2) {
+        return -1;
+      }
+      req->kind = kind;
+      req->hsl_saturation = uint16_from_buf(&msg_buf[msg_off]);
+      break;
+
+    case mesh_lighting_request_hsl_range:
+      if (msg_len - msg_off != 8) {
+        return -1;
+      }
+      req->kind = kind;
+      req->hsl_range.hue_min = uint16_from_buf(&msg_buf[msg_off]);
+      req->hsl_range.hue_max = uint16_from_buf(&msg_buf[msg_off + 2]);
+      req->hsl_range.saturation_min = uint16_from_buf(&msg_buf[msg_off + 4]);
+      req->hsl_range.saturation_max = uint16_from_buf(&msg_buf[msg_off + 6]);
       break;
 
     default:
@@ -734,6 +819,82 @@ int mesh_lib_serialize_state(const struct mesh_generic_state *current,
       uint16_to_buf(&msg_buf[msg_off], current->ctl_temperature_range.min);
       msg_off += 2;
       uint16_to_buf(&msg_buf[msg_off], current->ctl_temperature_range.max);
+      msg_off += 2;
+      *msg_used = msg_off;
+      break;
+
+    case mesh_lighting_state_hsl:
+      if (msg_len < (target ? 12 : 6)) {
+        return -1;
+      }
+      uint16_to_buf(&msg_buf[msg_off], current->hsl.lightness);
+      msg_off += 2;
+      uint16_to_buf(&msg_buf[msg_off], current->hsl.hue);
+      msg_off += 2;
+      uint16_to_buf(&msg_buf[msg_off], current->hsl.saturation);
+      msg_off += 2;
+      if (target) {
+        uint16_to_buf(&msg_buf[msg_off], target->hsl.lightness);
+        msg_off += 2;
+        uint16_to_buf(&msg_buf[msg_off], target->hsl.hue);
+        msg_off += 2;
+        uint16_to_buf(&msg_buf[msg_off], target->hsl.saturation);
+        msg_off += 2;
+      }
+      *msg_used = msg_off;
+      break;
+
+    case mesh_lighting_state_hsl_target:
+    case mesh_lighting_state_hsl_default:
+      if (msg_len < 6) {
+        return -1;
+      }
+      uint16_to_buf(&msg_buf[msg_off], current->hsl.lightness);
+      msg_off += 2;
+      uint16_to_buf(&msg_buf[msg_off], current->hsl.hue);
+      msg_off += 2;
+      uint16_to_buf(&msg_buf[msg_off], current->hsl.saturation);
+      msg_off += 2;
+      *msg_used = msg_off;
+      break;
+
+    case mesh_lighting_state_hsl_hue:
+      if (msg_len < (target ? 4 : 2)) {
+        return -1;
+      }
+      uint16_to_buf(&msg_buf[msg_off], current->hsl_hue.hue);
+      msg_off += 2;
+      if (target) {
+        uint16_to_buf(&msg_buf[msg_off], target->hsl_hue.hue);
+        msg_off += 2;
+      }
+      *msg_used = msg_off;
+      break;
+
+    case mesh_lighting_state_hsl_saturation:
+      if (msg_len < (target ? 4 : 2)) {
+        return -1;
+      }
+      uint16_to_buf(&msg_buf[msg_off], current->hsl_saturation.saturation);
+      msg_off += 2;
+      if (target) {
+        uint16_to_buf(&msg_buf[msg_off], target->hsl_saturation.saturation);
+        msg_off += 2;
+      }
+      *msg_used = msg_off;
+      break;
+
+    case mesh_lighting_state_hsl_range:
+      if (msg_len < 8) {
+        return -1;
+      }
+      uint16_to_buf(&msg_buf[msg_off], current->hsl_range.hue_min);
+      msg_off += 2;
+      uint16_to_buf(&msg_buf[msg_off], current->hsl_range.hue_max);
+      msg_off += 2;
+      uint16_to_buf(&msg_buf[msg_off], current->hsl_range.saturation_min);
+      msg_off += 2;
+      uint16_to_buf(&msg_buf[msg_off], current->hsl_range.saturation_max);
       msg_off += 2;
       *msg_used = msg_off;
       break;
@@ -1085,6 +1246,105 @@ int mesh_lib_deserialize_state(struct mesh_generic_state *current,
         current->ctl_temperature_range.min = uint16_from_buf(&msg_buf[msg_off]);
         msg_off += 2;
         current->ctl_temperature_range.max = uint16_from_buf(&msg_buf[msg_off]);
+        msg_off += 2;
+        *has_target = 0;
+      } else {
+        return -1;
+      }
+      break;
+
+    case mesh_lighting_state_hsl:
+      if (msg_len - msg_off == 6) {
+        current->kind = kind;
+        current->hsl.lightness = uint16_from_buf(&msg_buf[msg_off]);
+        msg_off += 2;
+        current->hsl.hue = uint16_from_buf(&msg_buf[msg_off]);
+        msg_off += 2;
+        current->hsl.saturation = uint16_from_buf(&msg_buf[msg_off]);
+        msg_off += 2;
+        *has_target = 0;
+      } else if (msg_len - msg_off == 12) {
+        current->kind = kind;
+        current->hsl.lightness = uint16_from_buf(&msg_buf[msg_off]);
+        msg_off += 2;
+        current->hsl.hue = uint16_from_buf(&msg_buf[msg_off]);
+        msg_off += 2;
+        current->hsl.saturation = uint16_from_buf(&msg_buf[msg_off]);
+        msg_off += 2;
+        target->hsl.lightness = uint16_from_buf(&msg_buf[msg_off]);
+        msg_off += 2;
+        target->hsl.hue = uint16_from_buf(&msg_buf[msg_off]);
+        msg_off += 2;
+        target->hsl.saturation = uint16_from_buf(&msg_buf[msg_off]);
+        msg_off += 2;
+        *has_target = 1;
+      } else {
+        return -1;
+      }
+      break;
+
+    case mesh_lighting_state_hsl_target:
+    case mesh_lighting_state_hsl_default:
+      if (msg_len - msg_off == 6) {
+        current->kind = kind;
+        current->hsl.lightness = uint16_from_buf(&msg_buf[msg_off]);
+        msg_off += 2;
+        current->hsl.hue = uint16_from_buf(&msg_buf[msg_off]);
+        msg_off += 2;
+        current->hsl.saturation = uint16_from_buf(&msg_buf[msg_off]);
+        msg_off += 2;
+        *has_target = 0;
+      } else {
+        return -1;
+      }
+      break;
+
+    case mesh_lighting_state_hsl_hue:
+      if (msg_len - msg_off == 2) {
+        current->kind = kind;
+        current->hsl_hue.hue = uint16_from_buf(&msg_buf[msg_off]);
+        msg_off += 2;
+        *has_target = 0;
+      } else if (msg_len - msg_off == 4) {
+        current->kind = kind;
+        current->hsl_hue.hue = uint16_from_buf(&msg_buf[msg_off]);
+        msg_off += 2;
+        target->hsl_hue.hue = uint16_from_buf(&msg_buf[msg_off]);
+        msg_off += 2;
+        *has_target = 1;
+      } else {
+        return -1;
+      }
+      break;
+
+    case mesh_lighting_state_hsl_saturation:
+      if (msg_len - msg_off == 2) {
+        current->kind = kind;
+        current->hsl_saturation.saturation = uint16_from_buf(&msg_buf[msg_off]);
+        msg_off += 2;
+        *has_target = 0;
+      } else if (msg_len - msg_off == 4) {
+        current->kind = kind;
+        current->hsl_saturation.saturation = uint16_from_buf(&msg_buf[msg_off]);
+        msg_off += 2;
+        target->hsl_saturation.saturation = uint16_from_buf(&msg_buf[msg_off]);
+        msg_off += 2;
+        *has_target = 1;
+      } else {
+        return -1;
+      }
+      break;
+
+    case mesh_lighting_state_hsl_range:
+      if (msg_len - msg_off == 8) {
+        current->kind = kind;
+        current->hsl_range.hue_min = uint16_from_buf(&msg_buf[msg_off]);
+        msg_off += 2;
+        current->hsl_range.hue_max = uint16_from_buf(&msg_buf[msg_off]);
+        msg_off += 2;
+        current->hsl_range.saturation_min = uint16_from_buf(&msg_buf[msg_off]);
+        msg_off += 2;
+        current->hsl_range.saturation_max = uint16_from_buf(&msg_buf[msg_off]);
         msg_off += 2;
         *has_target = 0;
       } else {

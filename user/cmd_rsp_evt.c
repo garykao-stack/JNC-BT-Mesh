@@ -152,7 +152,7 @@ EventIDToString EventIDStrTbl[] =
   {Evt_l2cap_coc_channel_disconnected          ,"evt_l2cap_coc_channel_disconnected"},                   
   {Evt_l2cap_coc_data                          ,"evt_l2cap_coc_data"},                                   
   {Evt_l2cap_command_rejected                  ,"evt_l2cap_command_rejected"},                           
-  {Evt_cte_receiver_iq_report                  ,"evt_cte_receiver_iq_report"},                           
+ // {Evt_cte_receiver_iq_report                  ,"evt_cte_receiver_iq_report"},                           
   {Evt_ms_server_get_req                       ,"evt_mesh_sensor_server_get_request"},                   
   {Evt_ms_server_get_column_req                ,"evt_mesh_sensor_server_get_column_request"},            
   {Evt_ms_server_get_series_req                ,"evt_mesh_sensor_server_get_series_request"},            

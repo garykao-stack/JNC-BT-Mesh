@@ -27,7 +27,7 @@
 const uint8_t __mesh_dcd[] = {
     0xff, 0x02, /* Company ID = 0x02ff */
     0xb0, 0xf0, /* Product ID = 0xf0b0 */
-    0x34, 0x12, /* Version Number = 0x1234 */
+    0x00, 0x10, /* Version Number = 0x1000 */
     0x20, 0x00, /* Capacity of Replay Protection List = 0x0020 */
     0x0b, 0x00, /* Features Bitmask = 0x000b */
     /* Begin Primary Element */
@@ -37,9 +37,9 @@ const uint8_t __mesh_dcd[] = {
         /* Begin SIG Models */
         0x00, 0x00, /* Configuration Server */
         0x02, 0x00, /* Health Server */
-        0x02, 0x11, /* Sensor Client */
         0x00, 0x11, /* Sensor Server */
         0x01, 0x11, /* Sensor Setup Server */
+        0x02, 0x11, /* Sensor Client */
         /* End SIG Models */
         /* Begin Vendor Models */
         /* End Vendor Models */
@@ -71,9 +71,10 @@ const mesh_memory_config_t __mesh_memory_config = {
   .provisioner_max_ddb_entries = MESH_CFG_MAX_PROVISIONED_DEVICES,
   .provisioner_max_node_net_keys = MESH_CFG_MAX_PROVISIONED_DEVICE_NETKEYS,
   .provisioner_max_node_app_keys = MESH_CFG_MAX_PROVISIONED_DEVICE_APPKEYS,
-  .pstore_write_interval_elem_seq = 0x100, // richard modify
-  //.pstore_write_interval_elem_seq = 0x400000 - 0x10, // richard debug
+ // .pstore_write_interval_elem_seq = 65536,
+  .pstore_write_interval_elem_seq = 0x100,
   .friend_max_total_cache = MESH_CFG_FRIEND_MAX_TOTAL_CACHE,
   .friend_max_single_cache = MESH_CFG_FRIEND_MAX_SINGLE_CACHE,
-  .friend_max_subs_list = MESH_CFG_FRIEND_MAX_SUBS_LIST
+  .friend_max_subs_list = MESH_CFG_FRIEND_MAX_SUBS_LIST,
+  .app_send_max_queue = MESH_CFG_MAX_APP_SEND_QUEUE
 };

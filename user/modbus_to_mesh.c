@@ -99,7 +99,7 @@ void SendServerNodeData(PUCHAR p_buff, uchar size)
 }
 
 
-#if 1
+#if 0
 
 
 uint32 WaitingCounter;
@@ -112,7 +112,7 @@ void ModbusToMeshClientProc()
     uchar rx_counter,size;
     PUCHAR p_rx_buff,p_tx_buff;
     //BtMeshReset();
-    if(!GetNodeStatus(STATUS_CLIENT)) return;
+    if(!(NodeRole == NR_CLIENT)) return;
     switch(CurrTaskStage())
         {
          case MM_PENDING: //Trace("Client:MM_PENDING");            
@@ -123,7 +123,7 @@ void ModbusToMeshClientProc()
                       {
                         ToNextTaskStage(MM_USART_RX);
                         BtMeshCountTx = BtMeshCountRx = 0;MeshModbusWaiting = OFF;
-                        SetNodeStatus(STATUS_MODBUS_MESH_PENDING,OFF);
+                        SetMeshNodeStatus(STATUS_MODBUS_MESH_PENDING,OFF);
                         
                       }
                     else UsartSetStage(USART_STAGE_RX_CLEAN);
@@ -300,11 +300,11 @@ void ModbusToMeshServerProc()
 {//TraceProc();
     uchar size;
     PUCHAR p_rx_buff,p_tx_buff;
-    if(GetNodeStatus(STATUS_CLIENT)) return;
+    if(NodeRole == NR_CLIENT) return;
     switch(CurrTaskStage())
         {
         case MM_PENDING: //Trace("Server: MM_PENDING");
-             SetNodeStatus(STATUS_MODBUS_MESH_PENDING,ON);
+             SetMeshNodeStatus(STATUS_MODBUS_MESH_PENDING,ON);
             break;
         case MM_MESH_RX_OK: Trace("Server: MM_MESH_RX_OK"); // to check modbus cmd
             BtMeshCountTx = BtMeshCountRx = 0;

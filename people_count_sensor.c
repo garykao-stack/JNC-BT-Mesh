@@ -31,7 +31,6 @@
  * @{
  ******************************************************************************/
 
-#define VALUE_IS_NOT_KNOWN  (0xFFFF) ///< People count value is not known
 
 /// People count
 static count16_t people_count = VALUE_IS_NOT_KNOWN;
@@ -68,7 +67,7 @@ void set_people_count(count16_t people_count_value)
  ******************************************************************************/
 count16_t get_people_count(void)
 {
-  people_count++;
+  if(people_count++ > 99) people_count = 0;
  // people_count = GetDevLevelInfo(LEVEL_INFO_WATER);  //richard
   display_people_count(); //richard: debug
   return people_count;

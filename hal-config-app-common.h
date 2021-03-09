@@ -25,9 +25,8 @@
 #include "hal-config-ioexp.h"
 #endif
 
-#define HAL_EXTFLASH_FREQUENCY                        (1000000)
 
-#define HAL_PA_ENABLE                                 (1)
+#define HAL_EXTFLASH_FREQUENCY                        (1000000)
 
 #define HAL_PTI_ENABLE                                (1)
 #define HAL_PTI_MODE                                  (HAL_PTI_MODE_UART)
@@ -37,19 +36,11 @@
 #undef BSP_CLK_LFXO_CTUNE
 #endif
 #define BSP_CLK_LFXO_CTUNE                            (32)
-
-#if (HAL_PA_ENABLE)
+ 
 #define HAL_PA_RAMP                                   (10)
 #define HAL_PA_2P4_LOWPOWER                           (0)
 #define HAL_PA_POWER                                  (252)
 #define HAL_PA_CURVE_HEADER                            "pa_curves_efr32.h"
-#endif
-
-#ifdef FEATURE_PA_HIGH_POWER
-#define HAL_PA_VOLTAGE                                (3300)
-#else // FEATURE_PA_HIGH_POWER
-#define HAL_PA_VOLTAGE                                (1800)
-#endif // FEATURE_PA_HIGH_POWER
 
 
 #define HAL_PA_VOLTAGE                     BSP_PA_VOLTAGE

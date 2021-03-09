@@ -51,8 +51,8 @@ void button_interrupt(uint8_t pin)
 {
   if (pin == BSP_BUTTON0_PIN) {
     if (GPIO_PinInGet(BSP_BUTTON0_PORT, BSP_BUTTON0_PIN) == 1) {
-      gecko_external_signal(EXT_SIGNAL_PB0_PRESS);
-    }
+        gecko_external_signal(EXT_SIGNAL_PB0_PRESS);
+      }
   } else if (pin == BSP_BUTTON1_PIN) {
     if (GPIO_PinInGet(BSP_BUTTON1_PORT, BSP_BUTTON1_PIN) == 1) {
       gecko_external_signal(EXT_SIGNAL_PB1_PRESS);

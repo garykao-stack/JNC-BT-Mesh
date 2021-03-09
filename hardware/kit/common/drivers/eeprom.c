@@ -41,10 +41,10 @@
  ******************************************************************************/
 
 /** Number of bytes in EEPROM */
-#define EEPROM_DVK_LEN         64*1024 //0x100
+#define EEPROM_DVK_LEN         (64*1024) //0x100 //richard
 
 /** Pagesize in EEPROM */
-#define EEPROM_DVK_PAGESIZE    128 //16
+#define EEPROM_DVK_PAGESIZE    128 //16 //richard
 
 /*******************************************************************************
  ***************************   LOCAL FUNCTIONS   *******************************
@@ -82,6 +82,7 @@ static int EEPROM_AckPoll(I2C_TypeDef *i2c, uint8_t addr)
 {
   I2C_TransferSeq_TypeDef    seq;
   I2C_TransferReturn_TypeDef ret;
+  int time_out=200; //richard add
 
   /* Do acknowledge polling waiting for write process to finish in EEPROM */
   seq.addr  = addr;
@@ -91,7 +92,8 @@ static int EEPROM_AckPoll(I2C_TypeDef *i2c, uint8_t addr)
   seq.buf[0].len  = 0;
 
   /* Wait for ACK from device */
-  while (1) {
+  //while (1) {
+  while (time_out--) {//richard
     ret = I2CSPM_Transfer(i2c, &seq);
     if (ret == i2cTransferDone) {
       break;

@@ -2,7 +2,7 @@
 //
 //
 
-Executing: bgbuild.exe (D:\Compiler\SimplicityStudio\developer\sdks\blemesh\v1.5\protocol\bluetooth\bin\bgbuild.exe)
+Executing: bgbuild.exe (D:\Compiler\SimplicityStudio\developer\sdks\blemesh\v1.7\protocol\bluetooth\bin\bgbuild.exe)
 Standard output
 ALL OK
 

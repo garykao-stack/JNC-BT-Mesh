@@ -39,7 +39,6 @@ int rtcIntCallbackRegister(void (*pFunction)(void*),
 }
 
 #if (HAL_SPIDISPLAY_ENABLE == 1)
-
 /***********************************************************************************************//**
  * @addtogroup disp_interface
  * @{
@@ -61,8 +60,7 @@ void LCD_init(void)
 {
   memset(&LCD_data, 0, sizeof(LCD_data));
 
- // if(MeshNodeStatus & 0x01)  graphInit("BT Mesh => Client\n\n");
- // else graphInit("BT Mesh => Server\n\n");
+  graphInit("SILICON LABORATORIES\nBluetooth Mesh Demo\n\n");
 
   LCD_write("initializing", LCD_ROW_STATUS);
 }
@@ -74,7 +72,7 @@ void LCD_init(void)
  * @param[in] row  Selects which line of LCD display is written,
  *                 possible values are defined as LCD_ROW_xxx.
  ******************************************************************************/
-void LCD_write(char *str, uint8 row)
+void LCD_write(char *str, uint8_t row)
 {
   char LCD_message[LCD_ROW_MAX * LCD_ROW_LEN];
   char *pRow;

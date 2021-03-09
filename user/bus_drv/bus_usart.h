@@ -36,7 +36,7 @@
 
 
 
-#define USART_BAUDRATE_DEFAULT      BAUDRATE_115200 //BAUDRATE_256000 //BAUDRATE_115200
+#define USART_BAUDRATE_DEFAULT      BAUDRATE_9600 //BAUDRATE_115200 //BAUDRATE_256000 //BAUDRATE_9600
 #define DEBUG_BAUDRATE_DEFAULT      BAUDRATE_115200
 
 
@@ -83,6 +83,7 @@
 #define USART_OPEN                  BIT0
 #define USART_TX_ING                BIT1    // to USART
 #define USART_TX_END                BIT2    // to USART
+#define USART_TX_WAITING            BIT3    // to USART
 
 #define USART_RX_WAITING            BIT4
 #define USART_RX_ING                BIT5
@@ -112,6 +113,8 @@
 #define TIMER_USART_RX_ENDING   TIMER_5MS //TIMER_10MS 
 #define SERVER_RX_NUM           29
 
+#define TIME_OUT_COUNT_RX        WAIT_MS(20)    //20ms
+
 
 extern uchar   CounterRx,CounterTx;
 extern uchar RxBuff[];
@@ -129,15 +132,17 @@ void UsartClose();
 
 void UsartSetStage(uchar stage);
 
+void UsartStatusReset();
 void UsartSetStatus(uchar status,uchar on_off);
-uint16 UsartGetTxRxStatus(uchar status);
 bool UsartGetStatus(uchar status);
+uint16 UsartGetTxRxStatus(uchar status);
 void UsartSetProcessTask(uchar tx_rx,uchar on_off);
 
 bool UsartSetBaudRate(uchar baud_rate_num);
 bool UsartSendCmd(uchar size);
 void UsartMonitorTxProc();
 void UsartMonitorRxProc();
+bool UsartGetStatusRxWaiting();
 bool UsartGetStatusRxEnd();
 bool UsartGetStatusTxEnd();
 bool UsartGetStatusTxIng();
@@ -151,8 +156,13 @@ bool UsartTxSendCmd(PUCHAR pBuff,uchar size);
 void UsartShowDataRx();
 void UsartIrq(uchar    dir,uchar status);
 bool CheckModbusCrc(PUCHAR pbuff, uchar len);
+uint16 ModbusRtu_CRC16(uchar *updata,uint16 len);
 
 
+
+
+void UsartClientProc();
+bool CheckUsartRxCmd();
 
 
 

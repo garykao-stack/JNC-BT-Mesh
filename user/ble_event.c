@@ -82,7 +82,31 @@ bool BleEventProc(PCmdPacket pEvent)
     return ret_code;
 }
 
-void SleepAndSyncProtimer();
+enum {ADVERTISER0 = 0,ADVERTISER1 = 1};
+
+//
+//
+//
+void SetAdvertise(uchar status)
+{
+    if(status == ON)
+      {//ON
+        Trace("SetAdvertise ON");
+         gecko_cmd_le_gap_set_advertise_report_scan_request(ADVERTISER0,false);
+    	 gecko_cmd_le_gap_set_advertise_phy(ADVERTISER0, 1, 1);
+    	 gecko_cmd_le_gap_set_advertise_configuration(ADVERTISER0,1); /* use legacy PDUs, non-anonymous advertising, resolvable address*/
+    	 gecko_cmd_le_gap_set_advertise_timing(ADVERTISER0,160,160,0,0); /* 100 ms interval, continue until stopped*/
+    	 gecko_cmd_le_gap_set_advertise_channel_map(ADVERTISER0,7); /*all primary advertising channels*/
+    	 gecko_cmd_le_gap_start_advertising(ADVERTISER0, le_gap_general_discoverable, le_gap_connectable_scannable);
+
+      }
+    else
+      {//OFF
+         Trace("SetAdvertise OFF");
+         //gecko_cmd_le_gap_set_advertise_timing(ADVERTISER0,5000,5000,1000,1000); /* 100 ms interval, continue until stopped*/
+         gecko_cmd_le_gap_stop_advertising(ADVERTISER0);
+      }
+}
 
 //**********************************************************************************************
 //Event: gecko_evt_system_boot_id
@@ -101,7 +125,12 @@ uint32 EvtSystemBootProc(PCmdPacket pEvent)
     msg_sys_get_bt_addr_rsp *pAddr =  Cmd_sys_get_bt_addr();
     set_device_name(&pAddr->address);
     
-    SetTxPower(TX_POWER_HI);
+    SetTxPower(TX_POWER_LO);
+    //gecko_cmd_le_gap_set_adv_timeout(1);
+    //gecko_cmd_le_gap_set_mode(le_gap_general_discoverable,le_gap_non_connectable);
+   // return ret_code;
+   //SetAdvertise(ON);
+    
     // Initialize Mesh stack in Node operation mode, wait for initialized event
     result = Cmd_mn_init()->result;
     if(result)
@@ -152,7 +181,7 @@ uint32 EvtBleConnectionProc(PCmdPacket pEvent)
         case Evt_connect_opened:   Trace("Evt_connect_opened");
             BleNodeNum++;
             ConnectHandle = pEvt_open->connection;
-            SetNodeStatus(STATUS_BLE_CONNECT,ON);
+            SetMeshNodeStatus(STATUS_BLE_CONNECT,ON);
             NodeWakeUp();
             DI_Print("connected", DI_ROW_CONNECTION);
             break;
@@ -167,7 +196,7 @@ uint32 EvtBleConnectionProc(PCmdPacket pEvent)
             break;
         case Evt_connect_closed:  Trace("Evt_connect_closed");
             // Check if need to boot to dfu mode
-            SetNodeStatus(STATUS_BLE_CONNECT,OFF);
+            SetMeshNodeStatus(STATUS_BLE_CONNECT,OFF);
             if(boot_to_dfu) { Cmd_sys_reset(2); } // Enter to DFU OTA mode
             
             Printf("evt:conn closed, reason 0x%x\r\n",  pEvt_close->reason);
@@ -296,7 +325,11 @@ uint32  EvtGapScanResponseProc(PCmdPacket pEvent)
 //**********************************************************************************************
 uint32  EvtGapAdvTimeOutProc(PCmdPacket pEvent)
 {//TraceProc();
-    uint32 ret_code = FAIL;
+    uint32 ret_code = TRUE;
+    msg_gap_adv_timeout_evt *p_adv_timeout;
+    p_adv_timeout = (msg_gap_adv_timeout_evt *)&(pEvent->data);
+    //result = gecko_cmd_le_gap_stop_advertising(p_adv_timeout->handle)->result;
+    //Trace1("result", result);
 
     return ret_code;
 }

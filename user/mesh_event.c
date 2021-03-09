@@ -8,6 +8,7 @@
 #include "ivi_features.h"
 #include "sensor_client.h"
 #include "sensor_server.h"
+#include "Mesh_node.h"
 #include "mesh_event.h"
 
 
@@ -97,32 +98,6 @@ EventFun    MeshEventFun[] =
 };
 
 //**********************************************************************************************
-//
-//**********************************************************************************************
-bool MeshEventProc(PCmdPacket pEvent)
-{
-    return TRUE; //deug
-    bool ret_code = FALSE;
-    uint32 event_id;
-    PEventFun pEventFun;
-    if(NULL == pEvent) return ret_code;
-    event_id = BGLIB_MSG_ID(pEvent->header); //get event ID
-    pEventFun = MeshEventFun;    //initial event table
-
-    while(pEventFun->pEventProc != NULL)
-    {
-        if(pEventFun->EventID == event_id)   // to process the event
-        {
-            ret_code = pEventFun->pEventProc(pEvent);
-            break;
-        }
-        pEventFun++;    // to next ID
-    };
-    return ret_code;
-}
-
-
-//**********************************************************************************************
 // for sensor server/client model initial by key pad
 //
 //**********************************************************************************************
@@ -130,13 +105,14 @@ bool MeshNodeModelInit()
 {TraceProc();
     bool ret_code=TRUE;
    // uint8 node_model;
-    if(MeshNodeStatus & STATUS_CLIENT) 
+   if(NodeRole == NR_CLIENT)
        { SensorClientNodeInit(); LedOnClient();
         }
     else
        { SensorServerNodeInit();
         }
-    SetEventTaskTimer(TD_NO_EVENT, TIMER_IVI_UPDATE, TIMER_EVENT_REPEAT);
+    //richard debug
+    //SetEventTaskTimer(TD_NO_EVENT, TIMER_IVI_UPDATE, TIMER_EVENT_REPEAT); 
     
     return ret_code;
 }
@@ -188,7 +164,7 @@ uint32 EvtMeshSensorInitProc(PCmdPacket pEvent)
 { TraceProc();
     uint32 ret_code = TRUE;
     msg_mn_initialized_evt *pMeshInit = &(pEvent->data.evt_mesh_node_initialized);
-    if(MeshNodeStatus & STATUS_CLIENT) 
+    if(NodeRole == NR_CLIENT)
         iv_config(IV_TEST_MODE, IV_RECOVERY_MODE, SNB_STATE);
     else
         iv_config(IV_TEST_MODE, 0, SNB_STATE);
@@ -196,29 +172,21 @@ uint32 EvtMeshSensorInitProc(PCmdPacket pEvent)
     if(pMeshInit->provisioned)
     {
         //GetLocalCfg();  //debug
-        SetNodeStatus(STATUS_PROVISIONED,ON);  
-        pMeshNodeData->MeshNodeID = (uchar)pMeshInit->address;
+        SetMeshNodeStatus(STATUS_PROVISIONED,ON);  
+        pMeshNodeData->MeshNodeID = pMeshInit->address;
         pMeshNodeData->IvIndex = pMeshInit->ivi;
-
-        
         Printf("node1 is provisioned. Mesh Node ID:0x%x, %d, IVI:%ld\r\n", 
             pMeshNodeData->MeshNodeID,pMeshNodeData->MeshNodeID, pMeshNodeData->IvIndex);
         
         MeshNodeModelInit();
-        SetTxPower(TX_POWER_HI);
-
-        SetLedStatus(LED_STATUS_OFF);
-
-     //   if(GetNodeStatus(STATUS_CLIENT) == TRUE) LedOnClient();
-        
+        SetTxPower(TX_POWER_LO);
         SetEventTaskTimer(TD_GET_SENSOR_INFO,200,TIMER_EVENT_ONCE);
-       // UsartOpen();
         
 #if BT_RSSI
         Cmd_mn_set_adv_event_filter(0xF,0,NULL); //for RSSI event
 #endif  
-       
         DI_Print("provisioned", DI_ROW_STATUS);
+        SetNodePublish(OFF); SetNodeSleeping(OFF);
     }
     else
     {
@@ -265,8 +233,10 @@ uint32 EvtMeshNodeProvProc(PCmdPacket pEvent)
 
         case Evt_mn_provisioned: Trace("Evt_mn_provisioned");
             
-            if(MeshNodeStatus & STATUS_CLIENT) Cmd_ms_client_init();
-            else SensorServerNodeInit();
+            if(NodeRole == NR_CLIENT)
+                Cmd_ms_client_init();
+            else 
+                SensorServerNodeInit();
             
             Printf("node provisioned, got address=0x%2.0X, ivi:%ld\r\n", pProvisioned->address, pProvisioned->iv_index);
             DI_Print("provisioned", DI_ROW_STATUS);
@@ -336,10 +306,10 @@ uint32 EvtMeshProxyProc(PCmdPacket pEvent)
     {
         case Evt_m_proxy_connected: Trace1("Evt_m_proxy_connected",p_connected->handle);
             SetEventTaskTimer(TD_SYS_SETUP_RESET,TIMER_ENDING,TIMER_EVENT_ONCE); // for Reset
-            SetNodeStatus(STATUS_PROXY_CONNECT,ON);
+            SetMeshNodeStatus(STATUS_PROXY_CONNECT,ON);
             break;
         case Evt_m_proxy_disconnected: Trace2("Evt_m_proxy_disconnected",p_disconnected->handle,p_disconnected->reason);
-            SetNodeStatus(STATUS_PROXY_CONNECT,OFF);
+            SetMeshNodeStatus(STATUS_PROXY_CONNECT,OFF);
             //SetEventTaskTimer(TD_SYS_SETUP_RESET,TIMER_SYS_SETUP,TIMER_EVENT_ONCE);
             SetEventTaskTimer(TD_SYS_SETUP_RESET,TIMER_5SEC,TIMER_EVENT_ONCE);
             break;
@@ -385,14 +355,14 @@ uint32 EvtMeshNodeModelConfigChangedProc(PCmdPacket pCmdEvent)
     msg_mn_model_config_changed_evt *pEvent = &(pCmdEvent->data.evt_mesh_node_model_config_changed);
    
     if(pEvent->model_id == MODEL_ID_SERVER)
-        pMeshNodeData->MeshNodeRole = BT_NODE_ROLE_SERVER;
+        pMeshNodeData->MeshNodeRole = NR_SERVER;
     else if(pEvent->model_id == MODEL_ID_SETUP_SERVER)
-        pMeshNodeData->MeshNodeRole = BT_NODE_ROLE_SETUP_SERVER;    
+        pMeshNodeData->MeshNodeRole = NR_SETUP_SERVER;    
     else if(pEvent->model_id == MODEL_ID_CLIENT)
-        pMeshNodeData->MeshNodeRole = BT_NODE_ROLE_CLIENT;
+        pMeshNodeData->MeshNodeRole = NR_CLIENT;
     SetLedToggle(LED_SERVER);
     WriteNodeData();
-  //  Trace16Ptr_4(pEvent, mesh_node_config_state, element_address, vendor_id, model_id);
+    Trace16Ptr_4(pEvent, mesh_node_config_state, element_address, vendor_id, model_id);
     SetEventTaskTimer(TD_SYS_SETUP_RESET,TIMER_SYS_SETUP,TIMER_EVENT_ONCE);
 
     return ret_code;

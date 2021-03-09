@@ -329,6 +329,31 @@ struct mesh_lighting_ctl_temperature_range_state {
   uint16_t max; /**< Maximum temperature */
 };
 
+/** Light HSL, HSL target, HSL default state */
+struct mesh_lighting_hsl_state {
+  uint16_t lightness; /**< Lightness value */
+  uint16_t hue; /**< Hue value */
+  uint16_t saturation; /**< Saturation value */
+};
+
+/** Light HSL hue state */
+struct mesh_lighting_hsl_hue_state {
+  uint16_t hue;   /**< Hue value */
+};
+
+/** Light HSL saturation state */
+struct mesh_lighting_hsl_saturation_state {
+  uint16_t saturation; /**< Saturation value */
+};
+
+/** Light HSL range state */
+struct mesh_lighting_hsl_range_state {
+  uint16_t hue_min; /**< Minimum hue value */
+  uint16_t hue_max; /**< Maximum hue value */
+  uint16_t saturation_min; /**< Minimum saturation value */
+  uint16_t saturation_max; /**< Maximum saturation value */
+};
+
 /** Generic state type */
 typedef enum {
   mesh_generic_state_on_off = 0x00,
@@ -361,6 +386,13 @@ typedef enum {
   mesh_lighting_state_ctl_default = 0x87,
   mesh_lighting_state_ctl_temperature_range = 0x88,
   mesh_lighting_state_ctl_lightness_temperature = 0x89,
+
+  mesh_lighting_state_hsl = 0x8a,
+  mesh_lighting_state_hsl_hue = 0x8b,
+  mesh_lighting_state_hsl_saturation = 0x8c,
+  mesh_lighting_state_hsl_default = 0x8d,
+  mesh_lighting_state_hsl_range = 0x8e,
+  mesh_lighting_state_hsl_target = 0x8f,
 
   mesh_generic_state_last
 } mesh_generic_state_t;
@@ -401,6 +433,21 @@ struct mesh_generic_state {
     /** Light CTL state used for updating
         mesh_lighting_state_ctl_lightness_temperature */
     struct mesh_lighting_ctl_lightness_temperature_state ctl_lightness_temperature;
+
+    /** Light HSL state used for updating/getting mesh_lighting_state_hsl,
+        mesh_lighting_state_hsl_target and mesh_lighting_state_hsl_default */
+    struct mesh_lighting_hsl_state hsl;
+
+    /** Light HSL hue state used for updating mesh_lighting_state_hsl_hue */
+    struct mesh_lighting_hsl_hue_state hsl_hue;
+
+    /** Light HSL saturation state used for updating
+        mesh_lighting_state_hsl_saturation */
+    struct mesh_lighting_hsl_saturation_state hsl_saturation;
+
+    /** Light HSL range state used for updating
+        mesh_lighting_state_hsl_range */
+    struct mesh_lighting_hsl_range_state hsl_range;
   };
 };
 
@@ -433,6 +480,12 @@ typedef enum {
   mesh_lighting_request_ctl_temperature = 0x85,
   mesh_lighting_request_ctl_default = 0x86,
   mesh_lighting_request_ctl_temperature_range = 0x87,
+
+  mesh_lighting_request_hsl = 0x88,
+  mesh_lighting_request_hsl_hue = 0x89,
+  mesh_lighting_request_hsl_saturation = 0x8a,
+  mesh_lighting_request_hsl_default = 0x8b,
+  mesh_lighting_request_hsl_range = 0x8c,
 } mesh_generic_request_t;
 
 /** Generic request */
@@ -543,6 +596,31 @@ struct mesh_generic_request {
       /** Maximum temperature */
       uint16_t max;
     } ctl_temperature_range;
+    /** Light HSL state change request data for
+        mesh_lighting_request_hsl and mesh_lighting_request_hsl_default */
+    struct {
+      uint16_t lightness;
+      uint16_t hue;
+      uint16_t saturation;
+    } hsl;
+    /** Light HSL hue state change request data for
+        mesh_lighting_request_hsl_hue */
+    uint16_t hsl_hue;
+    /** Light HSL saturation state change request data for
+        mesh_lighting_request_hsl_saturation */
+    uint16_t hsl_saturation;
+    /** Light HSL range state change request data for
+        mesh_lighting_request_hsl_range */
+    struct {
+      /** Minimum hue */
+      uint16_t hue_min;
+      /** Maximum hue */
+      uint16_t hue_max;
+      /** Minimum saturation */
+      uint16_t saturation_min;
+      /** Maximum saturation */
+      uint16_t saturation_max;
+    } hsl_range;
   };
 };
 

@@ -1,5 +1,7 @@
 #include "global.h" 
+#include "init_board.h"
 #include "sensor_client.h"
+#include "cmd_to_bt_mesh.h"
 #include "MeshFeatures.h"
 
 
@@ -36,11 +38,11 @@ uint32 EvtMeshFriendProc(PCmdPacket pEvent)
 //
 Result NodeSleeping()
 {
-    if(GetNodeStatus(STATUS_FULL_POWER)) {PowerMode(POWER_MODE_WAKEUP);return RESULT_OK;}
+    if(GetMeshNodeStatus(STATUS_FULL_POWER)) {PowerMode(POWER_MODE_WAKEUP);return RESULT_OK;}
 
     result = NodeLpn(ON);
     result += NodeProxy(OFF);  // App proxy link bug error
-    SetNodeStatus(STATUS_WAKE_UP,OFF);
+    SetMeshNodeStatus(STATUS_SLEEPING,ON);
     PowerMode(POWER_MODE_SLEEP);
     DI_Print("Sleeping", DI_ROW_LPN);
     if(result) TraceErr1("DeviceSleeping",result);
@@ -54,7 +56,7 @@ Result NodeWakeUp()
     PowerMode(POWER_MODE_WAKEUP);
     result = NodeLpn(OFF);
     result += NodeProxy(ON);
-    SetNodeStatus(STATUS_WAKE_UP,ON);
+    SetMeshNodeStatus(STATUS_SLEEPING,OFF);
     DI_Print("Active", DI_ROW_LPN);
     if(result) TraceErr1("DeviceWakeUp",result);
     return result;    
@@ -109,11 +111,27 @@ Result NodeLpn(uint8 status)
 Result NodeProxy(uint8 status)
 {TraceProc();
     //return 0; // proxy On have big bug
-    status = ON;
+   // status = ON;
     
     if(status == ON) Trace("Proxy ON"); else Trace("Proxy OFF");    
     result = gecko_cmd_mesh_test_set_local_config(mesh_node_gatt_proxy, 0, 1, &status)->result;
     if(result) Trace1("NodeProxy Error",result);
+
+    return result;
+}
+
+//*******************************************************************************************
+// Mesh Beacon ON/OFF
+//*******************************************************************************************
+Result NodeBeacon(uint8 status)
+{TraceProc();
+
+
+
+    if(status == ON) Trace("Beacon ON"); else Trace("Beacon OFF");    
+    result = gecko_cmd_mesh_test_set_local_config(mesh_node_beacon, 0, 1, &status)->result;
+    if(result) Trace1("Beacon Error",result);
+
     return result;
 }
 
@@ -121,14 +139,16 @@ Result NodeProxy(uint8 status)
 //*******************************************************************************************
 // Mesh Relay ON/OFF
 //*******************************************************************************************
-Result  NodeRelay(uint8 status)
+Result NodeRelay(uint8 status)
 {TraceProc();
-
-    if(status == ON) Trace("Relay On"); else Trace("Relay Off");
-
     
+    if(status == ON) Trace("Relay ON"); else Trace("Relay OFF");    
+    result = gecko_cmd_mesh_test_set_local_config(mesh_node_relay, 0, 1, &status)->result;
+    if(result) Trace1("Relay Error",result);
+
     return result;
 }
+
 
 //*******************************************************************************************
 // Friend Status ON/OFF
