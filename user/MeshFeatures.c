@@ -12,7 +12,6 @@
 //**********************************************************************************************
 uint32 EvtMeshFriendProc(PCmdPacket pEvent)
 {
-    TraceProc();
     uint32 ret_code = TRUE;
     uint32    event_id;
     uint16  lpn_address;
@@ -22,11 +21,9 @@ uint32 EvtMeshFriendProc(PCmdPacket pEvent)
     {
         case Evt_m_friend_friendship_established:
             lpn_address = pEvent->data.evt_mesh_friend_friendship_established.lpn_address;
-            Trace1("Evt_m_friend_friendship_established lpn_address",lpn_address);
             break;
         case Evt_m_friend_friendship_terminated: 
             result = pEvent->data.evt_mesh_friend_friendship_terminated.reason;
-            Trace1("Evt_m_friend_friendship_terminated",result);
             break;
     };            
 
@@ -109,7 +106,7 @@ Result NodeLpn(uint8 status)
 // Mesh Proxy ON/OFF
 //*******************************************************************************************
 Result NodeProxy(uint8 status)
-{TraceProc();
+{
     //return 0; // proxy On have big bug
    // status = ON;
     
@@ -124,7 +121,7 @@ Result NodeProxy(uint8 status)
 // Mesh Beacon ON/OFF
 //*******************************************************************************************
 Result NodeBeacon(uint8 status)
-{TraceProc();
+{
 
 
 
@@ -140,7 +137,7 @@ Result NodeBeacon(uint8 status)
 // Mesh Relay ON/OFF
 //*******************************************************************************************
 Result NodeRelay(uint8 status)
-{TraceProc();
+{
     
     if(status == ON) Trace("Relay ON"); else Trace("Relay OFF");    
     result = gecko_cmd_mesh_test_set_local_config(mesh_node_relay, 0, 1, &status)->result;

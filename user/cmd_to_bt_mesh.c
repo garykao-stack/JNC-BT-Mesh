@@ -170,7 +170,7 @@ void ClientGetSensorDataProc()
 
     switch(CurrTaskStage())
     {
-        case SGS_TASK_PENDING: 
+        case SGS_TASK_PENDING: //Trace("SGS_TASK_PENDING");
             if(GetMeshNodeStatus(STATUS_GET_SENSOR_INFO) == ON)
             {//TraceDec1("Clean Modbus Reg",ModbusRegResetCount);                
                 SetMeshNodeStatus(STATUS_GET_SENSOR_INFO, OFF);
@@ -205,7 +205,7 @@ void ClientGetSensorDataProc()
              //   Trace("Send Cmd Again");
         
             break;
-        case SGS_RX_WAITING: 
+        case SGS_RX_WAITING: //Trace("Client: SGS_RX_WAITING");
             if(GetMeshNodeStatus(STATUS_GET_SENSOR_ENDING) == OFF)
             {
                 Trace("STATUS_GET_SENSOR_ENDING == OFF 2 *****");
@@ -213,7 +213,7 @@ void ClientGetSensorDataProc()
                 ToNextTaskStage(SGS_ENDING);
             }
             break;
-        case SGS_ENDING: 
+        case SGS_ENDING: TraceDec1("\r\n**** Client: SGS_ENDING AllNodeEventNum ****", AllNodeEventNum);
             ClientShowAllNodes();  ShowCurrRemSeq(); ShowTimerRTC();
             SetMeshNodeStatus(STATUS_GET_SENSOR_INFO, OFF);
             SetEventTaskTimer(TD_GET_SENSOR_INFO, TIMER_CLIENT_GET_SENSOR_INFO, TIMER_EVENT_ONCE);
@@ -260,7 +260,7 @@ void ClientSendDataToHostProc()
 
     switch(CurrTaskStage())
     {
-        case CLIENT_HOST_PENDING: 
+        case CLIENT_HOST_PENDING: //Trace("Host:CLIENT_HOST_PENDING");
             if(UsartGetStatusRxEnd() == TRUE)
             {
                // TraceDec1("Host: Rx Ending",UsartGetRxCounter());
@@ -274,19 +274,19 @@ void ClientSendDataToHostProc()
                     }
             }
             break;
-        case CLIENT_HOST_PREPARE:
+        case CLIENT_HOST_PREPARE: //Trace("Host:CLIENT_HOST_PREPARE");
             if(ClientHostPrepare() != TRUE)
                 ToNextTaskStage(CLIENT_HOST_ENDING);
             else
                 ToNextTaskStage(CLIENT_HOST_SEND_DATA);
 
             break;
-        case CLIENT_HOST_SEND_DATA: 
+        case CLIENT_HOST_SEND_DATA: //Trace("Host:CLIENT_HOST_SEND_DATA");
             ClientHostSendData();   // send data to host
             ToNextTaskStage(CLIENT_HOST_ENDING);
             break;
 
-        case CLIENT_HOST_ENDING:  
+        case CLIENT_HOST_ENDING:  //Trace("Host:CLIENT_HOST_ENDING");
             //TaskActive();
             UsartResetRxTx(USART_ID_RX);
             ToNextTaskStage(CLIENT_HOST_PENDING);
@@ -378,6 +378,19 @@ bool ClientSetServerReg(_PModbusCmd pCmd)
 {
     TraceProc();
     bool ret_code = TRUE;
+/*
+    if(GetMeshNodeStatus(STATUS_SET_MODBUS_CMD) == TRUE)
+        {TraceErr("Can not node send Modbus command");
+        SetEventTaskTimer(TD_GET_SENSOR_INFO, TIMER_15SEC, TIMER_EVENT_ONCE);
+        return FALSE;
+        }
+    else
+        {Trace("Send Modbus Set Command");
+            //SetMeshNodeStatus(STATUS_SET_MODBUS_CMD, ON);
+            SetEventTaskTimer(TD_SET_MODBUS_CMD, 1000, TIMER_EVENT_ONCE);
+            
+        }
+*/    
     uint32 setting_data = MAKEDWORD(pCmd->RegNum, pCmd->Register);
 
     //result = Cmd_ms_client_set_setting(SENSOR_ELEMENT, PUBLISH_ADDRESS, IGNORED, 0x02,MODBUS_GET_REGS_VALUE,
@@ -437,12 +450,16 @@ bool GetModbusValue(uchar modbus_id, uint16 modbus_reg, uchar reg_num, PUINT16 p
     {
         if(modbus_reg >= 0x00 && modbus_reg <= 0x0C)
         {
+           // if(modbus_reg + modbus_reg * 2 <= 0x0C)
                 pRegs = (PUINT16) & (p_modbus_regs->DevModbusRegs[0]) + modbus_reg;
         }
         else if(modbus_reg >= 0x02FE && modbus_reg <= 0x0315)
         {
+           // if(modbus_reg + (modbus_reg - 0x02FE) * 2 <= 0x315)
+            //    pRegs = (PUINT16) & (p_modbus_regs->DevModbusRegs[1]) + (modbus_reg - 0x02FE);
             pRegs = (PUINT16)&(p_modbus_regs->DevModbusRegs[1]) + (modbus_reg - 0x02FE);
         }
+        //else pRegs = (PUINT16)&(p_modbus_regs->DevModbusRegs[1]);
 
         if(pRegs != NULL)
             memcpy(pbuff, pRegs, reg_num * 2);
@@ -451,6 +468,7 @@ bool GetModbusValue(uchar modbus_id, uint16 modbus_reg, uchar reg_num, PUINT16 p
             ret_code = FALSE;
             TraceErr("pRegs == NULL");
         }
+        //PrintDataByte("GetModbusValue", (PUCHAR)pRegs, reg_num*2);
     }
 
     return ret_code;
@@ -466,6 +484,7 @@ bool SendDeviceModelInfo(_PModbusCmd p_modbus_cmd)
 {TraceProc();
     bool ret_code=false;
     uint16 modbus_crc;
+   // PrintDataByte("SendDeviceModelInfo 1", (BYTE*)p_modbus_cmd, 8);
 
     BtDeviceInfo[0]=p_modbus_cmd->ModbusID;
     BtDeviceInfo[1]=0x03;
@@ -476,6 +495,19 @@ bool SendDeviceModelInfo(_PModbusCmd p_modbus_cmd)
              Delay_ms(20); UsartTxSendCmd((PUCHAR)BtDeviceInfo, BT_DEVICE_INFO_SIZE);
          }
          ret_code = true;
+ //   PrintDataByte("SendDeviceModelInfo 2", (PUCHAR)BtDeviceInfo, BT_DEVICE_INFO_SIZE);
+/*    
+    if(memcmp(p_modbus_cmd, ModbudDeviceIDCmd, 6) == 0)
+      {
+        
+         if(UsartTxSendCmd((PUCHAR)BtDeviceInfo, BT_DEVICE_INFO_SIZE) == FALSE)
+         {
+             Delay_ms(20); UsartTxSendCmd((PUCHAR)BtDeviceInfo, BT_DEVICE_INFO_SIZE);
+         }
+         ret_code = true;
+      }
+    else {TraceErr("SendDeviceModelInfo");PrintDataByte("SendDeviceModelInfo 2", (PUCHAR)p_modbus_cmd, 8);}
+*/
     return ret_code;
 }
 
@@ -495,6 +527,9 @@ bool ClientHostPrepare()
     uint16 reg_addr, reg_num, cmd_crc16;
     p_modbus_cmd = (_PModbusCmd)UsartGetBuff(USART_ID_RX);    // get Rx buffer
 
+ //   if(CheckModbusCrc((PUCHAR)p_modbus_cmd,sizeof(_ModbusCmd)) == FALSE)
+ //       return FALSE;
+
     //if(p_modbus_cmd->FunCode != 0x04)
     if(p_modbus_cmd->FunCode == 0x06)
     {
@@ -508,6 +543,9 @@ bool ClientHostPrepare()
         return FALSE; //ret_code;
         
      }
+
+    //PrintDataByte("ClientHostPrepare", (PUCHAR)p_modbus_cmd,8);
+
     modbus_id = p_modbus_cmd->ModbusID;
     reg_addr = WordSwap(p_modbus_cmd->Register);
     reg_num = WordSwap(p_modbus_cmd->RegNum);
@@ -559,7 +597,13 @@ bool ClientHostSendData()
     // PrintDataByte("ClientHostSendData",(PUCHAR)&ModbusToHostPack, ClientToHostDataNum);
     UsartTxSendCmd((PUCHAR)&ModbusToHostPack, ClientToHostDataNum);
 
-       
+/*
+    //0,995
+    if(UsartTxSendCmd((PUCHAR)&ModbusToHostPack, ClientToHostDataNum) == FALSE)        
+    {
+        UsartTxSendCmd((PUCHAR)&ModbusToHostPack, ClientToHostDataNum); 
+    }
+*/        
 }
 
 

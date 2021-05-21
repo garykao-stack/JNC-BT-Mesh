@@ -69,7 +69,7 @@ uint16 AirLevel,WaterLevel,OilLevel,MudLevel;
 uchar SensorNum;
 
 void WaterLevelMeshInit(void)
-{TraceProc();
+{
 
     memset(&CdcValue,0,sizeof(CdcValue));
     AD7147Num = GetAD7147Num();
@@ -84,7 +84,7 @@ void WaterLevelMeshInit(void)
 // To get all of data for sensor
 //
 void WaterLeveMeshProc(void)
-{//TraceProc();
+{
 
     uchar scan_cin_status, scan_cin_stage;
     if(GetMeshNodeStatus(STATUS_SLEEPING) || NodeRole == NR_CLIENT || GetMeshNodeStatus(STATUS_BLE_CONNECT))
@@ -143,13 +143,13 @@ bool DeviceLevelInfo(void)
     pDevStartCin = CdcValue;    // start from CIN0
     switch(pDeviceInfo->DeviceKind)
         {
-            case DEVICE_KIND_WATER: Trace("DEVICE_KIND_WATER");
+            case DEVICE_KIND_WATER: 
                     WaterLevelInfo();
                 break;
-            case DEVICE_KIND_OIL:   Trace("DEVICE_KIND_OIL");
+            case DEVICE_KIND_OIL:  
                     OilLevelInfo();
                 break;
-            case DEVICE_KIND_WATER_OIL: Trace("DEVICE_KIND_WATER_OIL");
+            case DEVICE_KIND_WATER_OIL: 
                     WaterOilLevelInfo();
                 break;
             case DEVICE_KIND_WATER_MUD:                
@@ -168,7 +168,7 @@ bool DeviceLevelInfo(void)
 // check the difference value
 //
 void CheckCinDiff()
-{TraceProc();
+{
     PUINT16 pCdcValue,pBaseCdcValue;
     uint16  diff_value;
     uchar ic_num,cin_num;
@@ -359,7 +359,7 @@ const float   OilFilter[WATER_LEVL_SIGNAL_SIZE+5]=
 //
 //*******************************************************************************************
 void WaterOilNoiseFilter()
-{TraceProc();
+{
     uint16    *pCdcValue;
     uchar    water_position,oil_pos,loop;
     float   diff1;

@@ -56,7 +56,7 @@
 #define LCD_ROW_DELTAUV      7    /**< 7th row, delta UV */
 #define LCD_ROW_SATURATION   7    /**< 7th row, HSL saturation */
 #define LCD_ROW_ILLUMINANCE  7    /**< 7th row, illuminance value */
-#define LCD_ROW_MAX          9    /**< up to 9 rows available on screen */
+#define LCD_ROW_MAX          10    /**< up to 9 rows available on screen */
 
 #define LCD_ROW_LEN         32    /**< up to 32 characters per each row */
 

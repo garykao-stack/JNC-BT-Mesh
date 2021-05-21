@@ -181,48 +181,9 @@ uint32 EvtSensorServerEventsProc(PCmdPacket pCmdEvent)
     event_id = BGLIB_MSG_ID(pCmdEvent->header);
     switch(event_id)
     {
-        case Evt_ms_server_get_req: //Trace("Evt_ms_server_get_req 1");
-            //EvtServerGetRequestProc(pCmdEvent);DeviceSleeping();
+        case Evt_ms_server_get_req: 
             EvtGetRequestProc(pCmdEvent);
             break;
-        case Evt_ms_setup_server_get_setting_req: Trace("Evt_ms_setup_server_get_setting_req");
-            //EvtSetupServerGetSettingRequest(pCmdEvent);
-            EvtSetGettingRequestProc(pCmdEvent);
-            break;
-        case Evt_ms_setup_server_set_setting_req: Trace("Evt_ms_setup_server_set_setting_req");
-            //EvtSetupServerSetSettingRequest(pCmdEvent);
-            EvtSetSettingRequestProc(pCmdEvent);
-            break;
-            
-        
-#if MESH_COLUME_ENABLE
-            
-        case Evt_ms_server_get_column_req: Trace("Evt_ms_server_get_column_req");
-            EvtServerGetColumeRequest(pCmdEvent);
-            break;
-        case Evt_ms_server_get_series_req: Trace("Evt_ms_server_get_series_req");
-            EvtServerGetSeriesReqest(pCmdEvent);
-            break;
-#endif
-            
-        case Evt_ms_server_publish: Trace("Evt_ms_server_publish");
-            
-#ifdef SERVER_AUTO_PUBLISH    
-            Trace("Evt_ms_server_publish Must Modify/OFF Timing"); // Bug richard
-            EvtServerPubEvent(pCmdEvent);
-#endif
-            
-            break;
-        case Evt_ms_setup_server_get_cadence_req: Trace("Evt_ms_setup_server_get_cadence_req");
-            EvtSetupServerGetCadenceRequst(pCmdEvent);
-            break;
-        case Evt_ms_setup_server_set_cadence_req: Trace("Evt_ms_setup_server_set_cadence_req"); 
-            EvtSetupServerSetCadenceRequst(pCmdEvent);
-            break;
-        case Evt_ms_setup_server_get_settings_req: Trace("Evt_ms_setup_server_get_settings_req");
-            EvtSetupServerGetSettingsRequest(pCmdEvent);
-            break;
-        
         default:  TraceErr("EvtSensorServerEventsProc");
         break;
     }
@@ -408,102 +369,6 @@ void EvtServerPubEvent(PCmdPacket pCmdEvent)
   //  TraceDec2("EvtServerPubEvent",pEvent->elem_index,pEvent->period_ms);
   //  ServerPubModbusRegs();
     return;
-}
-
-/***************************************************************************
- * Handling of sensor setup server get cadence request event.
- * Cadence is not supported now, so reply has only Property ID
- * according to specification.
- *
- * gecko_evt_mesh_sensor_server_get_cadence_request_id
- * @param[in] pEvent  Pointer to sensor server get cadence request event.
- ******************************************************************************/
-void EvtSetupServerGetCadenceRequst(PCmdPacket pCmdEvent)
-{TraceProc() ;
-    msg_ms_setup_server_get_cadence_request_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_setup_server_get_cadence_request);
-    Cmd_ms_setup_server_send_cadence_status(SENSOR_ELEMENT, pEvent->client_address, pEvent->appkey_index,
-                                            NO_FLAGS, pEvent->property_id, 0, NULL);
-}
-
-/***************************************************************************
- * Handling of sensor setup server set cadence request event.
- * Cadence is not supported now, so reply has only Property ID
- * according to specification.
- *
- *gecko_evt_mesh_sensor_server_set_cadence_request_id
- * @param[in] pEvent  Pointer to sensor server set cadence request event.
- ******************************************************************************/
-void EvtSetupServerSetCadenceRequst(PCmdPacket pCmdEvent)
-{TraceProc() ;
-    msg_ms_setup_server_set_cadence_request_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_setup_server_set_cadence_request);  
-    Cmd_ms_setup_server_send_cadence_status(SENSOR_ELEMENT, pEvent->client_address, pEvent->appkey_index,
-                                            NO_FLAGS, pEvent->property_id, 0, NULL);
-}
-
-/***************************************************************************
- * Handling of sensor setup server get settings request event.
- * Settings are not supported now, so reply has only Property ID
- * according to specification.
- *
- * @param[in] pEvent  Pointer to sensor server get settings request event.
- * gecko_evt_mesh_sensor_server_get_settings_request_id
- ******************************************************************************/
-void EvtSetupServerGetSettingsRequest(PCmdPacket pCmdEvent)
-{TraceProc() ;
-
-    msg_ms_setup_server_get_settings_request_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_setup_server_get_settings_request);
-    Cmd_ms_setup_server_send_settings_status(SENSOR_ELEMENT, pEvent->client_address, pEvent->appkey_index,
-                                             NO_FLAGS, pEvent->property_id, 0, NULL);
-}
-
-/***************************************************************************
- * Handling of sensor setup server get setting request event.
- * Settings are not supported now, so reply has only Property ID
- * and Sensor Property ID according to specification.
- *
- * @param[in] pEvent  Pointer to sensor server get setting request event.
- * gecko_evt_mesh_sensor_server_get_setting_request_id
- ******************************************************************************/
-void EvtSetupServerGetSettingRequest(    PCmdPacket pCmdEvent)
-{TraceProc() ;
-    msg_ms_setup_server_get_setting_request_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_setup_server_get_setting_request);    
-  //  ServerGetRegusetToClient(pCmdEvent); 
-    return;
-
-
-
-       
-    Cmd_ms_setup_server_send_setting_status(SENSOR_ELEMENT, pEvent->client_address, pEvent->appkey_index,
-                                            NO_FLAGS, pEvent->property_id, pEvent->setting_id, 0, NULL);
-}
-
-/***************************************************************************
- * Handling of sensor setup server set setting request event.
- * Settings are not supported now, so reply has only Property ID
- * and Sensor Property ID according to specification.
- *
- * @param[in] pEvent  Pointer to sensor server set setting request event.
- * gecko_evt_mesh_sensor_server_get_setting_request_id
- ******************************************************************************/
-void EvtSetupServerSetSettingRequest(    PCmdPacket pCmdEvent)
-{TraceProc() ;
-
-    msg_ms_setup_server_set_setting_request_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_setup_server_set_setting_request);
-  //  ServerSetDevice(pEvent);
-    return;
-
-
-
-    
-
-
-    uint32 test=0x11223344;
-    
-    Trace16Ptr_4(pEvent, client_address, flags, property_id, setting_id);
-    PrintDataByte("Setup Data", (PUCHAR)&pEvent->raw_value.data, (UINT)pEvent->raw_value.len);
-    
-    Cmd_ms_setup_server_send_setting_status(SENSOR_ELEMENT, pEvent->client_address, pEvent->appkey_index,
-                                            NO_FLAGS, pEvent->property_id, pEvent->setting_id, 4, (uint8*)&test);
 }
 
 

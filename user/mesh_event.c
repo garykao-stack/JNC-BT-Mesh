@@ -222,7 +222,7 @@ uint32 EvtMeshNodeProvProc(PCmdPacket pEvent)
 
     switch(event_id)
     {
-        case Evt_mn_provisioning_started: TraceDec1("Evt_mn_provisioning_started", pProv_started->result);
+        case Evt_mn_provisioning_started: 
             DI_Print("provisioning...", DI_ROW_STATUS);
             // start timer for blinking LEDs to indicate which node is being provisioned
             SetEventTaskTimer(TD_PROVISIONING,TIMER_PROVISION, TIMER_EVENT_REPEAT);
@@ -231,27 +231,24 @@ uint32 EvtMeshNodeProvProc(PCmdPacket pEvent)
             init_done = 0;
             break;
 
-        case Evt_mn_provisioned: Trace("Evt_mn_provisioned");
+        case Evt_mn_provisioned: 
             
             if(NodeRole == NR_CLIENT)
                 Cmd_ms_client_init();
             else 
                 SensorServerNodeInit();
-            
-            Printf("node provisioned, got address=0x%2.0X, ivi:%ld\r\n", pProvisioned->address, pProvisioned->iv_index);
-            DI_Print("provisioned", DI_ROW_STATUS);
             init_done = 1;
            SetEventTaskTimer(TD_PROVISIONING,TIMER_ENDING, TIMER_EVENT_REPEAT);            
             break;
 
-        case Evt_mn_provisioning_failed:  Trace("Evt_mn_provisioning_failed");
+        case Evt_mn_provisioning_failed: 
             Printf("provisioning failed, code %x\r\n", pProv_failed->result);
             DI_Print("prov failed", DI_ROW_STATUS);
             // start a one-shot timer that will trigger soft reset after small delay
             SetEventTaskTimer(TD_RESTART,2000, TIMER_EVENT_ONCE);
             break;
 
-        default: TraceErr("EvtMeshNodeProvProc"); break;
+        default: break;
     }
     return ret_code;
 }
@@ -273,12 +270,12 @@ uint32 EvtMeshConfigProc(PCmdPacket pEvent)
 
     switch(event_id)
     {
-        case Evt_mn_config_set: //Trace("Evt_mn_config_set");
+        case Evt_mn_config_set: 
                 //PrintDataByte("EvtMeshConfigSetProc",p_config_set->value.data,p_config_set->value.len);
                 SetEventTaskTimer(TD_SYS_SETUP_RESET,TIMER_SYS_SETUP,TIMER_EVENT_ONCE); // system reset
                // Trace16_2(p_config_set->id, p_config_set->netkey_index);
             break;
-        case Evt_mn_config_get: //Trace("Evt_mn_config_get");
+        case Evt_mn_config_get: 
                // Trace16_2(p_config_get->id, p_config_get->netkey_index);
             break;
        default: TraceErr("EvtMeshConfigProc"); break;     

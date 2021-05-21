@@ -42,7 +42,7 @@ typedef enum {
 }test_p_t;
 
 #define ELEMENT_SEQNUM_MAX      0x01000000
-#define IVI_INC_MIN             MIN(TEST_IV_HOP, MAX_IV_HOP - 1)
+#define IVI_INC_MIN             1 //MIN(TEST_IV_HOP, MAX_IV_HOP - 1)
 
 #define TIMER_IVI_DETECT        (TIMER_10SEC/TIMER_DEVICE_TASK) //60 sec
 

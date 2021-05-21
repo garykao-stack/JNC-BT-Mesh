@@ -69,6 +69,21 @@ void DWordSwap(PUCHAR p_value)
     value = *p_value;  *p_value = *p_temp; *p_temp = value;
 }
 
+//
+// NUM: toal Dword number
+//
+void DWordSwapN(PUCHAR p_value, uint16 num)
+{
+  uint16 loop;
+
+  for(loop=0; loop<num; loop++)
+    {
+     DWordSwap(p_value);
+     p_value +=4;
+    }
+  
+}
+
 
 #define TEMO_OFFSET_VALUE   300
 #define TEMO_MUL_VALUE      3

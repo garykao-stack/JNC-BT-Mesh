@@ -31,8 +31,8 @@
 #define BAUDRATE_CLOSE              0xFF
 
 #define MAX_BAUD_RATE_NUM           14
-#define USART_TX_BUFF_SIZE          32
-#define USART_RX_BUFF_SIZE          32 //Bug
+#define USART_TX_BUFF_SIZE          40
+#define USART_RX_BUFF_SIZE          40 //Bug
 
 
 
@@ -157,6 +157,7 @@ void UsartShowDataRx();
 void UsartIrq(uchar    dir,uchar status);
 bool CheckModbusCrc(PUCHAR pbuff, uchar len);
 uint16 ModbusRtu_CRC16(uchar *updata,uint16 len);
+void UsartPrintBuff(uchar rx_tx);
 
 
 

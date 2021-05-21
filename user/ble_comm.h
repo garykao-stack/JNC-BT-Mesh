@@ -246,6 +246,8 @@ typedef struct _EventFun_
 #define STATUS_SERVER_TO_CLIENT     BIT23  // Send data to client node
 #define STATUS_IVI_UPDATE           BIT24  // Enter IV index stage
 #define STATUS_TEMP_HUM             BIT25  // Temp&Hum from SD(external)=0 or BT itself =1
+#define STATUS_FACTORY_RESET        BIT26  // 
+
 
 
 #define BLE_LINK_STATUS     (STATUS_PROXY_CONNECT | STATUS_BLE_CONNECT)

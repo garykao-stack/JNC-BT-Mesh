@@ -22,7 +22,7 @@
 #define RS485GetPin()   GPIO_PinOutGet(RS485_TX_RX_PORT,RS485_TX_RX_PIN)
 
 
-#define CHECK_RS485_CMD(a,b)    {Rs485Tx(); UsartTxSendCmd(a,b); Delay_ms(10); Rs485Rx();Delay_ms(200);} //for 9600
+#define CHECK_RS485_CMD(a,b)    {Rs485Tx(); UsartTxSendCmd(a,b); Delay_ms(15); Rs485Rx();Delay_ms(200);} //for 9600
 
 
 void Rs485Init();
@@ -36,13 +36,16 @@ bool CheckJncSd();
 bool CheckIaqs();
 bool CheckWaterLevel();
 bool CheckA308M();
-bool CheckUltra();
+bool CheckUltraSound();
+bool CheckA6D6();
+
 uchar ScanRs485Device();
 bool CheckRs485Connect();
 bool ModbusCmdPT485();
 bool ModbusCmdAIP();
 uint16 Rs485ValuePT485();
 uchar CheckRs485Device();
+void ModbusInitDelay(uint16 timer_ms);
 
 
 

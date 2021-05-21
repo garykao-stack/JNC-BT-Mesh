@@ -115,21 +115,54 @@ typedef struct
 #define AIP_POWER_STATUS_VALUE  0x0002  //for AIP
 
 
-#define A308M_XRMS              0x0004
-#define A308M_XSPEED            0x0012
-#define A308M_YRMS              0x0018
-#define A308M_YSPEED            0x0026
-#define A308M_ZRMS              0x002C
-#define A308M_ZSPEED            0x003A
-#define A308M_ZRMS              0x002C
-#define A308M_ZSPEED            0x003A
+#define RMS_X                   0x0004
+#define SKEWNESS_X              0x0008
+#define KURTOSIS_X              0x000A
+#define SPEED_X                 0x0012
+
+#define RMS_Y                   0x0018
+#define SKEWNESS_Y              0x001C
+#define KURTOSIS_Y              0x001E
+#define SPEED_Y                 0x0026
+
+#define RMS_Z                   0x002C
+#define SKEWNESS_Z              0x0030
+#define KURTOSIS_Z              0x0032
+#define SPEED_Z                 0x003A
+
 #define A308M_TEMP              0x003C
-#define A308M_XFFT_FRE          0x0100
-#define A308M_XFFT_STR          0x0102
-#define A308M_YFFT_FRE          0x0200
-#define A308M_YFFT_STR          0x0202
-#define A308M_ZFFT_FRE          0x0300
-#define A308M_ZFFT_STR          0x0302
+#define FREQUENCY_X             0x0100
+#define STRENGTH_X              0x0102
+#define FREQUENCY_Y             0x0200
+#define STRENGTH_Y              0x0202
+#define FREQUENCY_Z             0x0300
+#define STRENGTH_Z              0x0302
+
+
+#define BT_RMS_X                0x0602
+#define BT_SKEWNESS_X           0x0604
+#define BT_KURTOSIS_X           0x0606
+#define BT_SPEED_X              0x060A
+
+#define BT_RMS_Y                0x060E
+#define BT_SKEWNESS_Y           0x0610
+#define BT_KURTOSIS_Y           0x0612
+#define BT_SPEED_Y              0x0616
+
+#define BT_RMS_Z                0x061A
+#define BT_SKEWNESS_Z           0x061C
+#define BT_KURTOSIS_Z           0x061E
+#define BT_SPEED_Z              0x0622
+
+#define BT_A308M_TEMP           0x0624
+#define BT_FREQUENCY_X          0x0626
+#define BT_STRENGTH_X           0x0628
+#define BT_FREQUENCY_Y          0x0632
+#define BT_STRENGTH_Y           0x0634
+#define BT_FREQUENCY_Z          0x063E
+#define BT_STRENGTH_Z           0x0640
+
+
 
 
 #define POSITION_WATER          0x0000    
@@ -164,6 +197,23 @@ typedef struct
 #define FC04_DISTANCE700        0x0008
 #define FC04_DISTANCE800        0x0009
 
+// for Do485
+#define DO485_REAL_VALUE       0x0000
+#define DO485_REAL_OFFSET      0x0002
+#define DO485_TEMP_VALUE       0x000A
+#define DO485_TEMP_OFFSET      0x000B
+
+#define MODBUS_AIP_POWER_00         0x00
+#define MODBUS_AIP_POWER_25         0x19
+#define MODBUS_AIP_POWER_50         0x32
+#define MODBUS_AIP_POWER_75         0x4B
+#define MODBUS_AIP_POWER_100        0x64
+
+#define MODBUS_308M_NEW_BIAS        0x00
+#define MODBUS_RESET_XBIAS          0x00
+#define MODBUS_RESET_YBIAS          0x01
+#define MODBUS_RESET_ZBIAS          0x02
+
 
 
 
@@ -196,6 +246,10 @@ bool ClientWaterLevel(PWaterLevelInfo p_info);
 bool ClientJncSd(PSdInfo p_info);
 bool ClientIAQS(PIaqsInfo p_info);
 bool ClientUltraSound(PUltraSoundInfo p_info);
+bool ClientJncDo485(PJncDo485 p_info);
+bool ClientA6D6(PA6D6 p_info);
+bool ClientPzem(PPzem p_info);
+bool ClientRelay(PRelayNode p_info);
 
 void ShowAllNodeInfo(void);
 void ShowEventInfo(PClientInfo p_info);

@@ -114,7 +114,7 @@ void SetAdvertise(uchar status)
 //
 //**********************************************************************************************
 uint32 EvtSystemBootProc(PCmdPacket pEvent)
-{TraceProc();
+{
     uint32 ret_code = TRUE;
     char buf[30];
     msg_sys_boot_evt* p_sys_boot = &(pEvent->data.evt_system_boot);
@@ -149,7 +149,7 @@ uint32 EvtSystemBootProc(PCmdPacket pEvent)
 //
 //**********************************************************************************************
 uint32 EvtSysAwakeProc(PCmdPacket pEvent)
-{TraceProc();
+{
     uint32 ret_code = FAIL;
 
     return ret_code;
@@ -169,7 +169,7 @@ uint8_t boot_to_dfu = 0;
 //   - PHY status
 //**********************************************************************************************
 uint32 EvtBleConnectionProc(PCmdPacket pEvent)
-{TraceProc();
+{
     uint32 ret_code = TRUE;
     msg_connect_opened_evt      *pEvt_open = &pEvent->data.evt_le_connection_opened;
     msg_connect_parameters_evt  *pEvt_params = &pEvent->data.evt_le_connection_parameters;
@@ -226,7 +226,7 @@ uint32 EvtBleConnectionProc(PCmdPacket pEvent)
 //
 //**********************************************************************************************
 uint32 EvtConnectionPhyStatusProc(PCmdPacket pEvent)
-{TraceProc();
+{
     uint32 ret_code = FAIL;
 
     return ret_code;
@@ -297,24 +297,11 @@ static void print_scan_resp(struct gecko_msg_le_gap_scan_response_evt_t *pResp)
 //
 //**********************************************************************************************
 uint32  EvtGapScanResponseProc(PCmdPacket pEvent)
-{//TraceProc();
+{
     uint32 ret_code = TRUE;
     msg_gap_scan_resp_evt  *scan_resp;
    	scan_resp = (msg_gap_scan_resp_evt *)&(pEvent->data);
     print_scan_resp(scan_resp);
-
-        /*
-    	Printf("evt:gecko_evt_le_gap_scan_response_id\r\n");
-	    Printf("RSSI %d, Type %d, Addr 0x%02X%02X%02X%02X%02X%02X, Addr Type %X, Bond %d, msg len: %x, msg: 0x", 
-                scan_resp->rssi, scan_resp->packet_type, scan_resp->address.addr[0], 
-                scan_resp->address.addr[1], scan_resp->address.addr[2], scan_resp->address.addr[3], 
-                scan_resp->address.addr[4], scan_resp->address.addr[5], scan_resp->address_type,  
-                scan_resp->bonding, scan_resp->data.len);
-		for(uint8_t i = 0; i<scan_resp->data.len;i++){
-			Printf("%02X",scan_resp->data.data[i]);
-		}
-		Printf("\r\n");    
-        */
     return ret_code;
 }
 
@@ -324,7 +311,7 @@ uint32  EvtGapScanResponseProc(PCmdPacket pEvent)
 //
 //**********************************************************************************************
 uint32  EvtGapAdvTimeOutProc(PCmdPacket pEvent)
-{//TraceProc();
+{
     uint32 ret_code = TRUE;
     msg_gap_adv_timeout_evt *p_adv_timeout;
     p_adv_timeout = (msg_gap_adv_timeout_evt *)&(pEvent->data);
@@ -341,7 +328,7 @@ uint32  EvtGapAdvTimeOutProc(PCmdPacket pEvent)
 //
 //*****************************************************************
 uint32  EvtGattServerAttributeValueProc(PCmdPacket pEvent)
-{TraceProc();
+{
     uint32 ret_code = FAIL;
 
     return ret_code;
@@ -353,7 +340,7 @@ uint32  EvtGattServerAttributeValueProc(PCmdPacket pEvent)
 //
 //**********************************************************************************************
 uint32  EvtGattServiceProc(PCmdPacket pEvent)
-{TraceProc();
+{
     uint32 ret_code = FAIL;
 
     return ret_code;
@@ -365,7 +352,7 @@ uint32  EvtGattServiceProc(PCmdPacket pEvent)
 //
 //**********************************************************************************************
 uint32  EvtGattCharaProc(PCmdPacket pEvent)
-{TraceProc();
+{
     uint32 ret_code = FAIL;
 
     return ret_code;
@@ -377,7 +364,7 @@ uint32  EvtGattCharaProc(PCmdPacket pEvent)
 //
 //**********************************************************************************************
 uint32  EvtGattCharaValueProc(PCmdPacket pEvent)
-{TraceProc();
+{
     uint32 ret_code = FAIL;
 
     return ret_code;
@@ -389,7 +376,7 @@ uint32  EvtGattCharaValueProc(PCmdPacket pEvent)
 //
 //**********************************************************************************************
 uint32  EvtGattMtuExchangedProc(PCmdPacket pEvent)
-{TraceProc();
+{
     uint32 ret_code = TRUE;
     msg_gatt_mtu_exchanged_evt* pMsg = &(pEvent->data.evt_gatt_mtu_exchanged);
     Trace16Ptr_2(pMsg,connection, mtu);
@@ -402,7 +389,7 @@ uint32  EvtGattMtuExchangedProc(PCmdPacket pEvent)
 //
 //**********************************************************************************************
 uint32  EvtGattCompletedProc(PCmdPacket pEvent)
-{TraceProc();
+{
     uint32 ret_code = FAIL;
 
     return ret_code;
@@ -414,7 +401,7 @@ uint32  EvtGattCompletedProc(PCmdPacket pEvent)
 //
 //**********************************************************************************************
 uint32  EvtGattServerCharactStatusProc(PCmdPacket pEvent)
-{TraceProc();
+{
     uint32 ret_code = FAIL;
     msg_gatt_server_character_status_evt* pMsg = &(pEvent->data.evt_gatt_server_characteristic_status);
     Trace16Ptr_4(pMsg,connection , characteristic, status_flags, client_config_flags);
@@ -428,7 +415,7 @@ uint32  EvtGattServerCharactStatusProc(PCmdPacket pEvent)
 //
 //**********************************************************************************************
 uint32  EvtGattServerUserReadRequest(PCmdPacket pEvent)
-{TraceProc();
+{
     uint32 ret_code = FAIL;
 
     return ret_code;
@@ -440,7 +427,7 @@ uint32  EvtGattServerUserReadRequest(PCmdPacket pEvent)
 //
 //**********************************************************************************************
 uint32  EvtGattServerUserWriteRequestProc(PCmdPacket pEvent)
-{//TraceProc();
+{
     uint32 ret_code = TRUE;
     msg_gatt_server_user_write_request_evt *pEvt_gatt_server = &pEvent->data.evt_gatt_server_user_write_request;
     if(gattdb_ota_control == pEvt_gatt_server->characteristic)

@@ -139,20 +139,20 @@ bool GetNodeStatus(uint32 status)
 //
 void SetSleepingTimer(uchar status)
 {
+    uint32 sleeping_timer;
+    
     if(status == ON)
         {// sleeping on
-        SetEventTaskTimer(TD_NODE_WAKE_UP, TIMER_SERVER_SLEEPING*1000 - TIMER_SERVER_SENS_INFO, TIMER_EVENT_ONCE);
-        //SetEventTaskTimer(TD_CHECK_DEV_NODE,    TIMER_ENDING, TIMER_EVENT_ONCE);
+        sleeping_timer = (TIMER_SERVER_SLEEPING*1000 - TIMER_SERVER_SENS_INFO)-(uint32)GetDeviceInfoDelay;;
+        //sleeping_timer -= (uint32)GetDeviceInfoDelay;
+        SetEventTaskTimer(TD_NODE_WAKE_UP, sleeping_timer, TIMER_EVENT_ONCE);
         SetEventTaskTimer(TD_NO_EVENT,          TIMER_ENDING, TIMER_EVENT_ONCE); 
         SetEventTaskTimer(TD_GET_SENSOR_INFO,   TIMER_ENDING, TIMER_EVENT_ONCE);
         SetEventTaskTimer(TD_STAGE_TIMER,       TIMER_ENDING, TIMER_EVENT_ONCE);
         }
     else
         {// wake up
-        //SetEventTaskTimer(TD_NODE_SLEEP,        NODE_TIMER_WAKE_UP, TIMER_EVENT_ONCE);
         SetEventTaskTimer(TD_STAGE_TIMER,       TIMER_STAGE_WAITING,TIMER_EVENT_REPEAT);
-        //SetEventTaskTimer(TD_CHECK_DEV_NODE,    TIMER_CKECK_DEV_INFO,TIMER_EVENT_REPEAT);
-        //SetEventTaskTimer(TD_NO_EVENT,          TIMER_IVI_UPDATE,   TIMER_EVENT_REPEAT);
         if(NodeRole == NR_CLIENT)
             SetEventTaskTimer(TD_GET_SENSOR_INFO, TIMER_CLIENT_GET_SENSOR_INFO, TIMER_EVENT_ONCE);
         else
@@ -200,11 +200,6 @@ void SetSleeping(uchar status)
       Trace("SetSleeping ON");
         SetMeshNodeStatus(STATUS_SLEEPING,ON);
         SetNodeStatus(NS_SLEEPING,ON);
-        
-       // gecko_cmd_mesh_node_set_beacon_reporting(OFF);
-        //gecko_cmd_mesh_test_set_adv_bearer_state(0);
-        //gecko_cmd_mesh_node_set_beacon_reporting(OFF);
-        
         SystemPower(OFF); 
         NodeLpn(ON); NodeProxy(OFF);  NodeBeacon(OFF);
         SetLedStatus(LED_STATUS_SLEEP);
@@ -217,11 +212,7 @@ void SetSleeping(uchar status)
         SetNodeStatus(NS_SLEEPING,OFF);
         SystemPower(ON);
         SetLedStatus(LED_STATUS_ACTIVE);
-        
         if(GetNodeStatus(NS_SERVER_RS485_ENABLE) == ON)  SetLedStatus(LED_STATUS_SERVER_TO_RS485);
-        
-        
-        //gecko_cmd_mesh_node_set_beacon_reporting(ON);
       }
     
 }
@@ -246,19 +237,6 @@ void SetNodePublish(uchar status)
     else Trace("Publish OFF");
     Cmd_mt_set_local_model_pub(0,pEvent->appkey_index,0xFFFF,BTM_MODE_ID,pEvent->pub_address,pEvent->ttl,public_timer,    // 200ms
                                pEvent->retrans,pEvent->credentials);
-/*
-    if(status == ON)
-        {Trace("Publish ON");
-        Cmd_mt_set_local_model_pub(0,pEvent->appkey_index,0xFFFF,BTM_MODE_ID,pEvent->pub_address,pEvent->ttl,200,    // 200ms
-                                    pEvent->retrans,pEvent->credentials);
-            
-        }
-    else
-        {Trace("Publish OFF");
-          Cmd_mt_set_local_model_pub(0,pEvent->appkey_index,0xFFFF,BTM_MODE_ID,pEvent->pub_address,pEvent->ttl,00,
-                                    pEvent->retrans,pEvent->credentials);
-        }
-*/        
 }
 
 

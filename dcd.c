@@ -43,7 +43,7 @@ const uint8_t __mesh_dcd[] = {
         /* End SIG Models */
         /* Begin Vendor Models */
         /* End Vendor Models */
-    /* End Primary Element */
+    /* End Primary Element */ 
 };
 
 const size_t __mesh_dcd_len = sizeof(__mesh_dcd);

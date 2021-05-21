@@ -42,8 +42,8 @@ void I2CInit()
  #endif
  
 #endif //HAL_I2CSENSOR_ENABLE
-    //GetTempature();
-    //GetHumidity();
+    GetTempature();
+    GetHumidity();
 #if 0
     int eeprom_num;
     GetTempHumi(); //while(1);
@@ -203,19 +203,13 @@ int16 GetTempature()
     int32 tempature=0;
     ret_byte = Si7013_Measure(I2C_SI7021, I2C_ADDR_SI7021, (PUINT32)&tempature, SI7013_READ_RH);
     ret_byte = Si7013_Measure(I2C_SI7021, I2C_ADDR_SI7021, (PUINT32)&tempature, SI7013_READ_TEMP);
-
-   // Trace1("GetTempature 1",tempature);
-    
     if (ret_byte == 2) {
       tempature = (((17552*tempature)/65536) - 4685)/10;
     } else {
       tempature = RET_VALUE_ERROR;
     }
     
-   //TraceDec1("GetTempature 2-1",(int16)tempature);
-    //if((int16)tempature < -100) 
-      //  {TraceDec1("GetTempature 2-2",(int16)tempature);tempature = -100;}
-    TraceDec1("GetTempature 2",tempature);
+    printf("Tempature 1 ==> %3.1f -C\r\n",(float)tempature/10);
     return (int16)tempature;
     //return -100;
 }
@@ -229,13 +223,12 @@ int16 GetHumidity()
     uint32 humidity;
    
     ret_byte = Si7013_Measure(I2C_SI7021, I2C_ADDR_SI7021, &humidity, SI7013_READ_RH);
-   // Trace1("humidity 1",humidity);
     if (ret_byte == 2) {/* convert to milli-percent */
       humidity = ((1250*humidity)/65536L) - 60;
     } else {
       humidity = RET_VALUE_ERROR;
     }
-    //TraceDec1("GetHumidity",(int16)humidity);
+    printf("Humidity 2 ==> %ld%\r\n",(int16)humidity/10);
     return (int16)humidity;
 
 }

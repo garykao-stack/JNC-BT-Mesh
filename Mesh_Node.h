@@ -4,9 +4,17 @@
  *  Author: richard.huang
  */
 
+#define JNC_A308M   1
+//#define JNC_DO_485      1
+//#define PZEM    1
+
+
 
 #ifndef _MEAH_NODE_H_
 #define _MEAH_NODE_H_
+
+
+
 #pragma pack(push)
 #pragma pack(1)     //mapping to one byte
 
@@ -44,23 +52,55 @@ typedef struct _AIPInfo_
     uint16  AipPowerStatus;
 }_AIPInfo,*PAIPInfo;
 
+
+#ifdef JNC_A308M
+typedef struct _A308mInfo_
+{
+    int16   Tempature;      // x0.1 -20 ~ 50°C
+    
+    uint16  RmsX;
+    int16   SkewnessX;      // x0.1
+    int16   KurtosisX;      // x0.1
+    uint16  FrequencyX;
+    uint16  SpeedX;
+    uint16  StengthX;
+    
+    uint16  RmsY;
+    int16   SkewnessY;
+    int16   KurtosisY;
+    uint16  FrequencyY;
+    uint16  SpeedY;
+    uint16  StengthY;
+
+    uint16  RmsZ;
+    int16   SkewnessZ;
+    int16   KurtosisZ;
+    uint16  FrequencyZ;
+    uint16  SpeedZ;
+    uint16  StengthZ;
+    
+}_A308mInfo,*PA308mInfo;
+
+#else
+
 typedef struct _A308mInfo_
 {
     int16   Tempature;      // -20 ~ 50°C
-    uint16  Xrms;      
-    uint16  XSpeed;
-    uint16  Yrms;
-    uint16  YSpeed;
-    uint16  Zrms;
-    uint16  ZSpeed;
-    uint16  XFFT_Fre;      //Frequency
-    uint16  XFFT_Str;      //Stength    
-    uint16  YFFT_Fre;      //Frequency
-    uint16  YFFT_Str;      //Stength
-    uint16  ZFFT_Fre;      //Frequency
-    uint16  ZFFT_Str;      //Stength
+    uint16  RmsX;      
+    uint16  SpeedX;
+    uint16  RmsY;
+    uint16  SpeedY;
+    uint16  RmsZ;
+    uint16  SpeedZ;
+    uint16  FrequencyX;    //Frequency
+    uint16  StengthX;      //Stength    
+    uint16  FrequencyY;      //Frequency
+    uint16  StengthY;      //Stength
+    uint16  FrequencyZ;      //Frequency
+    uint16  StengthZ;      //Stength
 }_A308mInfo,*PA308mInfo;
 
+#endif
 
 typedef struct _WaterLevelInfo_
 {
@@ -92,17 +132,43 @@ typedef struct _IaqslInfo_
 
 typedef struct _UltarSound_
 {
-    uint16  Distance;       
-    uint16  SetDistance;
-    uint16  Distance100; 
-    uint16  Distance200;
-    uint16  Distance300;
-    uint16  Distance400;
-    uint16  Distance500;
-    uint16  Distance600;
-    uint16  Distance700; 
-    uint16  Distance800;
+    uint16   WaterLevel;
 }_UltraSoundInfo,*PUltraSoundInfo;
+
+typedef struct _JncDo485_
+{
+    uint16   DoRealValue;
+    uint16   DoOffsetValue;
+    uint16   TempRealValue;
+    uint16   TempOffsetValue;
+}_JncDo485,*PJncDo485;
+
+typedef struct _A6D6_
+{
+    uint16  AiValue1,AiValue2,AiValue3,AiValue4;
+    uint16  AiValue5,AiValue6,AiValue7,AiValue8;
+    uchar   Di_Status;
+    uchar   DO_Status; // 00 ~ 3F
+}_A6D6,*PA6D6;
+
+typedef struct _Pzem_
+{
+    uint16  Voltage;
+    uint16  CurrentLo,CurrentHi;
+    uint16  PowerLo,PowerHi;
+    uint16  ElectLo,ElectHi;
+    uint16  Frequecny;
+    uint16  PowerFactor;
+    uint16  Warning;
+}_Pzem,*PPzem;
+
+#define PZEM_ITEM_SIZE   10 
+
+
+typedef struct _RelayNode_
+{
+    uint16 Status;
+}_RelayNode,*PRelayNode;
 
 typedef struct _SensorInfo_
 {    
@@ -116,6 +182,10 @@ union{
         _SdInfo     SdInfo;
         _IaqsInfo   IaqsInfo;
         _UltraSoundInfo UltraSound;
+        _JncDo485   JncDo485;
+        _A6D6       A6D6;
+        _Pzem       Pzem;
+        _RelayNode  RelayNode;
      };
 }_SensorInfo,*PSensorInfo;
 
@@ -160,7 +230,7 @@ typedef struct _NodeEventInfo_
 
 // Sensor class;
 #define SENSOR_DISCONNECT     0
-#define SENSOR_SI7021         1       //for tempature & Humidity   
+#define SENSOR_SI7021         1     //for tempature & Humidity   
 #define SENSOR_PT485          2
 #define SENSOR_AIP            3
 #define SENSOR_WATER_LEVEL    4
@@ -169,11 +239,17 @@ typedef struct _NodeEventInfo_
 
 #define OTHER_MODBUS_CMD      7     //for other modbus cmd
 #define SENSOR_ULTRA_SOUND    8     //
-
-
+#define SENSOR_DO_485         9     // 
 
 #define SENSOR_A308M          10      //for 
+#define SENSOR_A308M_JNC      SENSOR_A308M      //for JNC
+
 #define BTM_SENSOR            SENSOR_SI7021    //to BT Mesh Built-in sensor for temp&RH
+#define SENSOR_RELAY         11     // Power Only
+#define SENSOR_A6D6          12     // A6D6
+#define SENSOR_PZEM          13     // 
+
+
 
 // for ServerStatus
 #define AIP_POWER_STATUS_MASK          (BIT1|BIT0) // BIT0,BIT1: 00    00%
@@ -207,7 +283,7 @@ typedef struct _NodeEventInfo_
 #define SERVER_NODE_MAX             50
 
 #define TIMER_GET_INFO_FULL_POWER   1 //2 //5 // xxx Sec
-#define TIMER_GET_INFO_SLEEPING     60 //15 // xxx sec
+#define TIMER_GET_INFO_SLEEPING     18 //62 //18 // xxx sec
 #define TIMER_SERVER_SLEEPING       (TIMER_GET_INFO_SLEEPING - 2)    
 #define TIMER_CLI_WAIT_INFO         WAIT_SEC(2)//WAIT_SEC(4) //WAIT_SEC(3)
 #define TIMER_SERVER_DELAY          40  //ms
@@ -257,6 +333,7 @@ typedef struct _NodeEventInfo_
 #define NS_GET_SENSOR_ERR       BIT17    // 
 #define NS_GET_SENSOR_OK        BIT18    // get sensor info ending
 #define NS_SERVER_RS485_ENABLE  BIT19    // RS-485 Enable: Get info from RS-485 sensor
+//#define NS_SERVER_READY         BIT20    // sensor ready to get information
 
 
 // Device

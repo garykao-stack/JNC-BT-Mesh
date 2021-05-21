@@ -15,11 +15,13 @@
 #include "people_count_sensor.h"
 #include "mesh_sensor.h"
 #include "Mesh_Node.h"
+#include "Mesh_Client.h"
 #include "Mesh_Server.h"
 
 #define TO_CLIENT_BUFF_MAX  32
 uchar   ToClientBuf[TO_CLIENT_BUFF_MAX];
 uchar   ToClientLen;
+uint16  GetDeviceInfoDelay=5;     //Nx10ms ==> 50ms
 
 
 _ServerInfo ServerInfo;
@@ -30,7 +32,7 @@ PNodeHeader pSensorHeader = &ServerInfo.SensorInfo.Header;
 //
 //
 void ServerNodeInit()
-{TraceProc();
+{
     NodeRole = NR_SERVER;
     UsartRxCount = 7;   //from RS485 device bytes (default)
     ToNextStage(SNS_WAKE_UP);
@@ -44,13 +46,10 @@ void ServerNodeInit()
 
     if(pSensorHeader->Status & SERVER_FULL_POWER) Trace("Full Power");
     else Trace("Battery Power"); 
-    
-  //  temp = GetTempature(); TraceDec1("Tempature", temp);
- //   temp = GetHumidity(); TraceDec1("GetHumidity", temp);    
 }
 
 void ServerSetupNodeInit()
-{TraceProc();
+{
  Rs485Tx();
 }
 
@@ -90,32 +89,58 @@ const uchar A308MCtrlCmd[4][8]=
 };
 
 
+const uchar A6D6CtrlCmdOn[6][8]=
+{
+    {0x01, 0x05, 0x00, 0x00, 0xFF, 0x00, 0x8C, 0x3A}, //D1 ON
+    {0x01, 0x05, 0x00, 0x01, 0xFF, 0x00, 0xDD, 0xFA}, //D12 ON
+    {0x01, 0x05, 0x00, 0x02, 0xFF, 0x00, 0x2D, 0xFA}, //D13 ON
+    {0x01, 0x05, 0x00, 0x03, 0xFF, 0x00, 0x7C, 0x3A}, //D14 ON
+    {0x01, 0x05, 0x00, 0x04, 0xFF, 0x00, 0xCD, 0xFB}, //D15 ON
+    {0x01, 0x05, 0x00, 0x05, 0xFF, 0x00, 0x9C, 0x3B}, //D16 ON
+};
+                                                    
+const uchar A6D6CtrlCmdOff[6][8]=
+{
+    {0x01, 0x05, 0x00, 0x00, 0x00, 0x00, 0xCD, 0xCA}, //D1 OFF
+    {0x01, 0x05, 0x00, 0x01, 0x00, 0x00, 0x9C, 0x0A}, //D2 OFF
+    {0x01, 0x05, 0x00, 0x02, 0x00, 0x00, 0x6C, 0x0A}, //D3 OFF
+    {0x01, 0x05, 0x00, 0x03, 0x00, 0x00, 0x3D, 0xCA}, //D4 OFF
+    {0x01, 0x05, 0x00, 0x04, 0x00, 0x00, 0x8C, 0x0B}, //D5 OFF
+    {0x01, 0x05, 0x00, 0x05, 0x00, 0x00, 0xDD, 0xCB}, //D6 OFF
+};
+
 void SystemPower(uchar status);
 
 
 Bool AIPSetCtrl(uint16 property_id)
 {
     bool ret_code=TRUE;
+    uint16 power_status;
     const uchar *p_modbus_cmd=NULL;
 
     if(property_id >= NODE_SET_AIP_POWER_OFF && property_id <= NODE_SET_AIP_POWER_100)
         {
          switch(property_id)
             {
-             case NODE_SET_AIP_POWER_OFF: //Trace("AIP Power 00%");
+             case NODE_SET_AIP_POWER_OFF: 
                 p_modbus_cmd = AIP_POWER_CTRL_CMD(AIP_POWER_CTRL_00);
+                power_status = MODBUS_AIP_POWER_00;
                 break;
-             case NODE_SET_AIP_POWER_25: //Trace("AIP Power 25%");
+             case NODE_SET_AIP_POWER_25: 
                 p_modbus_cmd = AIP_POWER_CTRL_CMD(AIP_POWER_CTRL_25);
+                power_status = MODBUS_AIP_POWER_25;
                 break;
-             case NODE_SET_AIP_POWER_50: //Trace("AIP Power 50%");
-                p_modbus_cmd = AIP_POWER_CTRL_CMD(AIP_POWER_CTRL_50);                
+             case NODE_SET_AIP_POWER_50: 
+                p_modbus_cmd = AIP_POWER_CTRL_CMD(AIP_POWER_CTRL_50);
+                power_status = MODBUS_AIP_POWER_50;
                 break;
-             case NODE_SET_AIP_POWER_75: //Trace("AIP Power 75%");
-                p_modbus_cmd = AIP_POWER_CTRL_CMD(AIP_POWER_CTRL_75);                
+             case NODE_SET_AIP_POWER_75:
+                p_modbus_cmd = AIP_POWER_CTRL_CMD(AIP_POWER_CTRL_75);
+                power_status = MODBUS_AIP_POWER_75;
                 break;
-             case NODE_SET_AIP_POWER_100: //Trace("AIP Power 100%");
-                p_modbus_cmd = AIP_POWER_CTRL_CMD(AIP_POWER_CTRL_100);                
+             case NODE_SET_AIP_POWER_100: 
+                p_modbus_cmd = AIP_POWER_CTRL_CMD(AIP_POWER_CTRL_100);
+                power_status = MODBUS_AIP_POWER_100;
                 break;                
              default: ret_code=FALSE; TraceErr1("AIPSetCtrl 1 property_id",property_id); 
                 break;
@@ -127,7 +152,7 @@ Bool AIPSetCtrl(uint16 property_id)
     if(p_modbus_cmd != NULL) 
       {
        if(ServerSendModbusCmd((PUCHAR)p_modbus_cmd,MODBUS_CMD_NUM) == TRUE)
-            ServerInfo.SensorInfo.AipInfo.AipPowerStatus = property_id;
+            ServerInfo.SensorInfo.AipInfo.AipPowerStatus = power_status;
       }
     else ret_code=FALSE;
     return ret_code;
@@ -166,11 +191,42 @@ Bool A308MSetCtrl(uint16 property_id)
     if(p_modbus_cmd != NULL) 
       {
        if(ServerSendModbusCmd((PUCHAR)p_modbus_cmd,MODBUS_CMD_NUM) == TRUE)
-            ServerInfo.SensorInfo.AipInfo.AipPowerStatus = property_id;
+        {TraceOk("A308MSetCtrl");}
       }
     else ret_code=FALSE;
     return ret_code;
 }
+
+
+
+//
+//
+//
+Bool A6D6MSetCtrl(uint16 property_id)
+{
+    bool ret_code=TRUE;
+    const uchar *p_modbus_cmd=NULL;
+
+    if((property_id >= NODE_SET_DO1_ON) && (property_id <= NODE_SET_DO6_ON))
+        {
+         p_modbus_cmd = (PUCHAR)&A6D6CtrlCmdOn[property_id-NODE_SET_DO1_ON][0];
+        }
+    else if((property_id >= NODE_SET_DO1_OFF) && (property_id <= NODE_SET_DO6_OFF))
+        {
+         p_modbus_cmd = (PUCHAR)&A6D6CtrlCmdOff[property_id-NODE_SET_DO1_OFF][0];
+        }
+
+    if(p_modbus_cmd != NULL) 
+      {
+       if(ServerSendModbusCmd((PUCHAR)p_modbus_cmd,MODBUS_CMD_NUM) == TRUE)
+        { }
+      }
+    else ret_code=FALSE;
+    return ret_code;
+}
+
+
+
 
 
 
@@ -184,49 +240,50 @@ void ServerSetNodeProc()
     
     switch(ActiveStage())
         {
-            case SNS_SET_INFO_INIT: Trace("SNS_SET_INFO_INIT");
+            case SNS_SET_INFO_INIT: 
               //  SetLedStatus(LED_STATUS_ON);
                 ToNextStage(SNS_SET_WAITING);
                 break;
-            case SNS_SET_WAITING:   //Trace("SNS_SET_WAITING");
-                if(GetNodeStatus(NS_SET_NODE_ACT) == TRUE)  
-                    {ToNextStage(SNS_SET_INFO_PRE);}
+            case SNS_SET_WAITING:  
+                if(GetNodeStatus(NS_SET_NODE_ACT) == TRUE)  {ToNextStage(SNS_SET_INFO_PRE);}
                 break;
                 
-            case SNS_SET_INFO_PRE:  Trace("SNS_SET_INFO_PRE");
-                property_id = pNodeEventInfo->PropertyID;
+            case SNS_SET_INFO_PRE: 
                 ret_code=FALSE;
-                if((ret_code = AIPSetCtrl(property_id)) == TRUE)
-                    {Trace1("AIP Set OK",property_id);}
-                else if((ret_code = A308MSetCtrl(property_id)) == TRUE)
-                    {Trace1("A308M Set OK",property_id);}
-                else TraceErr1("property_id 1",property_id);
-                
-                if(ret_code == TRUE) 
-                    {ToWaitingStage(SNS_SET_WAITING_INFO,3);}
-                else 
-                    {ToWaitingStage(SNS_SET_WAITING_INFO,1);}
+                property_id = pNodeEventInfo->PropertyID;
+
+                if(pFunSensor == GetAipInfo)
+                    {
+                     ret_code = AIPSetCtrl(property_id); ToWaitingStage(SNS_SET_WAITING_INFO,5);
+                    }
+                else  if(pFunSensor == GetA6D6Info)
+                    {
+                     ret_code = A6D6MSetCtrl(property_id); ToWaitingStage(SNS_SET_WAITING_INFO,5);
+                    }
+                else{TraceErr("ServerSetNodeProc 1");ToNextStage(SNS_SET_INFO_END);}
+
+                if(ret_code == FALSE) {ToWaitingStage(SNS_SET_WAITING_INFO,1);}
                 break;               
-            case SNS_SET_WAITING_INFO:  //Trace("SNS_SET_WAITING_INFO");
+            case SNS_SET_WAITING_INFO: 
                 if(CheckWaitTimeOut()) ToNextStage(SNS_SET_INFO_OK);
                 break;
                 
-            case SNS_SET_INFO_OK:   Trace("SNS_SET_INFO_OK");
+            case SNS_SET_INFO_OK:  
                 ToNextStage(SNS_SET_UPDATE_INFO);
                 break;
                 
-            case SNS_SET_UPDATE_INFO:  Trace("SNS_SET_UPDATE_INFO");
+            case SNS_SET_UPDATE_INFO:
                 
                 ToNextStage(SNS_SET_INFO_END);
                 break;
                 
-            case SNS_SET_INFO_END:  Trace("SNS_SET_INFO_END");
+            case SNS_SET_INFO_END: 
                 SetNodeStatus(NS_SET_NODE_ACT,OFF);
                 SetNodeStatus(NS_GET_INFO_ACT,ON);  // Mesh get event active
                 UsartResetRxTx(USART_ID_TX_RX);   
                 ToNextStage(SNS_SET_WAITING);
                 break;
-            default: TraceErr1("ClientSetNodeInfoProc",ActiveStage()); break;
+            default:  break;
         }
     
 }
@@ -239,25 +296,35 @@ void ServerSetNodeProc()
 // for sensor report
 //
 void ServerGetInfoProc()
-{//TraceProc();
+{
     pStageInfo = GetNodeStageInfo(SERVER_GET_INFO_PROC);
     switch(ActiveStage())
         {
             case NODE_STAGE_INIT:
                 ToNextStage(SNS_PRE_WAITING);   //default
                 break;
-            case SNS_PRE_WAITING: //Trace("SNS_PRE_WAITING");
-                ToWaitingStage(SNS_GET_INFO,5); CountErr = 0;
+            case SNS_PRE_WAITING: 
+                ToWaitingStage(SNS_GET_INFO,GetDeviceInfoDelay); TraceDec1("GetDeviceInfoDelay",GetDeviceInfoDelay);
+                CountErr = 0;
                 break;
-            case SNS_GET_INFO: //Trace("SNS_GET_INFO");
-                if(GetSensorInfo() == TRUE) 
-                    ToNextStage(SNS_EVENT_WAITING);
-                else{
-                     if(CountErr++ > 10) {ToNextStage(SNS_EVENT_WAITING);CountErr=0;}
+            case SNS_GET_INFO: 
+                if(CheckWaitTimeOut() == TRUE) 
+                    {
+                    if((pFunSensor!= NULL) && (GetSensorInfo() == TRUE) )
+                        {ToNextStage(SNS_EVENT_WAITING);}
+                    else 
+                        {//Trace("Relay Only 2");
+                         ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
+                        }
+                    /*
+                    else{TraceErr1("SNS_GET_INFO",CountErr);
+                        if(CountErr++ > 10) {ToNextStage(SNS_EVENT_WAITING);CountErr=0;}
+                        }
+                        */
                     }
                 
                 break;
-            case SNS_EVENT_WAITING: //TraceDec1("SNS_EVENT_WAITING",pStageInfo->Timer);
+            case SNS_EVENT_WAITING: 
                 if(GetNodeStatus(NS_GET_INFO_ACT))
                   {
                     SetLedStatus(LED_STATUS_ACTIVE);
@@ -269,11 +336,11 @@ void ServerGetInfoProc()
                       }
                   }
                 break;
-            case SNS_PRE_SEND_INFO: //waiting to send info depend on Node ID
+            case SNS_PRE_SEND_INFO: 
                 //waiting to send info
                 if(CheckWaitTimeOut())  { ToNextStage(SNS_SEND_INFO); }
                 break;                
-            case SNS_SEND_INFO: //Trace("SNS_SEND_INFO 1");
+            case SNS_SEND_INFO: 
                 if(CountErr > 5) {ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);} // err: go to sleeping
             
                 if(SendInfoToClient()) // to send sensor info
@@ -281,11 +348,11 @@ void ServerGetInfoProc()
                      SetNodeStatus(NS_GET_INFO_ACT,OFF);
                      ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
                     }   // waiting to sleeping
-                else{TraceErr("SNS_SEND_INFO 2");
+                else{//TraceErr("SNS_SEND_INFO 2");
                      CountErr++; ToWaitingStage(SNS_PRE_SEND_INFO,WAIT_SEC(2)); // send info again
                     }                    
                 break;
-            case SNS_PRE_SLEEPING: //TraceDec1("SNS_PRE_SLEEPING",pStageInfo->Timer); //waiting 3sec
+            case SNS_PRE_SLEEPING: 
 
                 if(CheckWaitTimeOut())
                     {
@@ -296,11 +363,11 @@ void ServerGetInfoProc()
                     }
                     
                 break;
-            case SNS_SLEEPING: //Trace("SNS_SLEEPING");
+            case SNS_SLEEPING: 
                 // waiting wake up
                 if(!GetNodeStatus(NS_SLEEPING)) ToNextStage(SNS_WAKE_UP);
                 break;
-            case SNS_WAKE_UP: Trace("SNS_WAKE_UP");
+            case SNS_WAKE_UP: 
                 ToNextStage(SNS_PRE_WAITING);
                 break;
             default: TraceErr1("ServerGetInfoProc",ActiveStage()); break;
@@ -314,12 +381,10 @@ const uchar PT485Temp[MODBUS_CMD_NUM]={0x01, 0x04, 0x00, 0x00, 0x00, 0x01, 0x31,
 // Get sensor info and update
 //
 bool GetSensorInfo()
-{//TraceProc();
+{
     bool ret_code = FALSE;
     pSensorHeader->BatteryPower = GetBatteryPower(); 
-    
-    Trace8_1(pSensorHeader->Status);
-    ret_code = pFunSensor();
+    if(pFunSensor) ret_code = pFunSensor();
     UsartResetRxTx(USART_ID_TX_RX);
     return ret_code;
 }
@@ -332,7 +397,7 @@ bool GetSensorInfo()
 //
 //
 bool GetSi7021Info()
-{//TraceProc();
+{
     bool ret_code = TRUE;
     int16 temp;
     uint16 Humidity;
@@ -344,8 +409,6 @@ bool GetSi7021Info()
          p_sensor->Tempature = temp;
          p_sensor->Humidity = Humidity;
         }
-    else TraceErr("GetSi7021Info");
-    TraceDec3("Si7021 ==> 3", p_sensor->Tempature,p_sensor->Humidity,ServerInfo.NodeInfoSize);
     return ret_code;
 }
 
@@ -354,7 +417,7 @@ bool GetSi7021Info()
 //
 //
 bool GetPT485Info()
-{//TraceProc();
+{
     bool ret_code = TRUE;    
     PPT485Info p_sensor = &ServerInfo.SensorInfo.PT485;
     SetNodeInfoSize(_PT485Info);
@@ -363,7 +426,6 @@ bool GetPT485Info()
     PUCHAR p_buff = UsartGetBuff(USART_ID_RX);
     ServerSendModbusCmd((PUCHAR)PT485Temp,MODBUS_CMD_NUM); 
     p_sensor->Tempature = WordSwap(*((PUINT16)&p_buff[3]));
-    TraceDec2("PT485 ==> ", p_sensor->Tempature,ServerInfo.NodeInfoSize);
     return ret_code;
 }
 
@@ -376,7 +438,7 @@ const uchar AipPowerStatus[MODBUS_CMD_NUM]={0x01, 0x04, 0x00, 0x01, 0x00, 0x01, 
 //
 //
 bool GetAipInfo()
-{//TraceProc();
+{
     bool ret_code = TRUE;
     PAIPInfo p_sensor = &ServerInfo.SensorInfo.AipInfo;
     SetNodeInfoSize(_AIPInfo);
@@ -389,36 +451,165 @@ bool GetAipInfo()
     ServerSendModbusCmd((PUCHAR)AipPowerStatus,MODBUS_CMD_NUM); 
     p_sensor->AipPowerStatus = WordSwap(*((PUINT16)&p_buff[3]));
     
-    TraceDec2("AIP ==> ",p_sensor->AipPower,p_sensor->AipPowerStatus);
     return ret_code;
 }
 
 
 
+#ifdef JNC_A308M
+// For BT Mesh Modbus Reg
+const uchar CmdBtA308M_1X[MODBUS_CMD_NUM] ={0x01, 0x03, 0x06, 0x00, 0x00, 0x0B, 0x04, 0x85};// 0x600 to 0x60A
+const uchar CmdBtA308M_1Y[MODBUS_CMD_NUM] ={0x01, 0x03, 0x06, 0x0C, 0x00, 0x0B, 0xC4, 0x86};//
+const uchar CmdBtA308M_1Z[MODBUS_CMD_NUM] ={0x01, 0x03, 0x06, 0x18, 0x00, 0x0B, 0x84, 0x82};//
+
+const uchar CmdBtA308M_2X[MODBUS_CMD_NUM] ={0x01, 0x03, 0x06, 0x26, 0x00, 0x04, 0xA5, 0x4A};// Frequency, Strength
+const uchar CmdBtA308M_2Y[MODBUS_CMD_NUM] ={0x01, 0x03, 0x06, 0x32, 0x00, 0x04, 0xE5, 0x4E};//
+const uchar CmdBtA308M_2Z[MODBUS_CMD_NUM] ={0x01, 0x03, 0x06, 0x3E, 0x00, 0x04, 0x25, 0x4D};//
+const uchar CmdA308MTemp[MODBUS_CMD_NUM] ={0x01, 0x03, 0x06, 0x24, 0x00, 0x02, 0x84, 0x88};  //for tempature
+#else
 const uchar A308MCmdXrms[MODBUS_CMD_NUM]  ={0x01, 0x03, 0x00, 0x04, 0x00, 0x02, 0x85, 0xCA};
 const uchar A308MCmdXspeed[MODBUS_CMD_NUM]={0x01, 0x03, 0x00, 0x12, 0x00, 0x02, 0x64, 0x0E};
 const uchar A308MCmdYrms[MODBUS_CMD_NUM]  ={0x01, 0x03, 0x00, 0x18, 0x00, 0x02, 0x44, 0x0C};
 const uchar A308MCmdYspeed[MODBUS_CMD_NUM]={0x01, 0x03, 0x00, 0x26, 0x00, 0x02, 0x25, 0xC0};
 const uchar A308MCmdZrms[MODBUS_CMD_NUM]  ={0x01, 0x03, 0x00, 0x2C, 0x00, 0x02, 0x05, 0xC2};
 const uchar A308MCmdZspeed[MODBUS_CMD_NUM]={0x01, 0x03, 0x00, 0x3A, 0x00, 0x02, 0xE4, 0x06};
-const uchar A308MCmdXtemp[MODBUS_CMD_NUM] ={0x01, 0x03, 0x00, 0x3C, 0x00, 0x02, 0x04, 0x07};  //for tempature
+const uchar A308MCmdTemp[MODBUS_CMD_NUM] ={0x01, 0x03, 0x00, 0x3C, 0x00, 0x02, 0x04, 0x07};  //for tempature
 
 const uchar A308MCmd_XFFT_Fre_Str[MODBUS_CMD_NUM]={0x01, 0x03, 0x01, 0x00, 0x00, 0x04, 0x45, 0xF5};
 const uchar A308MCmd_YFFT_Fre_Str[MODBUS_CMD_NUM]={0x01, 0x03, 0x02, 0x00, 0x00, 0x04, 0x45, 0xB1};
 const uchar A308MCmd_ZFFT_Fre_Str[MODBUS_CMD_NUM]={0x01, 0x03, 0x03, 0x00, 0x00, 0x04, 0x44, 0x4D};
+
+#endif
+
 
 
 
 #define SCALE_VALUE     10
 #define A308M_RxData()    (&p_buff[3])
 #define A308M_Value()   (*((float*)A308M_RxData()))
+
+#ifdef JNC_A308M
+float sensor_info;
+
+//
+// For JNC Demo
+//
+bool GetA308mInfo()
+{
+    bool ret_code = TRUE;
+    //float sensor_info;
+    PUCHAR p_buff;
+    PA308mInfo p_sensor = &ServerInfo.SensorInfo.A308mInfo;
+    SetNodeInfoSize(_A308mInfo);
+    SetNodeClass(SENSOR_A308M);
+    p_buff = UsartGetBuff(USART_ID_RX);
+    if(ServerSendModbusCmd((PUCHAR)CmdBtA308M_1X,MODBUS_CMD_NUM) == TRUE)
+        {p_buff +=3; 
+         //PrintDataByte("A308MCmdXrms 1", p_buff, 24);
+         DWordSwapN(p_buff,6); 
+         //PrintDataByte("A308MCmdXrms 2", p_buff, 24);
+         p_buff +=4; // for Mean
+         sensor_info = *((float *)p_buff); p_sensor->RmsX = (uint16)sensor_info; p_buff+=4;
+         sensor_info = *((float *)p_buff); p_sensor->SkewnessX = (int16)(sensor_info*SCALE_VALUE); p_buff+=4;
+         sensor_info = *((float *)p_buff); p_sensor->KurtosisX = (int16)(sensor_info*SCALE_VALUE); p_buff +=8; // to Speed
+         sensor_info = *((float *)p_buff); p_sensor->SpeedX = (int16)(sensor_info);         
+        };
+     UsartResetRxTx(USART_ID_TX_RX); 
+
+     p_buff = UsartGetBuff(USART_ID_RX);
+    if(ServerSendModbusCmd((PUCHAR)CmdBtA308M_2X,MODBUS_CMD_NUM) == TRUE)
+        {p_buff +=3; 
+         //PrintDataByte("A308MCmdXrms 3", p_buff, 8);
+         DWordSwapN(p_buff,2); 
+         //PrintDataByte("A308MCmdXrms 4", p_buff, 8);
+         sensor_info = *((float *)p_buff); p_sensor->FrequencyX = (uint16)sensor_info; p_buff+=4;
+         sensor_info = *((float *)p_buff); p_sensor->StengthX = (uint16)(sensor_info); p_buff+=4;
+        };
+     UsartResetRxTx(USART_ID_TX_RX); 
+
+    p_buff = UsartGetBuff(USART_ID_RX);
+    if(ServerSendModbusCmd((PUCHAR)CmdBtA308M_1Y,MODBUS_CMD_NUM) == TRUE)
+        {p_buff +=3; 
+         //PrintDataByte("A308MCmdXrms 1", p_buff, 24);
+         DWordSwapN(p_buff,6); 
+         //PrintDataByte("A308MCmdXrms 2", p_buff, 24);
+         p_buff +=4; // for Mean
+         sensor_info = *((float *)p_buff); p_sensor->RmsY = (uint16)sensor_info; p_buff+=4;
+         sensor_info = *((float *)p_buff); p_sensor->SkewnessY = (int16)(sensor_info*SCALE_VALUE); p_buff+=4;
+         sensor_info = *((float *)p_buff); p_sensor->KurtosisY = (int16)(sensor_info*SCALE_VALUE); p_buff +=8; // to Speed
+         sensor_info = *((float *)p_buff); p_sensor->SpeedY = (int16)(sensor_info);         
+        };
+     UsartResetRxTx(USART_ID_TX_RX); 
+
+     p_buff = UsartGetBuff(USART_ID_RX);
+    if(ServerSendModbusCmd((PUCHAR)CmdBtA308M_2Y,MODBUS_CMD_NUM) == TRUE)
+        {p_buff +=3; 
+         //PrintDataByte("A308MCmdXrms 3", p_buff, 8);
+         DWordSwapN(p_buff,2); 
+         //PrintDataByte("A308MCmdXrms 4", p_buff, 8);
+         sensor_info = *((float *)p_buff); p_sensor->FrequencyY = (uint16)sensor_info; p_buff+=4;
+         sensor_info = *((float *)p_buff); p_sensor->StengthY = (uint16)(sensor_info); p_buff+=4;
+        };
+     UsartResetRxTx(USART_ID_TX_RX); 
+
+    p_buff = UsartGetBuff(USART_ID_RX);
+    if(ServerSendModbusCmd((PUCHAR)CmdBtA308M_1Z,MODBUS_CMD_NUM) == TRUE)
+        {p_buff +=3; 
+         //PrintDataByte("A308MCmdXrms 1", p_buff, 24);
+         DWordSwapN(p_buff,6); 
+         //PrintDataByte("A308MCmdXrms 2", p_buff, 24);
+         p_buff +=4; // for Mean
+         sensor_info = *((float *)p_buff); p_sensor->RmsZ = (uint16)sensor_info; p_buff+=4;
+         sensor_info = *((float *)p_buff); p_sensor->SkewnessZ = (int16)(sensor_info*SCALE_VALUE); p_buff+=4;
+         sensor_info = *((float *)p_buff); p_sensor->KurtosisZ = (int16)(sensor_info*SCALE_VALUE); p_buff +=8; // to Speed
+         sensor_info = *((float *)p_buff); p_sensor->SpeedZ = (int16)(sensor_info);         
+        };
+     UsartResetRxTx(USART_ID_TX_RX); 
+
+     p_buff = UsartGetBuff(USART_ID_RX);
+    if(ServerSendModbusCmd((PUCHAR)CmdBtA308M_2Z,MODBUS_CMD_NUM) == TRUE)
+        {p_buff +=3; 
+         //PrintDataByte("A308MCmdXrms 3", p_buff, 8);
+         DWordSwapN(p_buff,2); 
+         //PrintDataByte("A308MCmdXrms 4", p_buff, 8);
+         sensor_info = *((float *)p_buff); p_sensor->FrequencyZ = (uint16)sensor_info; p_buff+=4;
+         sensor_info = *((float *)p_buff); p_sensor->StengthZ = (uint16)(sensor_info); p_buff+=4;
+        };
+     UsartResetRxTx(USART_ID_TX_RX); 
+
+    p_buff = UsartGetBuff(USART_ID_RX);
+    if(ServerSendModbusCmd((PUCHAR)CmdA308MTemp,MODBUS_CMD_NUM) == TRUE)
+        {p_buff +=3;
+         DWordSwap(p_buff); 
+        sensor_info = *((float *)p_buff); p_sensor->Tempature = (int16)(sensor_info*SCALE_VALUE);
+        }
+    UsartResetRxTx(USART_ID_TX_RX);
+
+   Printf("A308M=>X RMS=%ld Skew=%ld Kurt=%ld Freq=%ld Speed=%ld Stength=%ld\r\n",\
+          p_sensor->RmsX,p_sensor->SkewnessX,p_sensor->KurtosisX,p_sensor->FrequencyX,p_sensor->SpeedX,p_sensor->StengthX);
+   
+   Printf("A308M=>Y RMS=%ld Skew=%ld Kurt=%ld Freq=%ld Speed=%ld Stength=%ld\r\n",\
+          p_sensor->RmsY,p_sensor->SkewnessY,p_sensor->KurtosisY,p_sensor->FrequencyY,p_sensor->SpeedY,p_sensor->StengthY);
+    
+   Printf("A308M=>Z RMS=%ld Skew=%ld Kurt=%ld Freq=%ld Speed=%ld Stength=%ld\r\n",\
+          p_sensor->RmsZ,p_sensor->SkewnessZ,p_sensor->KurtosisZ,p_sensor->FrequencyZ,p_sensor->SpeedZ,p_sensor->StengthZ);
+
+    TraceDec1("A308M => Temp ", p_sensor->Tempature);
+
+    return ret_code;
+}
+
+
+
+#else
+
 //
 //
 //
 bool GetA308mInfo()
-{//TraceProc();
+{
     bool ret_code = TRUE;
-    float sensor_info;
+    //float sensor_info;
     PUCHAR p_buff;
     PA308mInfo p_sensor = &ServerInfo.SensorInfo.A308mInfo;
     SetNodeInfoSize(_A308mInfo);
@@ -427,78 +618,68 @@ bool GetA308mInfo()
     
     p_buff = UsartGetBuff(USART_ID_RX);
     if(ServerSendModbusCmd((PUCHAR)A308MCmdXrms,MODBUS_CMD_NUM) == TRUE)
-        {DWordSwap(A308M_RxData()); sensor_info = A308M_Value();  p_sensor->Xrms = (uint16)sensor_info;}
+        {DWordSwap(A308M_RxData()); sensor_info = A308M_Value();  p_sensor->RmsX = (uint16)sensor_info;}
     //PrintDataByte("A308MCmdXrms", A308M_RxData(), 4);
-    UsartResetRxTx(USART_ID_TX_RX); //Printf("XRMS   ==> %04d\r\n",p_sensor->Xrms); 
+    UsartResetRxTx(USART_ID_TX_RX); //Printf("XRMS   ==> %04d\r\n",p_sensor->RmsX); 
     
 
     if(ServerSendModbusCmd((PUCHAR)A308MCmdXspeed,MODBUS_CMD_NUM) == TRUE)
-        {DWordSwap(A308M_RxData()); sensor_info = A308M_Value();  p_sensor->XSpeed = (uint16)(sensor_info*SCALE_VALUE);}
+        {DWordSwap(A308M_RxData()); sensor_info = A308M_Value();  p_sensor->SpeedX = (uint16)(sensor_info*SCALE_VALUE);}
     UsartResetRxTx(USART_ID_TX_RX); 
     
     if(ServerSendModbusCmd((PUCHAR)A308MCmdYrms,MODBUS_CMD_NUM) == TRUE)
-        {DWordSwap(A308M_RxData()); sensor_info = A308M_Value();  p_sensor->Yrms = (uint16)sensor_info;}
+        {DWordSwap(A308M_RxData()); sensor_info = A308M_Value();  p_sensor->RmsY = (uint16)sensor_info;}
     UsartResetRxTx(USART_ID_TX_RX);  
     
     if(ServerSendModbusCmd((PUCHAR)A308MCmdYspeed,MODBUS_CMD_NUM) == TRUE)
-        {DWordSwap(A308M_RxData()); sensor_info = A308M_Value(); p_sensor->YSpeed = (uint16)(sensor_info*SCALE_VALUE);}
+        {DWordSwap(A308M_RxData()); sensor_info = A308M_Value(); p_sensor->SpeedY = (uint16)(sensor_info*SCALE_VALUE);}
     UsartResetRxTx(USART_ID_TX_RX); 
 
     if(ServerSendModbusCmd((PUCHAR)A308MCmdZrms,MODBUS_CMD_NUM) == TRUE)
-        {DWordSwap(A308M_RxData()); sensor_info = A308M_Value();  p_sensor->Zrms = (uint16)sensor_info;}
+        {DWordSwap(A308M_RxData()); sensor_info = A308M_Value();  p_sensor->RmsZ = (uint16)sensor_info;}
     UsartResetRxTx(USART_ID_TX_RX); 
     
     if(ServerSendModbusCmd((PUCHAR)A308MCmdZspeed,MODBUS_CMD_NUM) == TRUE)
-        {DWordSwap(A308M_RxData()); sensor_info = A308M_Value();  p_sensor->ZSpeed = (uint16)(sensor_info*SCALE_VALUE);}
+        {DWordSwap(A308M_RxData()); sensor_info = A308M_Value();  p_sensor->SpeedZ = (uint16)(sensor_info*SCALE_VALUE);}
     UsartResetRxTx(USART_ID_TX_RX); 
 
-    if(ServerSendModbusCmd((PUCHAR)A308MCmdXtemp,MODBUS_CMD_NUM) == TRUE)
+    if(ServerSendModbusCmd((PUCHAR)A308MCmdTemp,MODBUS_CMD_NUM) == TRUE)
         {DWordSwap(A308M_RxData()); sensor_info = A308M_Value(); p_sensor->Tempature = (int16)(sensor_info*SCALE_VALUE);}
     UsartResetRxTx(USART_ID_TX_RX);
     
     if(ServerSendModbusCmd((PUCHAR)A308MCmd_XFFT_Fre_Str,MODBUS_CMD_NUM) == TRUE)
         {//PrintDataByte("A308MCmdXFre", A308M_RxData(), 8);
         DWordSwap(A308M_RxData()); 
-        sensor_info = A308M_Value(); p_sensor->XFFT_Fre = (uint16)(sensor_info*SCALE_VALUE);
+        sensor_info = A308M_Value(); p_sensor->FrequencyX = (uint16)(sensor_info); //(uint16)(sensor_info*SCALE_VALUE);
         memcpy(A308M_RxData(),(&p_buff[7]),4);
         DWordSwap(A308M_RxData());
-        sensor_info = A308M_Value(); p_sensor->XFFT_Str = (uint16)(sensor_info);
+        sensor_info = A308M_Value(); p_sensor->StengthX = (uint16)(sensor_info);
         }
-    TraceDec2("GetA308mInfo 1",p_sensor->XFFT_Fre, p_sensor->XFFT_Str);
     UsartResetRxTx(USART_ID_TX_RX);
 
     if(ServerSendModbusCmd((PUCHAR)A308MCmd_YFFT_Fre_Str,MODBUS_CMD_NUM) == TRUE)
         {//PrintDataByte("A308MCmdYFre", A308M_RxData(), 8);
         DWordSwap(A308M_RxData()); 
-        sensor_info = A308M_Value(); p_sensor->YFFT_Fre = (uint16)(sensor_info*SCALE_VALUE);
+        sensor_info = A308M_Value(); p_sensor->FrequencyY = (uint16)(sensor_info); //(uint16)(sensor_info*SCALE_VALUE);
         memcpy(A308M_RxData(),(&p_buff[7]),4);
         DWordSwap(A308M_RxData());
-        sensor_info = A308M_Value(); p_sensor->YFFT_Str = (uint16)(sensor_info);
+        sensor_info = A308M_Value(); p_sensor->StengthY = (uint16)(sensor_info);
         }
-    TraceDec2("GetA308mInfo 2",p_sensor->YFFT_Fre, p_sensor->YFFT_Str);
     UsartResetRxTx(USART_ID_TX_RX);    
 
     if(ServerSendModbusCmd((PUCHAR)A308MCmd_ZFFT_Fre_Str,MODBUS_CMD_NUM) == TRUE)
         {//PrintDataByte("A308MCmdZFre", A308M_RxData(), 8);
         DWordSwap(A308M_RxData()); 
-        sensor_info = A308M_Value(); p_sensor->ZFFT_Fre = (uint16)(sensor_info*SCALE_VALUE);
+        sensor_info = A308M_Value(); p_sensor->FrequencyZ = (uint16)(sensor_info); //(uint16)(sensor_info*SCALE_VALUE);
         memcpy(A308M_RxData(),(&p_buff[7]),4);
         DWordSwap(A308M_RxData());
-        sensor_info = A308M_Value(); p_sensor->ZFFT_Str = (uint16)(sensor_info);
+        sensor_info = A308M_Value(); p_sensor->StengthZ = (uint16)(sensor_info);
         }
-    TraceDec2("GetA308mInfo 3",p_sensor->ZFFT_Fre, p_sensor->ZFFT_Str);
     UsartResetRxTx(USART_ID_TX_RX); 
-
- 
-    TraceDec2("A308M ==>1 ", p_sensor->Xrms,p_sensor->XSpeed);
-    TraceDec2("A308M ==>2 ", p_sensor->Yrms,p_sensor->YSpeed);
-    TraceDec2("A308M ==>3 ", p_sensor->Zrms,p_sensor->ZSpeed);
-    TraceDec2("A308M ==>4 ", p_sensor->Tempature,p_sensor->XFFT_Fre);
-
     return ret_code;
 }
 
-
+#endif
 
 
 const uchar CmdWaterLevel[MODBUS_CMD_NUM]={0x01, 0x04, 0x00, 0x00, 0x00, 0x02, 0x71, 0xCB}; //to get value of temperature
@@ -507,7 +688,7 @@ const uchar CmdWaterLevel[MODBUS_CMD_NUM]={0x01, 0x04, 0x00, 0x00, 0x00, 0x02, 0
 //
 //
 bool GetWaterLevelInfo()
-{//TraceProc();
+{
     bool ret_code = TRUE; 
     
     PWaterLevelInfo p_sensor = &ServerInfo.SensorInfo.WaterLevelInfo;
@@ -520,10 +701,7 @@ bool GetWaterLevelInfo()
         p_sensor->WaterLevel = WordSwap(*((PUINT16)&p_buff[3]));
         p_sensor->OilLevel = WordSwap(*((PUINT16)&p_buff[5]));
       }
-    else PrintDataByte("WaterLevel Err", p_buff, 8);
   
-    
-    TraceDec2("Water Level ==> ", p_sensor->WaterLevel,p_sensor->OilLevel);
     
     return ret_code;
 }
@@ -538,8 +716,9 @@ const uchar CmdGetSdAll[MODBUS_CMD_NUM]  ={0x01, 0x04, 0x03, 0x00, 0x00, 0x04, 0
 //
 //
 bool GetJncSdInfo()
-{//TraceProc();
-    bool ret_code = TRUE; 
+{
+    bool ret_code = TRUE;
+    uint16 CO2,PM25,Tempature,Humidity;
     
     PSdInfo p_sensor = &ServerInfo.SensorInfo.SdInfo;
     SetNodeInfoSize(_SdInfo);
@@ -548,105 +727,184 @@ bool GetJncSdInfo()
     
     if(ServerSendModbusCmd((PUCHAR)CmdGetSdAll,MODBUS_CMD_NUM) == TRUE)
       {
-        p_sensor->CO2 = WordSwap(*((PUINT16)&p_buff[3]));
-        p_sensor->PM25 = WordSwap(*((PUINT16)&p_buff[5]));
-        p_sensor->Tempature = WordSwap(*((PUINT16)&p_buff[7]));
-        p_sensor->Humidity = WordSwap(*((PUINT16)&p_buff[9]));
-        TraceDec2("JNC-SD ==> ", p_sensor->CO2,p_sensor->PM25);
+        CO2  = p_sensor->CO2 = WordSwap(*((PUINT16)&p_buff[3]));
+        PM25  = p_sensor->PM25 = WordSwap(*((PUINT16)&p_buff[5]));
+        Tempature  = p_sensor->Tempature = WordSwap(*((PUINT16)&p_buff[7]));
+        Humidity  = p_sensor->Humidity = WordSwap(*((PUINT16)&p_buff[9]));
       }
-    else PrintDataByte("JNC SD Info Err", p_buff, 12);
     
     return ret_code;
 }
 
+const uchar CmdGetUltraSound[MODBUS_CMD_NUM]={0x01, 0x04, 0x00, 0x00, 0x00, 0x01, 0x31, 0xCA}; //to get value of temperature
 
-const uchar CmdGetIAQSAll[MODBUS_CMD_NUM]  ={0x01, 0x04, 0x00, 0x00, 0x00, 0x09, 0x30, 0x0C}; //to get Co2, Pm2.5, Temp and RH value
-
-//
-//
-//
-bool GetIaqsInfo()
-{//TraceProc();
-    bool ret_code = TRUE;
-    PUINT16 p_sensor_info;
-    PIaqsInfo p_sensor = &ServerInfo.SensorInfo.IaqsInfo;
-    SetNodeInfoSize(_IaqsInfo);
-    SetNodeClass(SENSOR_IAQS);
-    PUCHAR p_buff = UsartGetBuff(USART_ID_RX);
-    
-    if(ServerSendModbusCmd((PUCHAR)CmdGetIAQSAll,MODBUS_CMD_NUM) == TRUE)
-      {
-        p_sensor_info = (PUINT16)&p_buff[3];
-        p_sensor->Tempature = WordSwap(*p_sensor_info); p_sensor_info++;
-        p_sensor->Humidity = WordSwap(*p_sensor_info); p_sensor_info++;
-        p_sensor->CO2 = WordSwap(*p_sensor_info); p_sensor_info++;
-        p_sensor->PM25 = WordSwap(*p_sensor_info); p_sensor_info++;
-        p_sensor->HCHO = WordSwap(*p_sensor_info); p_sensor_info++;
-        p_sensor->CO = WordSwap(*p_sensor_info); p_sensor_info++;
-        p_sensor->TVOC = WordSwap(*p_sensor_info); p_sensor_info++;
-        p_sensor->O3 = WordSwap(*p_sensor_info); p_sensor_info++;
-        p_sensor->PM10 = WordSwap(*p_sensor_info); p_sensor_info++;
-        TraceDec4("IAQS ==> ", p_sensor->CO2,p_sensor->PM25,p_sensor->HCHO,p_sensor->PM10);
-      }
-    else PrintDataByte("GetIaqsInfo Err", p_buff, 23);
-    
-    return ret_code;
-}
-
-const uchar CmdGetUltraSound[MODBUS_CMD_NUM]  ={0x01, 0x04, 0x03, 0x00, 0x00, 0x04, 0xF1, 0x8D}; //to get Co2, Pm2.5, Temp and RH value
 
 //
 //
 //
 bool GetUltraSoundInfo()
-{//TraceProc();
-    bool ret_code = TRUE;
-    PUINT16 p_sensor_info;
-    PUltraSoundInfo p_sensor = &ServerInfo.SensorInfo.UltraSound;
-    SetNodeInfoSize(_IaqsInfo);
-    SetNodeClass(SENSOR_ULTRA_SOUND);
-    PUCHAR p_buff = UsartGetBuff(USART_ID_RX);
-    
-    if(ServerSendModbusCmd((PUCHAR)CmdGetUltraSound,MODBUS_CMD_NUM) == TRUE)
-      {
-        p_sensor_info = (PUINT16)&p_buff[3];
-        p_sensor->Distance = WordSwap(*p_sensor_info); p_sensor_info++;
-        p_sensor->SetDistance = WordSwap(*p_sensor_info); p_sensor_info++;
-        p_sensor->Distance100 = WordSwap(*p_sensor_info); p_sensor_info++;
-        p_sensor->Distance200 = WordSwap(*p_sensor_info); p_sensor_info++;
-        p_sensor->Distance300 = WordSwap(*p_sensor_info); p_sensor_info++;
-        p_sensor->Distance400 = WordSwap(*p_sensor_info); p_sensor_info++;
-        p_sensor->Distance500 = WordSwap(*p_sensor_info); p_sensor_info++;
-        p_sensor->Distance600 = WordSwap(*p_sensor_info); p_sensor_info++;
-        p_sensor->Distance700 = WordSwap(*p_sensor_info); p_sensor_info++;
-        p_sensor->Distance800 = WordSwap(*p_sensor_info); p_sensor_info++;
-        TraceDec4("UltraSound ==> ", p_sensor->Distance,p_sensor->SetDistance,p_sensor->Distance100,p_sensor->Distance200);
-      }
-    else PrintDataByte("GetIaqsInfo Err", p_buff, 23);
-    
-    return ret_code;
+{
+bool ret_code = TRUE; 
+
+PWaterLevelInfo p_sensor = &ServerInfo.SensorInfo.WaterLevelInfo;
+SetNodeInfoSize(_WaterLevelInfo);
+SetNodeClass(SENSOR_ULTRA_SOUND);
+PUCHAR p_buff = UsartGetBuff(USART_ID_RX);
+if(ServerSendModbusCmd((PUCHAR)CmdWaterLevel,MODBUS_CMD_NUM) == TRUE)
+  {
+    p_sensor->WaterLevel = WordSwap(*((PUINT16)&p_buff[3]));
+  }
+
+return ret_code;
 }
+
+const uchar CmdDoRealValue[MODBUS_CMD_NUM] ={0x01, 0x04, 0x00, 0x00, 0x00, 0x01, 0x31, 0xCA};
+const uchar CmdDoRealOffset[MODBUS_CMD_NUM]={0x01, 0x04, 0x00, 0x02, 0x00, 0x01, 0x90, 0x0A};
+const uchar CmdDoTempValue[MODBUS_CMD_NUM] ={0x01, 0x04, 0x00, 0x0A, 0x00, 0x01, 0x11, 0xC8};
+const uchar CmdDoTempOffset[MODBUS_CMD_NUM]={0x01, 0x04, 0x00, 0x0B, 0x00, 0x01, 0x40, 0x08};
+
+//
+//
+//
+bool GetDo485()
+{
+bool ret_code = TRUE;
+PJncDo485 p_sensor = &ServerInfo.SensorInfo.JncDo485;
+SetNodeInfoSize(_JncDo485);
+SetNodeClass(SENSOR_DO_485);
+PUCHAR p_buff = UsartGetBuff(USART_ID_RX);
+if(ServerSendModbusCmd((PUCHAR)CmdDoRealValue,MODBUS_CMD_NUM) == TRUE)
+  {
+    p_sensor->DoRealValue = WordSwap(*((PUINT16)&p_buff[3]));
+  }
+UsartResetRxTx(USART_ID_TX_RX);
+
+if(ServerSendModbusCmd((PUCHAR)CmdDoRealOffset,MODBUS_CMD_NUM) == TRUE)
+  {
+    p_sensor->DoOffsetValue = WordSwap(*((PUINT16)&p_buff[3]));
+  }
+UsartResetRxTx(USART_ID_TX_RX);
+
+if(ServerSendModbusCmd((PUCHAR)CmdDoTempValue,MODBUS_CMD_NUM) == TRUE)
+  {
+    p_sensor->TempRealValue = WordSwap(*((PUINT16)&p_buff[3]));
+  }
+UsartResetRxTx(USART_ID_TX_RX);
+
+if(ServerSendModbusCmd((PUCHAR)CmdDoTempOffset,MODBUS_CMD_NUM) == TRUE)
+  {
+    p_sensor->TempOffsetValue = WordSwap(*((PUINT16)&p_buff[3]));
+  }
+UsartResetRxTx(USART_ID_TX_RX);
+
+return ret_code;
+}
+
+const uchar CmdA6D6_AI[MODBUS_CMD_NUM] ={0x01, 0x04, 0x00, 0x00, 0x00, 0x08, 0xF1, 0xCC};
+const uchar CmdA6D6_DI[MODBUS_CMD_NUM] ={0x01, 0x02, 0x00, 0x00, 0x00, 0x08, 0x79, 0xCC};
+const uchar CmdA6D6_DO[MODBUS_CMD_NUM] ={0x01, 0x01, 0x00, 0x00, 0x00, 0x08, 0x3D, 0xCC};
+
+#define A6D6_AI_VALUE   (p_buff[3])
+#define A6D6_DI_VALUE   (p_buff[3])
+#define A6D6_DO_VALUE   (p_buff[3])
+
+//
+//
+//
+bool GetA6D6Info()
+{
+bool ret_code = TRUE; 
+PA6D6 p_sensor = &ServerInfo.SensorInfo.A6D6;
+PUINT16 p_value;
+
+SetNodeInfoSize(_A6D6);
+SetNodeClass(SENSOR_A6D6);
+
+PUCHAR p_buff = UsartGetBuff(USART_ID_RX); p_value = (PUINT16)(&p_buff[3]);
+if(ServerSendModbusCmd((PUCHAR)CmdA6D6_AI,MODBUS_CMD_NUM) == TRUE)
+  {
+    p_sensor->AiValue1 = WordSwap(*p_value++); p_sensor->AiValue2 = WordSwap(*p_value++);    
+    p_sensor->AiValue3 = WordSwap(*p_value++); p_sensor->AiValue4 = WordSwap(*p_value++);
+    p_sensor->AiValue5 = WordSwap(*p_value++); p_sensor->AiValue6 = WordSwap(*p_value++);
+    p_sensor->AiValue7 = WordSwap(*p_value++); p_sensor->AiValue8 = WordSwap(*p_value++);
+  }
+UsartResetRxTx(USART_ID_TX_RX);
+
+if(ServerSendModbusCmd((PUCHAR)CmdA6D6_DI,MODBUS_CMD_NUM) == TRUE)
+  {
+    p_sensor->Di_Status = A6D6_DI_VALUE;
+  }
+UsartResetRxTx(USART_ID_TX_RX);
+
+if(ServerSendModbusCmd((PUCHAR)CmdA6D6_DO,MODBUS_CMD_NUM) == TRUE)
+  {//PrintDataByte("Get A6D6 DO", &A6D6_DO_VALUE, 1);
+    p_sensor->DO_Status = A6D6_DO_VALUE;
+  }
+UsartResetRxTx(USART_ID_TX_RX);
+
+return ret_code;
+}
+
+
+const uchar CmdPzemValue[MODBUS_CMD_NUM] ={0x01, 0x04, 0x00, 0x00, 0x00, 0x0A, 0x70, 0x0D};
+
+
+bool GetPzem()
+{
+bool ret_code = TRUE;
+PPzem p_sensor = &ServerInfo.SensorInfo.Pzem;
+PUINT16 p_value,p_sensor_value;
+uint16 loop;
+
+SetNodeInfoSize(_Pzem);
+SetNodeClass(SENSOR_PZEM);
+PUCHAR p_buff = UsartGetBuff(USART_ID_RX); 
+p_value = (PUINT16)(&p_buff[3]); p_sensor_value=&p_sensor->Voltage;
+if(ServerSendModbusCmd((PUCHAR)CmdPzemValue,MODBUS_CMD_NUM) == TRUE)
+  {
+    for(loop=0; loop<PZEM_ITEM_SIZE; loop++) *p_sensor_value++ = WordSwap(*p_value++);
+  }
+else {ret_code = FALSE;}
+return ret_code;
+}
+
+
+bool GetRelay()
+{
+bool ret_code = TRUE;
+PRelayNode p_sensor = &ServerInfo.SensorInfo.RelayNode;
+PUINT16 p_value,p_sensor_value;
+uint16 loop;
+
+SetNodeInfoSize(_RelayNode);
+SetNodeClass(SENSOR_RELAY);
+
+p_sensor->Status++;;
+
+
+return ret_code;
+}
+
 
 //
 //Send sensor information to client
 //
 bool SendInfoToClient()
-{//TraceProc();
+{
     bool ret_code=FALSE;
     uchar   send_size;
     if(ServerInfo.NodeInfoSize > 0)
       {
         send_size = ServerInfo.NodeInfoSize+3;
         ServerInfo.ProperityID = NODE_GET_ALL_SENSOR;
-        //PrintDataByte("SendInfoToClient", (PUCHAR)&ServerInfo, send_size);
         
         result = Cmd_ms_server_send_status(SENSOR_ELEMENT, pNodeEventInfo->ClientAddr,pNodeEventInfo->AppkeyIndex,
                                             NO_FLAGS, send_size, (PUCHAR)&ServerInfo)->result;
-      if(result) {ret_code = FALSE; TraceErr1("SendInfoToClient 1", result);}
+      if(result) {ret_code = FALSE; }
       else ret_code=TRUE;
         
       }
-    else TraceErr1("SendInfoToClient 2",ServerInfo.NodeInfoSize);
+    else 
     
     return ret_code;
 
@@ -656,7 +914,7 @@ bool SendInfoToClient()
 //
 //
 void EvtGetRequestProc(PCmdPacket pCmdEvent)
-{//TraceProc();
+{
     msg_ms_server_get_request_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_server_get_request);
     pNodeEventInfo->ElemIndex   = pEvent->appkey_index;
     pNodeEventInfo->ClientAddr  = pEvent->client_address;
@@ -673,9 +931,13 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
     {
          SetNodeStatus(NS_SET_NODE_ACT,ON);  // Mesh set event active
     }
+    
+    else if(pEvent->property_id >= NODE_SET_DO1_ON && pEvent->property_id <= NODE_SET_DO6_OFF)
+    {//Trace("Set A6D6");
+         SetNodeStatus(NS_SET_NODE_ACT,ON);  // Mesh set event active
+    }
     else
     {//
-        TraceErr1("EvtGetRequestProc",pNodeEventInfo->PropertyID);
         ToClientBuf[0] = pEvent->property_id & 0xFF;
         ToClientBuf[1] = ((pEvent->property_id) >> 8) & 0xFF;
         ToClientBuf[3] = 0; // Length is 0 for unsupported property_id
@@ -690,14 +952,14 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
 // send modbus cmd, return info to Rx buffer
 //
 bool ServerSendModbusCmd(PUCHAR modbus_cmd,uchar len)
-{//TraceProc();
+{
     bool ret_code = TRUE;
     UsartTxSendCmd(modbus_cmd,len); 
     Delay_ms(10); Rs485Rx();
     Delay_ms(150); Rs485Tx(); // must to check crc error
     ret_code = CheckModbusCrc(UsartGetBuff(USART_ID_RX), UsartGetRxCounter());
 
-    if(!ret_code) TraceErr1("ServerSendModbusCmd ",UsartGetRxCounter());
+    if(!ret_code) TraceErr1("ServerSendModbusCmd 1",UsartGetRxCounter());
     
     return ret_code;
 }
@@ -716,7 +978,7 @@ bool ServerSendModbusCmd(PUCHAR modbus_cmd,uchar len)
 // for Set setting event
 //
 void EvtSetSettingRequestProc(PCmdPacket pCmdEvent)
-{//TraceProc();
+{
     msg_ms_setup_server_set_setting_request_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_setup_server_set_setting_request);
     pNodeEventInfo->ElemIndex   = pEvent->appkey_index;
     pNodeEventInfo->ClientAddr  = pEvent->client_address;
@@ -735,7 +997,7 @@ void EvtSetSettingRequestProc(PCmdPacket pCmdEvent)
 // for Get setting event
 //
 void EvtSetGettingRequestProc(PCmdPacket pCmdEvent)
-{//TraceProc();
+{
     msg_ms_setup_server_get_setting_request_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_setup_server_get_setting_request);   
     pNodeEventInfo->ElemIndex   = pEvent->appkey_index;
     pNodeEventInfo->ClientAddr  = pEvent->client_address;
@@ -752,7 +1014,7 @@ void EvtSetGettingRequestProc(PCmdPacket pCmdEvent)
 // return power status
 //
 uchar CheckPowerStatus()
-{//TraceProc();
+{
     uchar power = POWER_USB;
 
     if(GetBatteryPower() > 0) power = POWER_BATTERY;

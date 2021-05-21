@@ -86,8 +86,15 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
     // Initialize stack
     
     //DeviceInit();    
-    //printf("SDK Version %s\r\n",Mesh_SDK_VER); 
+    //printf("SDK Version %s\r\n",Mesh_SDK_VER);
+    
+#if defined(JNC_DO_485)
+    printf("Firmware Version for DO-485 Only ==> %1.3f %02d Sec \r\n\r\n", 1.00, TIMER_GET_INFO_SLEEPING);
+#elif defined(PZEM)
+    printf("Firmware Version for PZEM Only ==> %1.3f %02d Sec \r\n\r\n", 1.00, TIMER_GET_INFO_SLEEPING);
+#else 
     printf("Firmware Version ==> %1.3f %02d Sec \r\n\r\n", FW_VER/100.0, TIMER_GET_INFO_SLEEPING);
+#endif
     
     gecko_stack_init(pConfig);
     gecko_bgapi_classes_init();
@@ -163,7 +170,6 @@ GetMeshEvent:
         if(BleMeshEventProc(pEvent,BleEventFun) == FALSE)
             if(BleMeshEventProc(pEvent,MeshEventFun) == FALSE)
                 EventIDtoStringProc(pEvent);
-			continue;
         }
     
     if(!CheckRunDevTask()) continue;

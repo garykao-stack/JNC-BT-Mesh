@@ -1,3 +1,10 @@
 ==================== v1.13 ====================
 -------------------- 210320 (Richard)----------------
 1. Bluetooth Mesh first final release.
+
+
+==================== v1.14 ====================
+-------------------- 210521 (Richard)----------------
+// 1.14 ==> 1.Add (Skewness, Kurtosis), 2.Modify UltraSound for WaterLevel
+//          3. Add DO485(specify version),4.Add PZem(比流器、Specify version), 5.Add A6D6, 6.Add Relay status
+//          6. modify AIP status error

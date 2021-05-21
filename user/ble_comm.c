@@ -28,18 +28,18 @@ extern _TimerEventTask DeviceTaskTbl[];
 
 
 void BleCommInit()
-{TraceProc();
+{
     uchar buttton_status;
     MeshNodeStatus = 0;
-   // UDELAY_Calibrate();
     NodeDataInit();
+    buttton_status = GetButtonStatus();
+    if( buttton_status == KEY_FACTORY_RESET) 
+        {initiate_factory_reset();SetMeshNodeStatus(STATUS_FACTORY_RESET, ON);return;}
+
+    
     NodeRole = pMeshNodeData->MeshNodeRole; TraceDec1("Node Role 1", NodeRole);
     MeshNodeInit();
     
-    buttton_status = GetButtonStatus();
-
-     if( buttton_status == KEY_FACTORY_RESET) 
-        {initiate_factory_reset();return;}
 
     SetMeshNodeStatus(STATUS_FULL_POWER, ON);   // client node must full power
 #if MESH_COLUME_ENABLE
@@ -55,7 +55,7 @@ void BleCommInit()
 // 0: server node(default), 1: client node
 //**********************************************************************************************
 uchar GetButtonStatus()
-{//TraceProc();
+{
     uint button0,button1;
     uchar ret_code;
     button0 = GPIO_PinInGet(BSP_BUTTON0_PORT, BSP_BUTTON0_PIN);
@@ -67,26 +67,6 @@ uchar GetButtonStatus()
     Trace3("button_port", button0,button1,ret_code);
     return ret_code;
 }
-
-/*
-_TimerEventTask ClientTaskTbl[]=
-{
-    // for client node
-    {ClientIviUpdateProc,       IVI_SEQ_WAITING,TIMER_IVI_DETECT,TIMER_IVI_DETECT,  ClientTaskTbl},    
-    {ClientGetSensorDataProc,   MM_PENDING,     TASK_TIME_OUT_1,TASK_TIME_OUT_4,    ClientTaskTbl},
-    {ClientSendDataToHostProc,  MM_PENDING,     TASK_TIME_OUT_1,TASK_TIME_OUT_1,    ClientTaskTbl},    
-    {NULL,0,0,0,ClientTaskTbl}
-};
-
-_TimerEventTask ServerNodeTaskTbl[]=
-{
-    // for server node
-    {ServerSetupProc,           SERVER_SETUP_PENDING,TASK_TIME_OUT_1,TASK_TIME_OUT_1,  ServerNodeTaskTbl},    
-    {ServerGetSensorDataProc,   MM_PENDING, TASK_TIME_OUT_1,TASK_TIME_OUT_1,        ServerNodeTaskTbl},    
-    {ServerToClientProc,        MM_PENDING, 20,20, ServerNodeTaskTbl},    
-    {NULL,0,0,0,ServerNodeTaskTbl}
-};
-*/
 #include "bus_rs485.h"
 void ServerNodeTask();
     
@@ -94,21 +74,8 @@ void ServerNodeTask();
 // process Device Task
 //*************************************************************************************
 void DeviceTaskProc()
-{//TraceProc();
-    _PTimerEventTask p_task_temp;
-    
-    //if(CheckDeviceTaskActive1ms() == TRUE) UsartMonitor1ms();
-    //if(CheckDeviceTaskActive1ms() == FALSE) {SetLedToggle(LED_RED); return;}
-    //if(CheckDeviceTaskActive() == FALSE) {return;}
-
-    //ServerNodeTask();
-    
- //   SetLedToggle(LED_RED);
- //   SetLedToggle(LED_BLUE);   
- //   return;
-    
-    //UsartMonitor1ms();
-    UsartMonitor();
+{
+    _PTimerEventTask p_task_temp;        
     CheckTaskCounter();
     pDeviceTask = pDeviceTask->pItself;
 
@@ -161,51 +128,7 @@ bool CheckDeviceTaskActive1ms()
 }
 
 
-/*
-//
-// return task array table
-//
-_PTimerEventTask GetDeviceTaskTbl()
-{
-     if(GetMeshNodeStatus(STATUS_CLIENT)) 
-        return ClientTaskTbl;
-     else 
-        return ServerNodeTaskTbl;
-}
 
-//
-// process timer counter
-// 10~50ms once
-void CheckTaskCounter()
-{
-  // uchar loop;
-   _PTimerEventTask p_allDevTask;
-   p_allDevTask = GetDeviceTaskTbl();
-   while(p_allDevTask->pTimerTask)
-    {
-       if(p_allDevTask->TaskTimeOut) p_allDevTask->TaskTimeOut--;
-       p_allDevTask++; // to next task
-    };
-   
-}
-
-//
-// return task pointer
-// 
-_PTimerEventTask GetTimerEventTask(PTimerTask p_task)
-{
-    _PTimerEventTask p_device_task=GetDeviceTaskTbl();
-
-    while(p_device_task->pTimerTask!=NULL && p_device_task->pTimerTask != p_task)
-            p_device_task++;
-    if(!p_device_task->pTimerTask) {TraceErr("GetTimerEventTask");
-        p_device_task = NULL;
-        }
-
-  return p_device_task;
-}
-
-*/
 void SetTimerTaskEvent(uint16 event, uchar status)
 {
     if(status == ON)  TimerEvent |= event;
@@ -256,7 +179,7 @@ void SetTaskStage(PTimerTask p_task,uchar stage)
 // set task ON/OFF/Alway On
 //
 void SetTaskWork(PTimerTask p_task,uint16 status)
-{//TraceProc();
+{
     return;
 
 /*
@@ -273,7 +196,7 @@ void SetTaskWork(PTimerTask p_task,uint16 status)
 }
 
 void CheckStageTimer()
-{//TraceProc();
+{
     CheckNodeTimerCount();
 }
 
@@ -288,7 +211,7 @@ void BtMeshReset();
 //
 //**********************************************************************************************
 uint32 EvtSoftTimerProc(PCmdPacket pEvent)
-{ //TraceProc();
+{ 
     uint32 ret_code=TRUE;
     uchar    stage;
     CurrTimerHandle = pEvent->data.evt_hardware_soft_timer.handle;
@@ -312,24 +235,7 @@ uint32 EvtSoftTimerProc(PCmdPacket pEvent)
             Trace("TD_NODE_WAKE_UP");
             //NodeLpn(ON);
             break;
-       // case TD_USART_RX: //Trace("TD_USART_RX Ending");
-             //SetTimerTaskEvent(TIMER_EVENT_USART_RX,ON);
-            // UsartSetStage(USART_STAGE_RX_END); // for server node 23 bytes
-             //UsartSetStage(USART_STAGE_TX_CLEAN);
-             //if(UsartGetRxCounter() == 8) UsartSetStage(USART_STAGE_RX_END);
-             //else {TraceErr1("TD_USART_RX: Usart Rx Ending",UsartGetRxCounter());UsartSetStage(USART_STAGE_RX_CLEAN);}
-             
-        //    break;
-        /*
-        case TD_SERVER_WAKE_UP:
-            SetTimerTaskEvent(TIMER_EVENT_WAKE_UP,ON);
-           // PowerTimerProc();
-            break;
-        case TD_SERVER_SLEEPING:
-            SetTimerTaskEvent(TIMER_EVENT_WAKE_UP,OFF);
-           // PowerTimerProc();
-            break;
-        */
+
 //////////////////////////////////// for Client Timer event ///////////////////////////////////////      
         case TD_TASK_CLIENT_SCAN_SERVER: //Trace("TD_TASK_CLIENT_SCAN_SERVER");
             //TimerEvent |= TIMER_EVENT_SCAN_SERVER;
@@ -342,19 +248,19 @@ uint32 EvtSoftTimerProc(PCmdPacket pEvent)
         case TD_SYS_RESET: Trace("System Reset"); Delay_ms(200); //while(1);
             if(!GetMeshNodeStatus(STATUS_BLE_CONNECT)) BtMeshReset();
             break;
-        case TD_GET_SENSOR_INFO: //Trace("TD_GET_SENSOR_INFO");
+        case TD_GET_SENSOR_INFO:
             SetMeshNodeStatus(STATUS_GET_SENSOR_INFO,ON);
             break;        
-        case TD_GET_SENSOR_ENDING: //Trace("TD_GET_SENSOR_ENDING");
+        case TD_GET_SENSOR_ENDING: 
             SetMeshNodeStatus(STATUS_GET_SENSOR_ENDING,OFF);
             break;
-        case TD_SYS_SETUP_RESET: Trace("TD_SETUP_RESET");
+        case TD_SYS_SETUP_RESET: 
             Cmd_sys_reset(0);
             break;
-        case TD_SET_MODBUS_CMD: Trace("TD_SET_MODBUS_CMD"); // 2 sec
+        case TD_SET_MODBUS_CMD: 
             SetMeshNodeStatus(STATUS_SET_MODBUS_CMD,OFF);
             break;
-        case TD_CHECK_DEV_NODE: TraceErr("TD_CHECK_DEV_NODE");
+        case TD_CHECK_DEV_NODE: 
            // CheckNodeActionStatus();
             break;
             
@@ -370,7 +276,7 @@ uint32 EvtSoftTimerProc(PCmdPacket pEvent)
             //TimerEvent |= TIMER_EVENT_OTHER_PROC;
             TimerIdOtherProc();
         break;
-      default: TraceDec1("Timer Message Error",CurrTimerHandle);  break;
+      default: break;
     }
     return ret_code;
 }
@@ -386,21 +292,19 @@ void TimerLedStatus()
 {
     switch(CurrTimerHandle)
         {
-            case TD_UNPROVISION: Trace("TD_UNPROVISION");
+            case TD_UNPROVISION: 
                 SetLedStatus(LED_STATUS_UNPROV);
                 break;
-            case TD_PROVISIONING: //Trace("TD_PROVISIONING");
+            case TD_PROVISIONING: 
                 if (!init_done) SetLedStatus(LED_STATUS_PROVING);
                 break;
-            case TD_NO_EVENT: //TraceDec1("TD_NO_EVENT",CountNodeEvent);
+            case TD_NO_EVENT: 
                 if(GetMeshNodeStatus(STATUS_IVI_UPDATE) == ON)  
-                    {Trace("IVI UPDATE ON");
+                    {
                      SetLedStatus(LED_STATUS_IVI_UPDATE_ON);
                     }
                 if(++CountNodeEvent > COUNT_NO_EVENT) 
-                { Trace("IVI Update reset"); Delay_ms(500);
-                    //debug to disable
-                    //Cmd_sys_reset(0);
+                { Delay_ms(500);
                 }
                 break;
             
@@ -418,22 +322,18 @@ void ResetEventCounter(uchar event)
 //
 //
 void TimerIdOtherProc()
-{//TraceProc();
+{
     switch(CurrTimerHandle)
         {
-            case TD_PROVISIONING: //Trace("TD_PROVISIONING");
+            case TD_PROVISIONING: 
                 if (!init_done) led_set_state(LED_STATE_PROV); 
                 break;
-            case TD_RESTART: Trace("TD_RESTART");
+            case TD_RESTART:
                 Cmd_sys_reset(0);
                 break;
-            case TD_FACTORY_RESET:  Trace("TD_FACTORY_RESET");
+            case TD_FACTORY_RESET:
                 Cmd_sys_reset(0);
                 break;
-           // case TD_LED_TOGGLE:  //Trace("TD_LED_TOGGLE");
-           //     SetLedToggle(LED0);
-           //     break;
-            
             default: TraceErr1("TimerIdOtherProc",CurrTimerHandle); break;
                 
         };    
@@ -443,7 +343,7 @@ void TimerIdOtherProc()
 //
 //
 void DeviceWakeUp()
-{//TraceProc();
+{
     return ; // debug: wakeup disable
     
     SetTaskWork(DeviceWakeUp,DEVICE_TASK_OFF);
@@ -455,7 +355,7 @@ void DeviceWakeUp()
 //
 //
 void DeviceSleeping()
-{//TraceProc();
+{
     return ; // debug: sleeping disable
     
     if(!GetMeshNodeStatus(BLE_LINK_STATUS))
@@ -472,7 +372,7 @@ void DeviceSleeping()
 //
 //
 void PowerTimerProc()
-{//TraceProc();
+{
    // if(GetMeshNodeStatus(STATUS_CLIENT)) 
    if(NodeRole == NR_CLIENT)
         ClientGetPropertyProc();
@@ -481,7 +381,7 @@ void PowerTimerProc()
 }
 
 void PowerModelProc()
-{//TraceProc();
+{
 
     switch(CurrTimerHandle)
         {
@@ -505,7 +405,7 @@ void PowerModelProc()
 //
 // Full power can not to be limit, depend on RS485 speed
 void ClientGetPropertyProc()
-{//TraceProc();
+{
     
 }
 
@@ -572,7 +472,7 @@ void initiate_factory_reset(void)
   // and other settings that have been configured for this node
   Cmd_flash_ps_erase_all();
   // Reboot after a small delay
-  Cmd_set_soft_timer(TIMER_MS_2_TICKS(2000),TD_FACTORY_RESET,1);
+  Cmd_set_soft_timer(TIMER_MS_2_TICKS(5000),TD_FACTORY_RESET,1);
 }
 
 /***************************************************************************//**
@@ -610,7 +510,7 @@ void set_device_name(bd_addr *pAddr)
 // Set up BT mesh Tx power
 //
 void SetTxPower(int16 power)
-{//TraceProc();
+{
     //gecko_init_afh();
     gecko_cmd_system_halt(ON);
     result = Cmd_sys_set_tx_power(TX_POWER_HI)->set_power;  
@@ -658,7 +558,7 @@ void SaveMeshNodeInfo(uchar save_id,void* p_event)
 //
 //**********************************************************************************************
 uint32 EvtSysExternalSignalProc(PCmdPacket pEvent)
-{TraceProc();
+{
     uint32 ret_code=TRUE;
     /*
     uint32 signal;

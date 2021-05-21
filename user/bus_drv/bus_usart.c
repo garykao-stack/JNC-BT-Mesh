@@ -168,37 +168,38 @@ void UsartClientProc()
                  //SetLed(LED_GREEN,ON);
                  //SetNodeStatus(NS_USART_RX_EVENT,OFF);
                  UsartSetStage(USART_STAGE_RX_ING);
-                 ToWaitingStage(UES_CHECK_RX_END,WAIT_MS(10));
+                 ToWaitingStage(UES_CHECK_RX_END,WAIT_MS(30));
                 }
             else if(UsartGetStatusTxIng()) 
                 {//Trace("---- To Check Tx Ending ------");// Tx ending
-                 ToWaitingStage(UES_CHECK_TX_END,WAIT_MS(40));
-                 //ToWaitingStage(UES_CHECK_TX_END,WAIT_MS(20));
+                 ToWaitingStage(UES_CHECK_TX_END,WAIT_MS(50));
                  //SetLed(LED_BLUE,ON);
                 }
             //else {Rs485StandbyMode();}//PrintDataByte("RX Data 3",RxBuff , 7);}
             break;
         case UES_CHECK_TX_END: //Trace("UES_CHECK_TX_END");
-            if(UsartGetStatusTxEnd() || CheckWaitTimeOut() == TRUE) 
-                {//Trace1("Tx End ",UsartStatus);
-                //SetLed(LED_BLUE,OFF);
-                Delay_ms(5);
-                UsartSetStage(USART_STAGE_TX_END);ToNextStage(UES_STANDBY_MODE);  
-                }
-            
+        if(UsartGetStatusTxEnd()) 
+            {//Trace1("Tx End 1",UsartStatus);
+            //SetLed(LED_BLUE,OFF);
+            Delay_ms(1);
+            UsartSetStage(USART_STAGE_TX_END);ToNextStage(UES_STANDBY_MODE);  
+            }
+        else if(CheckWaitTimeOut() == TRUE)
+            {//Trace1("Tx End 2",UsartStatus);
+              UsartSetStage(USART_STAGE_TX_END);ToNextStage(UES_STANDBY_MODE);  
+            }
             break;
         case UES_CHECK_RX_END: //TraceDec1("UES_CHECK_RX_END 1",CounterRx);
-                if((CounterRx >= MODBUS_CMD_NUM) || (CheckWaitTimeOut() == TRUE))
-                {
-                 ToNextStage(UES_CHECH_CMD); 
-                 //Trace("UES_CHECK_RX_END 2");
-                }
-                //else TraceErr1("Test-2",CounterRx);
+
+                if(CheckWaitTimeOut() == TRUE)
+                    { ToNextStage(UES_CHECH_CMD);}
+                else if((NodeRole == NR_CLIENT) && (CounterRx >= MODBUS_CMD_NUM))
+                     {ToNextStage(UES_CHECH_CMD);}
             break;
         case UES_CHECH_CMD: //Trace("UES_CHECH_CMD");
             //SetLed(LED_GREEN,OFF);
             if(CheckUsartRxCmd())
-              {//Trace("RX Check Ok"); PrintDataByte("RX Data 1",RxBuff , 7);                
+              {//Trace("RX Check Ok"); PrintDataByte("RX Data 1",RxBuff , 8);                
                 ToNextStage(UES_CHECH_CMD_OK); 
               }
             else
@@ -258,8 +259,8 @@ void USART2_RX_IRQHandler(void)
   USART_IntClear(USART, flags);
  // if(CounterRx < USART_RX_BUFF_SIZE && UsartGetStatus(USART_RX_WAITING))
   //if(CounterRx < MODBUS_CMD_NUM && UsartGetStatus(USART_RX_WAITING))
-   if((CounterRx < USART_RX_BUFF_SIZE) && (CounterRx  < 8))
-   //if((CounterRx < USART_RX_BUFF_SIZE))
+   //if((CounterRx < USART_RX_BUFF_SIZE) && (CounterRx  < 8))
+   if((CounterRx < USART_RX_BUFF_SIZE))
     {
         *pRxBuff++ = USART_RxDataGet(USART);//USART_Rx(USART);
         CounterRx++; UsartSetStatus(USART_RX_ING,ON);
@@ -283,18 +284,19 @@ void USART2_TX_IRQHandler(void)
   uint32_t flags;
   flags = USART_IntGet(USART);
   USART_IntClear(USART, flags);
-  //if((flags & USART_IF_TXC) && CounterTx > 0)
-  if((flags & USART_IF_TXC) && (CounterTx > 0) && (CounterTx <USART_TX_BUFF_SIZE))
+  if((flags & USART_IF_TXC) && (CounterTx > 0))
+  //if((flags & USART_IF_TXC) && (CounterTx > 0) && (CounterTx <USART_TX_BUFF_SIZE))
     {
      USART_Tx(USART, *pTxBuff++); // Transmit byte
      CounterTx--;
-     if(CounterTx == 0) {UsartSetStatus(USART_TX_END,ON);}
-     UsartCounterTx = 3;
+     //if(CounterTx == 0) {UsartSetStatus(USART_TX_END,ON);}
+     //UsartCounterTx = 3;
     }
   else
     {// Tx ending
-     UsartCounterTx = 2;
-     UsartSetStatus(USART_TX_END,ON); RS485ToRx();
+     //UsartCounterTx = 2;
+     UsartSetStatus(USART_TX_END,ON); 
+     RS485ToRx();
     }
 }
 
@@ -571,6 +573,14 @@ bool UsartGetStatusTxIng()
     else return FALSE;
 }
 
+void UsartPrintBuff(uchar rx_tx)
+{TraceProc();
+
+    if(rx_tx == USART_ID_RX )
+        PrintDataByte("RX Buffer", RxBuff, CounterRx);
+    else if(rx_tx == USART_ID_TX )
+        PrintDataByte("TX Buffer", RxBuff, CounterTx);
+}
 
 //
 //
@@ -593,7 +603,7 @@ bool CheckModbusCrc(PUCHAR pbuff, uchar len)
 }
 
 
-const uchar auchCRCHi[]=
+const uchar ModbusCrcHi[]=
 {
 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81,
 0x40, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0,
@@ -615,7 +625,7 @@ const uchar auchCRCHi[]=
 0x40
 };
 
-const uchar auchCRCLo[] =
+const uchar ModbusCrcLo[] =
 {
 0x00, 0xC0, 0xC1, 0x01, 0xC3, 0x03, 0x02, 0xC2, 0xC6, 0x06, 0x07, 0xC7, 0x05, 0xC5, 0xC4,
 0x04, 0xCC, 0x0C, 0x0D, 0xCD, 0x0F, 0xCF, 0xCE, 0x0E, 0x0A, 0xCA, 0xCB, 0x0B, 0xC9, 0x09,
@@ -645,8 +655,8 @@ uint16   ModbusRtu_CRC16(uchar *updata,uint16 len)
   while(len--)
   {
   uindex=uchCRCHi^*updata++;
-  uchCRCHi=uchCRCLo^auchCRCHi[uindex];
-  uchCRCLo=auchCRCLo[uindex];
+  uchCRCHi=uchCRCLo^ModbusCrcHi[uindex];
+  uchCRCLo=ModbusCrcLo[uindex];
   }
   //return (uchCRCHi<<8|uchCRCLo);  //MSB
   return (uchCRCLo<<8|uchCRCHi);    //LSB

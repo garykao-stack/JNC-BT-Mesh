@@ -50,6 +50,7 @@ temperature_8_t get_temperature();
 uint32  GetTempAndRh();
 int16 GetTempRh(uchar select);
 uint16 GetTempAndRH(int16 *Temp, uint16 *humidity);
+uint16 GetAverageTempAndRH(int16 *Temp, uint16 *humidity);
 
 
 

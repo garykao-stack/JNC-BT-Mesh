@@ -16,7 +16,7 @@ typedef struct
   uchar     MeshNodeRole;       // Server=1 /Setup Server=2 /Client=3 /Friend=4 /LPN=5
   uint16    MeshNodeID;         // 1 ~ 254
   uchar     TotalNodes;         // for client node
-  uint16    SleepingTimer;      // 0: sleeping diable  >1: over 1 that sleeping mode active for timer
+  uint16    SleepingTimer;      // 0: sleeping diable  xx sec
   uchar     BaudRate;           // default:6: 0:2400,1:4800,2:9600,3:19200,4:38400,5:57600,6:115200  
   uchar     SensorClass;        // PT485,AIP,A308M,SD,AIQS,WaterLevel...
   uint16    ElemIndex;
@@ -29,7 +29,7 @@ typedef struct
   ////// to add other Items
   uint16    Status;
   short     TempDiff,HumidityDiff;// for Temp & RH calibration ±12.7°C and ±20%
-  uint16    Reserver2;          // 
+  uint16    WorkingTimer;       // xx sec
   uint16    Reserver1;          // 
   uint32    Reserver[1];
 } _Mesh_Node_Data,*_PMesh_Node_Data;

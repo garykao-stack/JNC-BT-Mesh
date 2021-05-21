@@ -181,13 +181,31 @@ uint16 GetTempAndRH(int16 *Temp, uint16 *humidity)
         }
     else 
         {
-            
+          
          ret_code = VALUE_IS_NOT_KNOWN;TraceDec2("GetTempRH 6",tempData,tempRH);
         }
 
     return ret_code;
 }
 
+typedef struct 
+{
+    int16 Temp;
+    uint16 Humidity;
+}_TempRh,*PTempRh;
+
+uint16 GetAverageTempAndRH(int16 *Temp, uint16 *humidity)
+{
+    uchar loop;
+    _TempRh TempRh[5];
+    memset(&TempRh,0,sizeof(TempRh));
+    for (loop=0; loop<5; loop++)
+        {
+          GetTempAndRH(&TempRh[loop].Temp,&TempRh[loop].Humidity); 
+          Delay_ms(50);
+        }
+    PrintData("GetAverageTempAndRH", (PUINT16)&TempRh,5*2);
+}
 
 
 uchar temp_rh_index=0;

@@ -55,48 +55,6 @@ void iv_config(uint8_t iv_test_mode, uint8_t iv_recovery_mode, uint8_t snb_state
     Cmd_mt_set_local_config(mesh_node_beacon, 0, 1, &snb_state)->result ? "FAILED" : "SUCCESS");
 }
  
-/*
-#define TIMER_IVI_UPDATE_WAITING        2000 //1500
-//
-//
-//
-void ClientIviUpdateProc(void)
-{
-    switch(CurrTaskStage())
-    {
-        case IVI_SEQ_WAITING: //Trace("IVI_SEQ_WAITING");
-            if(CheckTaskTimeOut() == 0)
-                ToNextTaskStage(IVI_DETECT_SEQ);
-            break;
-        case IVI_DETECT_SEQ: //Trace("IVI_DETECT_SEQ");
-            if(MeshCheckSeqNum() ==  FALSE)
-                ToNextTaskStage(IVI_UPDATE_ENABLE);
-            else
-                ToDefaultWating(IVI_SEQ_WAITING);
-            break;
-        case IVI_UPDATE_ENABLE: Trace("IVI_UPDATE_ENABLE");
-            if(GetMeshNodeStatus(STATUS_GET_SENSOR_INFO) == OFF)
-            {
-                SetEventTaskTimer(TD_GET_SENSOR_INFO, TIMER_ENDING, TIMER_EVENT_ONCE);
-                IvIndexUpdate(ON);
-                ToUserWaiting(IVI_UPDATE_WAITING, TIMER_IVI_UPDATE_WAITING);
-            }
-            break;
-        case IVI_UPDATE_WAITING: //Trace("IVI_UPDATE_WAITING");
-            if(CheckTaskTimeOut() == 0)
-                ToNextTaskStage(IVI_UPDATE_ENDING);
-            break;
-        case IVI_UPDATE_ENDING: Trace("IVI_UPDATE_ENDING");
-            IvIndexUpdate(OFF);
-            SetEventTaskTimer(TD_GET_SENSOR_INFO, 30000, TIMER_EVENT_ONCE);
-            ToDefaultWating(IVI_SEQ_WAITING);
-            break;
-        default: TraceErr("ClientIviUpdate");
-            break;
-    };
-}
-
-*/
 
 //
 //
@@ -107,49 +65,31 @@ void NodeIviUpdateProc(void)
 
         switch(ActiveStage())
             {
-                case NODE_STAGE_INIT:   Trace("IVI_UPDATE_INIT");
+                case NODE_STAGE_INIT:
                     ToNextStage(IVI_DETECT);   //default
                     break;
-                case IVI_DETECT: // Trace("IVI_DETECT");
+                case IVI_DETECT: 
                     if(GetNodeStatus(NS_IVI_UPDATE) == ON)
                         {Trace("To IVI_UPDATE_ACTION 1");
                          ToWaitingStage(IVI_UPDATE_ACTION,WAIT_SEC(1));
                         }
                     break;
                     
-               // case IVI_UPDATE_WAIT:  //Trace("IVI_UPDATE_WAIT");
-                //    if(CheckWaitTimeOut()) ToNextStage(IVI_UPDATE_ACTION);
-                 //   break;
-                    
-                case IVI_UPDATE_ACTION:  Trace("IVI_UPDATE_ACTION");
+                case IVI_UPDATE_ACTION: 
                     IvIndexUpdate(ON);
                     ToWaitingStage(IVI_ACTION_WAIT,WAIT_SEC(5));
                     break;
-                case IVI_ACTION_WAIT:  //Trace("IVI_ACTION_WAIT");
-                    if(CheckWaitTimeOut()) ToNextStage(IVI_UPDATE_END); 
+                case IVI_ACTION_WAIT:  
                     break;
-                case IVI_UPDATE_END:  Trace("IVI_UPDATE_END");
+                case IVI_UPDATE_END: 
                     IvIndexUpdate(OFF);
                     ToNextStage(IVI_DETECT);
                     break;
 
-                default: TraceErr1("NodeIviUpdateProc",ActiveStage()); break;
+                default: break;
             };
 }
 
-
-
-
-
-//#define REMAIN_SEQ_NUM_MIN      (ELEMENT_SEQNUM_MAX - 0x300) // for Test
-
-//#define REMAIN_SEQ_NUM_MIN      (ELEMENT_SEQNUM_MAX - 0x600) // for Test
-//#define REMAIN_SEQ_NUM_MIN      (ELEMENT_SEQNUM_MAX - 0x1000) // for App
-//#define REMAIN_SEQ_NUM_MIN      (ELEMENT_SEQNUM_MAX - 0x2000) // for Test
-
-
-//#define REMAIN_SEQ_NUM_MIN      (ELEMENT_SEQNUM_MAX - 0xF00) // for App
-//#define REMAIN_SEQ_NUM_MIN      (ELEMENT_SEQNUM_MAX - 0xA00) // for App
 
 
 
@@ -201,7 +141,6 @@ Bool IvIndexUpdate(uchar status)
     Bool ret_code = FALSE;
     if(status == ON && GetMeshNodeStatus(STATUS_IVI_UPDATE) != ON)
     {
-        printf("IV Index ON %ld \r\n\r\n",IviUpdateCount++);
         UsartIrq(USART_ID_RX,OFF);
         // By default, IV index update is limited in how often the update procedure can be performed.
         //  This test command can be called to set IVupdate test mode where any time limits are ignored.
@@ -209,52 +148,44 @@ Bool IvIndexUpdate(uchar status)
         if(result)
         {
             TraceErr1("Cmd_mt_set_ivupdate_test_mode", result);
-            //return ret_code;
         }
-        TraceOk("Cmd_mt_set_ivupdate_test_mode");
         //richard Add
         result = Cmd_mt_set_iv_index(pMeshNodeData->IvIndex + IVI_INC_MIN)->result;
         if(result)
         {
             TraceErr1("Cmd_mt_set_iv_index", result);
-           // return ret_code;
         }
 
-        TraceOk("Cmd_mt_set_iv_index");
         pMeshNodeData->IvIndex = pMeshNodeData->IvIndex + IVI_INC_MIN;
-        TraceDec1("OK: Cmd_mt_set_iv_index", pMeshNodeData->IvIndex);
 
 
         result = Cmd_mn_req_ivupdate()->result;
         if(result)
-        {TraceErr1("Cmd_mn_req_ivupdate", result);
+        {
           //  return ret_code; // 0x181 error
         }
-        TraceOk("Cmd_mn_req_ivupdate");
         IviUpdateStatus(ON);
         result = Cmd_mt_send_beacons()->result; //richard: to send secure network beacons
         if(result)
         {
-            TraceErr1("xxxxx gecko_cmd_mesh_test_send_beacons Error", result);
             return ret_code;
         }else TraceOk("----- Cmd_mt_send_beacons Ok");
         ret_code = TRUE;
     }
 
     if(status == OFF && GetMeshNodeStatus(STATUS_IVI_UPDATE) == ON)
-    {printf("IV Index OFF\r\n\r\n");
+    {
        
         result = Cmd_mt_set_ivupdate_state(OFF)->result;
         if(result == bg_err_success)
         {
             IviUpdateStatus(OFF);
-            Trace("Force Ending IV Update SUCCESS");
         result = Cmd_mt_send_beacons()->result; //richard: to send secure network beacons
          if(result)
-         {TraceErr1("xxxxx gecko_cmd_mesh_test_send_beacons Error", result);
+         {
             //return ret_code;
          }else 
-         {ret_code = TRUE;TraceOk("----- Cmd_mt_send_beacons Ok ----");}
+         {ret_code = TRUE;}
         }
         else
         {
@@ -319,27 +250,24 @@ uint32 EvtMeshIviClientProc(PCmdPacket pEvent)
     p_iv_update = &(pEvent->data.evt_mesh_node_changed_ivupdate_state);
     switch(event_id)
     {
-        case Evt_mn_ivrecovery_needed:Trace("EVT: Evt_mn_ivrecovery_needed");
-            TraceDec2("IV need to recovery", p_ivrecovery->node_ivindex, p_ivrecovery->network_ivindex);
+        case Evt_mn_ivrecovery_needed:
 
             if(p_ivrecovery->network_ivindex != p_ivrecovery->node_ivindex)
-            {Trace("Client: Update Node Ivi");
+            {
                 Cmd_mt_set_iv_index(p_ivrecovery->network_ivindex);
             }
             result = Cmd_mn_set_ivrecovery_mode(ON)->result;
-            Trace1("Enable/disable IV index recovery mode, result", result);
 
             break;
 
-        case Evt_mn_changed_ivupdate_state: Trace("EVT: Evt_mn_changed_ivupdate_state");
-            Printf("Current IV - %d, Ongoing - %s\r\n", p_iv_update->ivindex, p_iv_update->state ? "YES" : "NO");
+        case Evt_mn_changed_ivupdate_state: 
         
             if(p_iv_update->state == ON)
-                {Trace("IVI Update On Going");
+                {
                   result = Cmd_mt_send_beacons()->result; //richard: to send secure network beacons
                   if(result) TraceErr1("xxxxx gecko_cmd_mesh_test_send_beacons Error 1", result);                  
                 }
-            else{Trace("IVI Update Ending");
+            else{
                 
                 result = Cmd_mt_send_beacons()->result; //richard: to send secure network beacons
                  if(result)
@@ -351,7 +279,7 @@ uint32 EvtMeshIviClientProc(PCmdPacket pEvent)
                 
             pMeshNodeData->IvIndex = p_iv_update->ivindex;
             break;
-        default: TraceErr("EvtMeshIviProc");
+        default: 
             break;
 
     };
@@ -373,35 +301,31 @@ uint32 EvtMeshIviServerProc(PCmdPacket pEvent)
     p_iv_update = &(pEvent->data.evt_mesh_node_changed_ivupdate_state);
     switch(event_id)
     {
-        case Evt_mn_changed_ivupdate_state: Printf("Evt_mn_changed_ivupdate_state Current IV - %d, Ongoing - %s\r\n", p_iv_update->ivindex, p_iv_update->state ? "YES" : "NO");
+        case Evt_mn_changed_ivupdate_state: 
             pMeshNodeData->IvIndex = p_iv_update->ivindex;
             if(p_iv_update->state == YES)
-            {Trace("Server IVI Update On Going");
+            {
                 IviUpdateStatus(ON);
                 SetLedStatus(LED_STATUS_OFF);
             }
             else
-            {Trace("Server IVI Update Ending");
+            {
                 IviUpdateStatus(OFF);
                 SetLedStatus(LED_STATUS_IVI_UPDATE_OFF);
-                //Delay_ms(1000); Cmd_sys_reset(0);
             }
 
             break;
 
-        case Evt_mn_ivrecovery_needed: Printf("Evt_mn_ivrecovery_needed: IV = %d, Received(Network) IV = %d\r\n",
-                   p_ivrecovery->node_ivindex, p_ivrecovery->network_ivindex);
+        case Evt_mn_ivrecovery_needed:
             if(GetMeshNodeStatus(STATUS_PROXY_CONNECT) == TRUE)  break;
 
             if(p_ivrecovery->network_ivindex != p_ivrecovery->node_ivindex)
             {
-                Trace("Ivi Must Update");
                 Cmd_mt_set_iv_index(p_ivrecovery->network_ivindex);
                 IviUpdateStatus(ON);
             }
             pMeshNodeData->IvIndex = p_ivrecovery->node_ivindex;
             result = Cmd_mn_set_ivrecovery_mode(ON)->result;
-            Trace1("evt: Enable IV Recovery mode, result", result);
             ShowCurrRemSeq();
             Cmd_mt_set_element_seqnum(PRIMARY_ELEM, 0); //set sequence num = 0
             ShowCurrRemSeq();
@@ -418,6 +342,7 @@ uint32 seqnum;
 
 void ShowCurrRemSeq(void)
 {
+    return;
     msg_mt_get_element_seqnum_rsp *trsp = Cmd_mt_get_element_seqnum(PRIMARY_ELEM);
     if(!trsp->result)
         Trace1("Test Get SEQ ", trsp->seqnum);

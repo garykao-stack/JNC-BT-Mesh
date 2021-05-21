@@ -5,27 +5,12 @@
  */
 
 
-// 0.91 ==> 20200407
-// 0.92 ==> 200422
-// 0.93 ==> Add Server Setup Model
-// 0.94 ==> 1.Modify Delay function
-// 0.96 ==> 1. Modify Modbus pointer error, 2. Modbus Reg Reflash about 10~15 minute
-// 0.97 ==> 1. modify USART reponse Timer 2sec
-// 0.98 ==> Add BT Mesh Tempature & Humidity: LED1(Red) Reflash ==> Mesh Tempature& Humidify ON, LED2 Reflash(Blue) Device Temp&Hum ON
-// 0.99 ==> for BT Mesh IV Index Update
-// 0.995 ==> 1. modify USART Tx lose Error 2.
-// 0.996 ==> Modify HardFault Error
-// 1.0.4 ==> to Add RS-485 to Server Node
-// 1.0.5 ==> Add key1 change BT/PT485, clean old code
-// 1.0.6 ==> Updat SDK v1.7.2.1, modify mesh_device_properties define
-// 1.0.7 ==> Add mobus set command
-// 1.0.8 ==> Add A308M Read
-// 1.0.9 ==> Add A308M Write
-// 1.1.0 ==> Modify Si7021 Temp and RH
-
-
-#define FW_VER              110 //103 //99.5//98 //97 //94 // ==> 0.90
-#define HW_VER              100
+// 1.13 ==> Release for Final Version
+// 1.14 ==> 1.Add (Skewness, Kurtosis), 2.Modify UltraSound for WaterLevel
+//          3. Add DO485(specify version),4.Add PZem(比流器、Specify version), 5.Add A6D6, 6.Add Relay status
+//          6. modify AIP status error
+#define FW_VER              114
+#define HW_VER              110
 #define DEVICE_NAME         "JNC-BT-Mesh"
 #define MANUFACTORY_NAME    "JNC"
 #define NODE_DATA_ID        0xA5A5
@@ -36,7 +21,9 @@
 #ifndef _GLOBAL_H_
 #define _GLOBAL_H_
 
-#define DEBUG_PRINT
+//#define DEBUG_PRINT
+#define BTM_TEST
+
 
 #ifdef DEBUG_PRINT
 #define Printf printf
@@ -263,6 +250,8 @@ void SetMeshNodeStatus(uint32 status,uchar on_off);
 bool GetMeshNodeStatus(uint32 status);
 uint16 WordSwap(uint16 value);
 void DWordSwap(PUCHAR p_value);
+void DWordSwapN(PUCHAR p_value, uint16 num);
+
 void WordSwapBuff(PUINT16 pBuff,uchar size);
 
 void JtagStatus(uchar status);

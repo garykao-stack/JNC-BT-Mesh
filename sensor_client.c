@@ -124,29 +124,8 @@ uint32 EvtMeshSensorClientProc(PCmdPacket pEvent)
                 ClientDescriptorStatus(pDescriptorStatus);
                 break;
             case Evt_ms_client_status:              //Trace("Evt_ms_client_status");
-                //HandleServerProperty(pClientStatus);
-                //HandleModbusBtMesh(pClientStatus); // for Modbus debug
                 ClientPropertyEvent(pClientStatus); // richard: for new property
                 break;
-#if MESH_COLUME_ENABLE
-            
-            case Evt_ms_client_series_status:       Trace("Evt_ms_client_series_status");
-                HandleServerSeriesProperty(&(pEvent->data.evt_mesh_sensor_client_series_status));
-                break;
-            case Evt_ms_client_column_status:       Trace("Evt_ms_client_column_status");
-                HandleServerColumnProperty(&(pEvent->data.evt_mesh_sensor_client_column_status));
-                break;
-#endif // MESH_COLUME_ENABLE
-            case Evt_ms_client_setting_status:  Trace("Evt_ms_client_setting_status"); 
-                HandleSettingStatus(&(pEvent->data.evt_mesh_sensor_client_setting_status));
-                break;
-
-
-            case Evt_ms_client_publish: // Trace("Evt_ms_client_publish: Bug"); // richard: must debug
-                //HandleClientPublish(&(pEvent->data.evt_mesh_sensor_client_publish));
-                break;
-
-            
             default: TraceErr("EvtMeshSensorClientProc");
                 break;
         };
@@ -514,11 +493,6 @@ void HandleModbusBtMesh(msg_ms_client_status_evt *pEvent)
         };
 }
 
-
-void HandleSettingStatus(msg_ms_client_setting_status_evt *pEvent)
-{TraceProc();
- PrintDataByte("HandleSettingStatus", (PUCHAR)&pEvent->raw_value.data, (UINT)pEvent->raw_value.len);
-}
 
 
 

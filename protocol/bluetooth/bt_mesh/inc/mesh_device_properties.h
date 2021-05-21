@@ -1113,11 +1113,28 @@ typedef enum mesh_device_properties_e {
   NODE_SET_AIP_POWER_75                         = 0x8045,     // for Set Node function
   NODE_SET_AIP_POWER_100                        = 0x8046,     // for Set Node function
 
- // for A308M
+ //for A308M
   NODE_SET_WRITE_NEW_BIAS                       = 0x8049,     // for A308M
   NODE_SET_RESET_BIAS_X                         = 0x804A,     // for A308M
   NODE_SET_RESET_BIAS_Y                         = 0x804B,     // for A308M
   NODE_SET_RESET_BIAS_Z                         = 0x804C,     // for A308M
+
+
+//A6D6 ON
+  NODE_SET_DO1_ON                               = 0x8050,     // for A6D6 ON  
+  NODE_SET_DO2_ON                               = 0x8051,     // for A6D6 ON
+  NODE_SET_DO3_ON                               = 0x8052,     // for A6D6 ON  
+  NODE_SET_DO4_ON                               = 0x8053,     // for A6D6 ON
+  NODE_SET_DO5_ON                               = 0x8054,     // for A6D6 ON  
+  NODE_SET_DO6_ON                               = 0x8055,     // for A6D6 ON
+  
+//A6D6 OFF
+  NODE_SET_DO1_OFF                              = 0x8060,     // for A6D6 OFF  
+  NODE_SET_DO2_OFF                              = 0x8061,     // for A6D6 OFF
+  NODE_SET_DO3_OFF                              = 0x8062,     // for A6D6 OFF 
+  NODE_SET_DO4_OFF                              = 0x8063,     // for A6D6 OFF
+  NODE_SET_DO5_OFF                              = 0x8064,     // for A6D6 OFF 
+  NODE_SET_DO6_OFF                              = 0x8065,     // for A6D6 OFF
   
   ///////////////////////////////////////////////////////////////////////////////////////
   // 1. Switch Open, 2. bettry Low
