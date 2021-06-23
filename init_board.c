@@ -125,7 +125,7 @@ void SystemPower(uchar status)
 // Hardware Reset PIN PA2
 //
 void BtMeshReset()
-{TraceProc();
+{
 #ifdef HARDWARE_RESET
     GPIO_PinModeSet(HARDWARE_RESET_PORT, HARDWARE_RESET_PIN, gpioModePushPull, 0); // PA2 Hardware Reset
     GPIO_PinOutSet(HARDWARE_RESET_PORT,HARDWARE_RESET_PIN);    //

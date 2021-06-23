@@ -10,12 +10,12 @@
 
 
 void ModBusInit(void)
-{TraceProc();
+{
     
 }
 
 uchar ModBusProc(void)
-{TraceProc();    
+{    
     PUCHAR pCmd;    
     pCmd = UsartGetBuff(USART_ID_RX);
     

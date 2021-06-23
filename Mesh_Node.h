@@ -4,9 +4,11 @@
  *  Author: richard.huang
  */
 
-#define JNC_A308M   1
-//#define JNC_DO_485      1
-//#define PZEM    1
+//#define JNC_DO_485    1
+//#define PZEM          1
+//#define OEM_SENSOR    1   //visual sensor
+//#define AGB_POWER     1
+
 
 
 
@@ -53,7 +55,6 @@ typedef struct _AIPInfo_
 }_AIPInfo,*PAIPInfo;
 
 
-#ifdef JNC_A308M
 typedef struct _A308mInfo_
 {
     int16   Tempature;      // x0.1 -20 ~ 50°C
@@ -80,28 +81,6 @@ typedef struct _A308mInfo_
     uint16  StengthZ;
     
 }_A308mInfo,*PA308mInfo;
-
-#else
-
-typedef struct _A308mInfo_
-{
-    int16   Tempature;      // -20 ~ 50°C
-    uint16  RmsX;      
-    uint16  SpeedX;
-    uint16  RmsY;
-    uint16  SpeedY;
-    uint16  RmsZ;
-    uint16  SpeedZ;
-    uint16  FrequencyX;    //Frequency
-    uint16  StengthX;      //Stength    
-    uint16  FrequencyY;      //Frequency
-    uint16  StengthY;      //Stength
-    uint16  FrequencyZ;      //Frequency
-    uint16  StengthZ;      //Stength
-}_A308mInfo,*PA308mInfo;
-
-#endif
-
 typedef struct _WaterLevelInfo_
 {
     uint16   WaterLevel;
@@ -128,7 +107,32 @@ typedef struct _IaqslInfo_
     uint16  TVOC;
     uint16  O3;
     uint16  PM10;           //for PM10
+  //  uint16  Reserve[7];
 }_IaqsInfo,*PIaqsInfo;
+
+typedef struct _Cw9Info_
+{
+    uint16  Data01;     
+    uint16  Data02;      
+    uint16  Data03;            
+    uint16  Data04;          
+    uint16  Data05;          
+    uint16  Data06;          
+    uint16  Data07;
+    uint16  Data08;
+    uint16  Data09;         
+    uint16  Data10;           
+    
+    uint16  Data11;           
+    uint16  Data12;           
+    uint16  Data13;           
+    uint16  Data14;              
+    uint16  Data15;          
+    uint16  Data16;           
+    uint16  Data17;          
+    
+}_Cw9Info,*PCw9Info;
+
 
 typedef struct _UltarSound_
 {
@@ -170,6 +174,23 @@ typedef struct _RelayNode_
     uint16 Status;
 }_RelayNode,*PRelayNode;
 
+typedef struct _OemSensor_
+{
+    uint16   Addr00;
+    uint16   Addr01;
+    uint16   Addr02;
+    uint16   Addr03;
+    uint16   Addr0A;
+}_OemSensor,*POemSensor;
+
+#define OEM_SENSOR_SIZE   4
+
+typedef struct _AgbPower_
+{
+    uint16  PowerStatus;
+}_AgbPower,*PAgbPower;
+
+
 typedef struct _SensorInfo_
 {    
         _NodeHeader Header;
@@ -181,11 +202,15 @@ union{
         _WaterLevelInfo WaterLevelInfo;
         _SdInfo     SdInfo;
         _IaqsInfo   IaqsInfo;
+        _Cw9Info    Cw9Info;
         _UltraSoundInfo UltraSound;
         _JncDo485   JncDo485;
         _A6D6       A6D6;
         _Pzem       Pzem;
         _RelayNode  RelayNode;
+        _OemSensor  OemSensor;
+        _AgbPower   AgbPower;
+        
      };
 }_SensorInfo,*PSensorInfo;
 
@@ -229,25 +254,29 @@ typedef struct _NodeEventInfo_
 
 
 // Sensor class;
-#define SENSOR_DISCONNECT     0
-#define SENSOR_SI7021         1     //for tempature & Humidity   
-#define SENSOR_PT485          2
-#define SENSOR_AIP            3
-#define SENSOR_WATER_LEVEL    4
-#define SENSOR_IAQS           5
-#define SENSOR_JNC_SD         6
+#define SENSOR_DISCONNECT    0
+#define SENSOR_SI7021        1     //for tempature & Humidity   
+#define SENSOR_PT485         2
+#define SENSOR_AIP           3
+#define SENSOR_WATER_LEVEL   4
+#define SENSOR_IAQS          5
+#define SENSOR_JNC_SD        6
 
-#define OTHER_MODBUS_CMD      7     //for other modbus cmd
-#define SENSOR_ULTRA_SOUND    8     //
-#define SENSOR_DO_485         9     // 
+#define OTHER_MODBUS_CMD     7     //for other modbus cmd
+#define SENSOR_ULTRA_SOUND   8     //
+#define SENSOR_DO_485        9     // 
 
-#define SENSOR_A308M          10      //for 
-#define SENSOR_A308M_JNC      SENSOR_A308M      //for JNC
+#define SENSOR_A308M         10      //for 
+#define SENSOR_A308M_JNC     SENSOR_A308M      //for JNC
 
-#define BTM_SENSOR            SENSOR_SI7021    //to BT Mesh Built-in sensor for temp&RH
+#define BTM_SENSOR           SENSOR_SI7021    //to BT Mesh Built-in sensor for temp&RH
 #define SENSOR_RELAY         11     // Power Only
 #define SENSOR_A6D6          12     // A6D6
 #define SENSOR_PZEM          13     // 
+#define SENSOR_OEM           14     // 
+#define SENSOR_AGB_POWER     15     // 
+#define SENSOR_CW9           16     // 
+
 
 
 

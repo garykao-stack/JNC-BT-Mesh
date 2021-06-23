@@ -26,7 +26,7 @@
 #define CHS_SEND_DATA_DELAY     20
 
 
-#define MODBUS_TO_HOST_BUFF_NUM      16
+#define MODBUS_TO_HOST_BUFF_NUM      30
 #pragma pack(push)
 #pragma pack(1)     //mapping to one byte
 
@@ -198,21 +198,36 @@ typedef struct
 #define FC04_DISTANCE800        0x0009
 
 // for Do485
-#define DO485_REAL_VALUE       0x0000
-#define DO485_REAL_OFFSET      0x0002
-#define DO485_TEMP_VALUE       0x000A
-#define DO485_TEMP_OFFSET      0x000B
+#define DO485_REAL_VALUE        0x0000
+#define DO485_REAL_OFFSET       0x0002
+#define DO485_TEMP_VALUE        0x000A
+#define DO485_TEMP_OFFSET       0x000B
 
-#define MODBUS_AIP_POWER_00         0x00
-#define MODBUS_AIP_POWER_25         0x19
-#define MODBUS_AIP_POWER_50         0x32
-#define MODBUS_AIP_POWER_75         0x4B
-#define MODBUS_AIP_POWER_100        0x64
+#define MODBUS_AIP_POWER_00     0x00
+#define MODBUS_AIP_POWER_25     0x19
+#define MODBUS_AIP_POWER_50     0x32
+#define MODBUS_AIP_POWER_75     0x4B
+#define MODBUS_AIP_POWER_100    0x64
 
-#define MODBUS_308M_NEW_BIAS        0x00
-#define MODBUS_RESET_XBIAS          0x00
-#define MODBUS_RESET_YBIAS          0x01
-#define MODBUS_RESET_ZBIAS          0x02
+#define MODBUS_308M_NEW_BIAS    0x00
+#define MODBUS_RESET_XBIAS      0x00
+#define MODBUS_RESET_YBIAS      0x01
+#define MODBUS_RESET_ZBIAS      0x02
+
+#define MODBUS_AGB_POWER_00     0x00
+#define MODBUS_AGB_POWER_25     0x01
+#define MODBUS_AGB_POWER_50     0x02
+#define MODBUS_AGB_POWER_75     0x03
+#define MODBUS_AGB_POWER_100    0x04
+
+
+// for OEM Sensor
+#define OEM_ADDR_00             0x0000
+#define OEM_ADDR_01             0x0001
+#define OEM_ADDR_02             0x0002
+#define OEM_ADDR_03             0x0003
+#define OEM_ADDR_0A             0x000A
+
 
 
 
@@ -250,6 +265,9 @@ bool ClientJncDo485(PJncDo485 p_info);
 bool ClientA6D6(PA6D6 p_info);
 bool ClientPzem(PPzem p_info);
 bool ClientRelay(PRelayNode p_info);
+bool ClientOemSensor(POemSensor p_info);
+bool ClientIAQS(PIaqsInfo p_info);
+bool ClientCW9(PCw9Info p_info);
 
 void ShowAllNodeInfo(void);
 void ShowEventInfo(PClientInfo p_info);

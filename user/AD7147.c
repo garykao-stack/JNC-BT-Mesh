@@ -63,7 +63,7 @@ _PDeviceSpi pActDevSpi;   // point to active SPI device
 
 
 void AD7147Init()
-{TraceProc();
+{
     uchar loop;
     //PrintData("AD7147_Bank1Tbl_1", (PUINT16)AD7147_Bank1Tbl, BANK1_INIT_TBL_SIZE);
     //PrintData("AD7147_Bank1Tbl_2", (PUINT16)AD7147_Bank2Tbl, BANK2_INIT_TBL_SIZE);
@@ -186,7 +186,7 @@ void GetAD7147CinxProc()
 //
 // Get all of the value of CINx
 bool GetCinValue()
-{//TraceProc();
+{
     bool ret_code;
     uint16 cmd_get_cin_value=WORD_SWAP(GET_CIN_VALUE);
     ret_code = GetCinStatus();
@@ -203,7 +203,7 @@ bool GetCinValue()
 }
 
 bool GetCinStatus()
-{//TraceProc();
+{
     bool ret_code=FALSE;
     uint16 get_ciin_status=WORD_SWAP(GET_CIN_STATUS);
     uint16 cin_status; 
@@ -286,7 +286,7 @@ void AD7147AllCsStatus(uchar status)
 // write one registaer
 //
 bool AD7147WriteReg(uint16 reg_addr,uint16 reg_data)
-{//TraceProc();
+{
     bool  ret_code=true;
     AD7147Reg ad7147_reg;
     
@@ -301,7 +301,7 @@ bool AD7147WriteReg(uint16 reg_addr,uint16 reg_data)
 // size: word number
 //
 bool AD7147WriteMultiReg(uint16 start_addr,uint16* p_reg_data, uchar size)
-{//TraceProc();
+{
     bool  ret_code=true;
     SpiWrite((PUCHAR)p_reg_data,size*2); 
     return ret_code;

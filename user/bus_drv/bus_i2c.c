@@ -24,7 +24,7 @@ UCHAR ReadEepromTestTbl[16];
 #endif
 
 void I2CInit()
-{//TraceProc();
+{
 
     BpAdcInit();
     GetBpValue();
@@ -57,7 +57,7 @@ void I2CInit()
 //
 //
 void EepromInit()
-{//TraceProc();
+{
     _PMeshNodeSysData pEeprom=0;
     uint16 DeviceInfoID;
     DeviceInfoID = EepromReadWord1((uint16)pEeprom); Trace16_1(DeviceInfoID);
@@ -69,7 +69,7 @@ void EepromInit()
 // Eeprom Write default data
 //
 bool EepromToDefault()
-{//TraceProc();
+{
     bool ret_code = TRUE;
     _MeshNodeSysData mesh_sys_data;
     memset(&mesh_sys_data,0,sizeof(_MeshNodeSysData));
@@ -286,7 +286,7 @@ volatile uint32_t millivolts;
  * @brief  Initialize ADC function for Battery PPower
  *****************************************************************************/
 void BpAdcInit (void)
-{TraceProc();
+{
 
   // Enable ADC0 clock
   CMU_ClockEnable(cmuClock_ADC0, true);

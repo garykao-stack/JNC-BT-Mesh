@@ -302,6 +302,19 @@ uint32  EvtGapScanResponseProc(PCmdPacket pEvent)
     msg_gap_scan_resp_evt  *scan_resp;
    	scan_resp = (msg_gap_scan_resp_evt *)&(pEvent->data);
     print_scan_resp(scan_resp);
+
+        /*
+    	Printf("evt:gecko_evt_le_gap_scan_response_id\r\n");
+	    Printf("RSSI %d, Type %d, Addr 0x%02X%02X%02X%02X%02X%02X, Addr Type %X, Bond %d, msg len: %x, msg: 0x", 
+                scan_resp->rssi, scan_resp->packet_type, scan_resp->address.addr[0], 
+                scan_resp->address.addr[1], scan_resp->address.addr[2], scan_resp->address.addr[3], 
+                scan_resp->address.addr[4], scan_resp->address.addr[5], scan_resp->address_type,  
+                scan_resp->bonding, scan_resp->data.len);
+		for(uint8_t i = 0; i<scan_resp->data.len;i++){
+			Printf("%02X",scan_resp->data.data[i]);
+		}
+		Printf("\r\n");    
+        */
     return ret_code;
 }
 

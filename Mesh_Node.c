@@ -40,7 +40,7 @@ NodeStageInfo NodeStageInfoTbl[NODE_STAGE_INFO_NUM]=
 //
 //
 void CheckNodeTimerCount()
-{//TraceProc();
+{
    uchar loop;
    PNodeStageInfo p_node = NodeStageInfoTbl;
    
@@ -61,7 +61,7 @@ PNodeStageInfo pStageInfo;
 
 
 void MeshNodeInit()
-{TraceProc();
+{
     SetWaitTimer(0);
     NodeStatus = 0;
     pNodeEventInfo = &NodeEventInfo;
@@ -165,7 +165,7 @@ void SetSleepingTimer(uchar status)
 // set up node sleeping on/off
 //
 bool SetNodeSleeping(uchar status)
-{TraceProc();
+{
     bool ret_code=TRUE;
 
     if(status == ON)
@@ -192,7 +192,7 @@ bool SetNodeSleeping(uchar status)
 //      
 //
 void SetSleeping(uchar status)
-{TraceProc();
+{
     if(NodeRole == NR_CLIENT) return;
     SetSleepingTimer(status);
     if(status == ON)
@@ -225,7 +225,7 @@ void SetSleeping(uchar status)
 //
 //
 void SetNodePublish(uchar status)
-{TraceProc();
+{
     struct gecko_msg_mesh_test_get_local_model_pub_rsp_t* pEvent;
     uint8 public_timer=0;    
     pEvent = Cmd_mt_get_local_model_pub(0,0xFFFF,BTM_MODE_ID);             

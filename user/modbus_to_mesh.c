@@ -47,7 +47,7 @@ uchar MeshRxSize;
 
 
 void ModbusToMeshInit()
-{TraceProc();
+{
 
     #ifdef CMD_TO_BT_MESH   //richard debug
         return;
@@ -78,14 +78,14 @@ bool ModbusToMeshFormat(PUCHAR p_buff,uchar bytes)
 
 //copy data to Tx buffer for transfer
 void SendDataToTxBuff(PUCHAR pBuff,uchar size)
-{TraceProc();
+{
     PUCHAR p_tx_buff = UsartGetBuff(USART_ID_TX);
     memcpy(p_tx_buff,pBuff,size);
 }
 
 
 void SendServerNodeData(PUCHAR p_buff, uchar size)
-{TraceProc();
+{
     PUCHAR pTxBuff;
     pTxBuff = UsartGetBuff(USART_ID_TX);
     MeshModbusBuff[BtMeshCountRx].Size = size;

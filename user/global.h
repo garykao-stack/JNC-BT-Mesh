@@ -9,7 +9,10 @@
 // 1.14 ==> 1.Add (Skewness, Kurtosis), 2.Modify UltraSound for WaterLevel
 //          3. Add DO485(specify version),4.Add PZem(比流器、Specify version), 5.Add A6D6, 6.Add Relay status
 //          6. modify AIP status error
-#define FW_VER              114
+// 1.15
+//          1. For OEM and Visual Sensor 2. Add IAQS and CW9
+
+#define FW_VER              115
 #define HW_VER              110
 #define DEVICE_NAME         "JNC-BT-Mesh"
 #define MANUFACTORY_NAME    "JNC"

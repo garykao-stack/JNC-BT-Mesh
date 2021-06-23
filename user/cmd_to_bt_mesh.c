@@ -39,7 +39,7 @@ void BtMeshReset();
 
 void CmdToBtMeshInit()
 {
-    TraceProc();
+    
     
     pClientModbusRegs = ClientModbusRegs;
     CurrMeshNodeNum = 0;    
@@ -62,7 +62,7 @@ void CmdToBtMeshInit()
 }
 
 void ClientModbusCmdInit()
-{ TraceProc();
+{ 
 
     SetEventTaskTimer(TD_GET_SENSOR_INFO, TIMER_CLIENT_GET_SENSOR_INFO, TIMER_EVENT_ONCE);
     memset(pClientModbusRegs, 0, sizeof(ClientModbusRegs));
@@ -75,7 +75,7 @@ void ClientModbusCmdInit()
 //
 //
 uchar CheckNodeActionStatus()
-{//TraceProc();
+{
     uchar loop;
     uchar node_num=0;
     _PClientModbusRegs pModbusRegs = ClientModbusRegs;
@@ -96,7 +96,7 @@ uchar CheckNodeActionStatus()
 
 void MeshNodeToReset(uint32 timer)
 {
-    //TraceProc();
+    //
     //return; //debug
     SetEventTaskTimer(TD_SYS_RESET, timer, TIMER_EVENT_ONCE); // system reset
 }
@@ -343,7 +343,7 @@ uchar CmdErrCount;
 // get device reg data
 //
 Result ClientGetServerReg()
-{TraceProc();
+{
     Result ret_code;
     AllNodeEventNum = 0;
     SetMeshNodeStatus(STATUS_GET_SENSOR_ENDING, ON);
@@ -376,7 +376,7 @@ Result ClientGetServerReg()
 //
 bool ClientSetServerReg(_PModbusCmd pCmd)
 {
-    TraceProc();
+    
     bool ret_code = TRUE;
 /*
     if(GetMeshNodeStatus(STATUS_SET_MODBUS_CMD) == TRUE)
@@ -434,7 +434,7 @@ _ModbusToHostPack ModbusToHostPack;
 //
 bool GetModbusValue(uchar modbus_id, uint16 modbus_reg, uchar reg_num, PUINT16 pbuff)
 {
-    //TraceProc();
+    //
     bool ret_code = TRUE;
     _PClientModbusRegs p_modbus_regs;
     PUINT16 pRegs = NULL;
@@ -481,7 +481,7 @@ const uchar ModbudDeviceIDCmd[8]={0x01, 0x03, 0x00, 0x00, 0x00, 0x04, 0x44, 0x09
 uchar BtDeviceInfo[BT_DEVICE_INFO_SIZE]={0x01, 0x03, 0x08, 0x42, 0x54, 0x4D, 0x45, 0x53, 0x48, 0x00, 0x99, 0x96, 0xD1};
 
 bool SendDeviceModelInfo(_PModbusCmd p_modbus_cmd)
-{TraceProc();
+{
     bool ret_code=false;
     uint16 modbus_crc;
    // PrintDataByte("SendDeviceModelInfo 1", (BYTE*)p_modbus_cmd, 8);
@@ -519,7 +519,7 @@ uchar ClientToHostDataNum;
 // depend on modbus send data to host for Func4,6,3
 bool ClientHostPrepare()
 {
-    //TraceProc();
+    //
     bool ret_code = TRUE;
     _PModbusCmd p_modbus_cmd;
     _PClientModbusRegs p_modbus_regs;
@@ -590,7 +590,7 @@ bool ClientHostPrepare()
 
 bool ClientHostSendData()
 {
-    //TraceProc();
+    //
     // ClientHostPrepare();
 
     //UsartTxSendCmd((PUCHAR)&ModbusToHostPack,sizeof(ModbusToHostPack));
@@ -668,7 +668,7 @@ void ServerModbusCmdInit()
 // Update regster value to buff
 //
 void ServerUpdateModbusRegs(uchar cmd_index)
-{//TraceProc();
+{
     PUCHAR pRxBuff = UsartGetBuff(USART_ID_RX);
     //UsartShowDataRx();
     if(*(pRxBuff + 1) != 0x04)
@@ -708,7 +708,7 @@ const SimModbusRegs Fc4Regs_2 = { 0x01, 0x04, 0x18, {0x0201, 0x0202, 0x0203, 0x0
 uint16 SimCounter;
 
 void SetRxMdobusValue(uchar cmd_index)
-{//TraceProc();
+{
     uint16 modbus_Value;
     PUCHAR pRxBuff = UsartGetBuff(USART_ID_RX);
     CounterRx = sizeof(SimModbusRegs);
@@ -749,7 +749,7 @@ uchar UsartTimeoutNum;
 //update tempature & Humidity to Register
 //
 void BtTempHumToReg()
-{TraceProc();
+{
     uint16 Tempature, Humidity;
    if(GetMeshNodeStatus(STATUS_TEMP_HUM) == OFF) return;
 
@@ -1007,7 +1007,7 @@ void ServerToClientProc()
 //
 void ServerGetReguset(PCmdPacket pCmdEvent)
 {
-    TraceProc();
+    
     msg_ms_server_get_request_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_server_get_request);
     Trace16_4(pEvent->client_address, pEvent->server_address, pEvent->appkey_index, pEvent->elem_index);
     pMeshNodeData->ElemIndex = pEvent->elem_index;
@@ -1025,7 +1025,7 @@ void ServerGetReguset(PCmdPacket pCmdEvent)
 //
 void ServerGetRegusetToClient(PCmdPacket pCmdEvent)
 {
-    TraceProc();
+    
     msg_ms_setup_server_get_setting_request_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_setup_server_get_setting_request);
     //Trace16_4(pEvent->client_address, pEvent->server_address, pEvent->appkey_index, pEvent->elem_index);
     //Trace16_2(pEvent->property_id, pEvent->setting_id);
@@ -1056,7 +1056,7 @@ uint16 G6sStatus;
 void DevG6sStatusToClient()
 {
 #if UPDATE_REAL_TIME
-TraceProc();
+
 
 #ifdef SIMULATION_MODBUS_REGS
         if(G6sStatus == 0x19) DevModbusRegs[1][1] = 0x4B;
@@ -1091,7 +1091,7 @@ TraceProc();
 //
 void ServerSetDevice(msg_ms_setup_server_set_setting_request_evt *pEvent)
 {
-    TraceProc();
+    
     uchar   dev_status, loop;
     PUCHAR  p_rx_buff;
     //Trace16_4(pEvent->elem_index, pEvent->client_address, pEvent->server_address, pEvent->appkey_index);
@@ -1173,7 +1173,7 @@ ToReturn:
 // Setup Modbus Device
 //
 void ServerSetupProc()
-{//TraceProc();
+{
  //   return;
     switch(CurrTaskStage())
     {
@@ -1211,7 +1211,7 @@ void ServerSetupProc()
 //
 Bool ServerModbusRegsToClient(uchar status)
 {
-    TraceProc();
+    
     Bool ret_code = TRUE;
     PUINT16 pRegs;
 
@@ -1280,7 +1280,7 @@ Bool ServerModbusRegsToClient(uchar status)
 //
 bool ServerPubModbusRegs()
 {
-    TraceProc();
+    
 
 #ifndef SERVER_AUTO_PUBLISH
     return TRUE;

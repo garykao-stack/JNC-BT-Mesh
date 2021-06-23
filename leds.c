@@ -43,7 +43,7 @@
  * LED initialization. Configure LED pins as outputs.
  ******************************************************************************/
 void led_init(void)
-{//TraceProc();
+{
   // configure LED0 and LED_BLUE as outputs
   GPIO_PinModeSet(BSP_LED0_PORT, BSP_LED0_PIN, gpioModePushPull, LED_DEFAULT_STATE);
   GPIO_PinModeSet(BSP_LED1_PORT, BSP_LED1_PIN, gpioModePushPull, LED_DEFAULT_STATE);

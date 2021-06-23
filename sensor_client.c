@@ -68,7 +68,7 @@ PMeshNode   pActiveNode;
 //
 //**********************************************************************************************
 void SensorClientNodeInit(void)
-{TraceProc();
+{
     SysServerNodeNum = 1;
     NodeWakeUp();
     Cmd_ms_client_init();
@@ -83,7 +83,7 @@ void SensorClientNodeInit(void)
 //
 //******************************************************************************************************
 void StartScanServerNode()
-{TraceProc();
+{
     if(NodeRole != NR_CLIENT) return;
     
     DI_Print("                     ",DI_ROW_SENSOR_DATA+0);
@@ -108,7 +108,7 @@ void StartScanServerNode()
 // @param[in] pEvent  Pointer to incoming sensor server event.
 //**********************************************************************************************
 uint32 EvtMeshSensorClientProc(PCmdPacket pEvent)
-{//TraceProc();
+{
     uint32 ret_code = TRUE;
     msg_ms_client_descriptor_status_evt *pDescriptorStatus;
     msg_ms_client_status_evt *pClientStatus;
@@ -174,7 +174,7 @@ void ClientSetBehavior(uint16 event_class, uint16 param)
 // return current stage
 //******************************************************************************************************
 void ClientScanServerProc()
-{TraceProc();
+{
     TCounterScanServer++;
     switch(SanServerStage)
     {
@@ -233,7 +233,7 @@ void StartGetServerProperty()
 // Get server property data
 //******************************************************************************************************
 void ClientGetServerDataProc()
-{//TraceProc();
+{
     TCounterGetProperty++;
     switch(GetPropertyStage)
     {
@@ -306,7 +306,7 @@ void ToNextProperty()
 // waiting response of server node
 //******************************************************************************************************
 uchar ClientWaitingProperty()
-{TraceProc();
+{
     uchar ret_code;
 
     return ret_code;
@@ -383,7 +383,7 @@ void ClientStartScanServer()
 // *****************************************************************************
 
 void ClientDescriptorStatus(msg_ms_client_descriptor_status_evt *pStatus)
-{ TraceProc();
+{ 
     //printf("evt:gecko_evt_mesh_sensor_client_descriptor_status_id\r\n");
     PMeshNode p_node=NULL;
     sensor_descriptor_t descriptor;
@@ -464,7 +464,7 @@ void GetRs485Property(uint16 server_addr,mesh_device_properties_t property)
 }
 
 void HandleModbusBtMesh(msg_ms_client_status_evt *pEvent)
-{//TraceProc();
+{
     uint8_t *p_sensor_data = pEvent->sensor_data.data;
     uint8_t data_len = pEvent->sensor_data.len;
     uint8_t pos = 0;
@@ -502,7 +502,7 @@ void HandleModbusBtMesh(msg_ms_client_status_evt *pEvent)
 // @param[in] pEvent  Pointer to sensor client status event.
 //******************************************************************************
 void HandleServerProperty(msg_ms_client_status_evt *pEvent)
-{ TraceProc();
+{ 
     //printf("evt:gecko_evt_mesh_sensor_client_status_id\r\n");
     uint8_t *p_sensor_data = pEvent->sensor_data.data;
     uint8_t data_len = pEvent->sensor_data.len;
@@ -583,7 +583,7 @@ void HandleServerProperty(msg_ms_client_status_evt *pEvent)
 // @param[in] pEvent  Pointer to sensor client Series status event.
 //******************************************************************************
 void HandleServerSeriesProperty(msg_ms_client_series_status_evt *pEvent)
-{ TraceProc();
+{ 
     
     PrintDataByte("HandleServerSeriesProperty", pEvent->sensor_data.data, pEvent->sensor_data.len);
 }
@@ -598,7 +598,7 @@ void HandleServerSeriesProperty(msg_ms_client_series_status_evt *pEvent)
 void SendServerNodeData(PUCHAR p_buff, uchar size);
 
 void HandleServerColumnProperty(msg_ms_client_column_status_evt *pEvent)
-{ TraceProc();
+{ 
     //PrintDataByte("HandleServerColumnProperty", pEvent->sensor_data.data, pEvent->sensor_data.len);
     SendServerNodeData(pEvent->sensor_data.data,pEvent->sensor_data.len);
 }
@@ -611,7 +611,7 @@ void HandleServerColumnProperty(msg_ms_client_column_status_evt *pEvent)
 // @param[in] pEvent 
 //******************************************************************************
 void HandleClientPublish(msg_ms_client_publish_evt *pEvent)
-{ TraceProc();
+{ 
     TraceDec2("HandleClientPublish do not implement",pEvent->elem_index, pEvent->period_ms);
 }
 
@@ -625,7 +625,7 @@ void HandleClientPublish(msg_ms_client_publish_evt *pEvent)
 //
 //******************************************************************************
 PMeshNode CheckServerAddr(uint16 server_addr)
-{TraceProc();
+{
     PMeshNode p_node=NULL;
     uchar loop;
     for(loop=0; loop<CurrServerNodeNum; loop++)
@@ -645,7 +645,7 @@ PMeshNode CheckServerAddr(uint16 server_addr)
 //
 //******************************************************************************
 PMeshNode AddServerNode(word server_addr)
-{TraceProc();
+{
     PMeshNode p_node=NULL;
 
     p_node = GetServerNode(server_addr);
@@ -671,7 +671,7 @@ PMeshNode AddServerNode(word server_addr)
 //
 //******************************************************************************
 PMeshNode DeleteServerNode(word server_addr)
-{TraceProc();
+{
     PMeshNode p_node;
 //    uint16  loop;
     p_node = GetServerNode(server_addr);
@@ -694,7 +694,7 @@ PMeshNode DeleteServerNode(word server_addr)
 //
 //******************************************************************************
 void SetAllNodeStatus(uchar status)
-{TraceProc();
+{
     PMeshNode p_node;
     uchar loop;
     p_node = TotalMeshNode;
@@ -713,7 +713,7 @@ void SetAllNodeStatus(uchar status)
 //
 //******************************************************************************
 uchar SetServerNodeStatus(PMeshNode p_node,uchar status)
-{TraceProc();
+{
 
     //if(status == SERVER_STATUS_COMPLETE) p_node->ReceiveTimer = GetSoftTimer(SOFT_TIMER_GET_PROPERTY); // update receive timer
     p_node->Status = status;
@@ -728,7 +728,7 @@ uchar SetServerNodeStatus(PMeshNode p_node,uchar status)
 //
 //******************************************************************************
 uchar GetServerNodeStatus(PMeshNode p_node)
-{TraceProc();
+{
     return p_node->Status;
 }
 
@@ -739,7 +739,7 @@ uchar GetServerNodeStatus(PMeshNode p_node)
 //
 //******************************************************************************
 uchar SetServerNodeProperty(PMeshNode p_node,uchar property)
-{TraceProc();
+{
 
     p_node->Properities |= property;
     
@@ -752,7 +752,7 @@ uchar SetServerNodeProperty(PMeshNode p_node,uchar property)
 //
 //******************************************************************************
 uchar GetServerNodeProperty(PMeshNode p_node)
-{TraceProc();
+{
     return p_node->Properities;
 }
 
@@ -771,7 +771,7 @@ int16 change(int16 num)
 
 
 void DisplayProperty(PMeshNode p_node,uint8_t property_len,mesh_device_properties_t property_id,mesh_device_property_t property)
-{//TraceProc();
+{
     char tmp[21];
     count16_t people_count;
     temperature_8_t temperature;
@@ -854,7 +854,7 @@ void sensor_client_publish_get_descriptor_request(void)
  * @param[in] pEvent  Pointer to sensor client descriptor status event.
  ******************************************************************************/
 void handle_sensor_client_descriptor_status(msg_ms_client_descriptor_status_evt *pEvent)
-{ TraceProc();
+{ 
     //printf("evt:gecko_evt_mesh_sensor_client_descriptor_status_id\r\n");
 
     sensor_descriptor_t descriptor;
@@ -895,7 +895,7 @@ extern int16 BLE_RSSI[5];
  * @param[in] pEvent  Pointer to sensor client status event.
  ******************************************************************************/
 void handle_sensor_client_status(msg_ms_client_status_evt *pEvent)
-{ TraceProc();
+{ 
     //printf("evt:gecko_evt_mesh_sensor_client_status_id\r\n");
     uint8_t *sensor_data = pEvent->sensor_data.data;
     uint8_t data_len = pEvent->sensor_data.len;
@@ -1001,7 +1001,7 @@ void handle_sensor_client_status(msg_ms_client_status_evt *pEvent)
 //
 //**********************************************************************************************
 uint32 HandleSensorClientEventsProc(PCmdPacket pEvent)
-{ //TraceProc();
+{ //
     uint32 ret_code = TRUE;
     uint32 event_id;
     event_id = BGLIB_MSG_ID(pEvent->header);

@@ -8,3 +8,8 @@
 // 1.14 ==> 1.Add (Skewness, Kurtosis), 2.Modify UltraSound for WaterLevel
 //          3. Add DO485(specify version),4.Add PZem(比流器、Specify version), 5.Add A6D6, 6.Add Relay status
 //          6. modify AIP status error
+
+
+==================== v1.15 ====================
+-------------------- 210623 (Richard)----------------
+ 1.  Visual Sensor 2. Add IAQS and CW9

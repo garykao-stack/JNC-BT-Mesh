@@ -12,6 +12,7 @@
 //**********************************************************************************************
 uint32 EvtMeshFriendProc(PCmdPacket pEvent)
 {
+    
     uint32 ret_code = TRUE;
     uint32    event_id;
     uint16  lpn_address;
@@ -21,9 +22,11 @@ uint32 EvtMeshFriendProc(PCmdPacket pEvent)
     {
         case Evt_m_friend_friendship_established:
             lpn_address = pEvent->data.evt_mesh_friend_friendship_established.lpn_address;
+            Trace1("Evt_m_friend_friendship_established lpn_address",lpn_address);
             break;
         case Evt_m_friend_friendship_terminated: 
             result = pEvent->data.evt_mesh_friend_friendship_terminated.reason;
+            Trace1("Evt_m_friend_friendship_terminated",result);
             break;
     };            
 

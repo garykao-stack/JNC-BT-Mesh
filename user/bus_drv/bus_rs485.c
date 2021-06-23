@@ -60,15 +60,25 @@ uchar CheckRs485Device()
     WriteNodeData();
     return SENSOR_DO_485;
 #elif defined(PZEM)
-
     const uchar PzemClean[4]={0x01, 0x42, 0x80, 0x11};
     const uchar PzemClibr[6]={0xF8, 0x41, 0x37, 0x21, 0xB7, 0x78};
     CHECK_RS485_CMD((PUCHAR)&PzemClean[0],sizeof_array(PzemClean)); UsartResetRxTx(USART_ID_TX_RX);Delay_ms(500); SetLedToggle(LED_GREEN);
-  //  CHECK_RS485_CMD((PUCHAR)&PzemClibr[0],sizeof_array(PzemClibr)); UsartResetRxTx(USART_ID_TX_RX);Delay_ms(5000); SetLedToggle(LED_GREEN);
     pFunSensor = GetPzem;GetDeviceInfoDelay = 5;
     pMeshNodeData->SensorClass = SENSOR_PZEM;
     WriteNodeData();
     return SENSOR_PZEM;
+#elif defined(OEM_SENSOR)
+
+    pFunSensor = GetOemSensor;GetDeviceInfoDelay = 5;
+    pMeshNodeData->SensorClass = SENSOR_OEM;
+    WriteNodeData();
+    return SENSOR_OEM;
+#elif defined(AGB_POWER)
+    pFunSensor = GetAgbPower;GetDeviceInfoDelay = 5;
+    pMeshNodeData->SensorClass = SENSOR_AGB_POWER;
+    WriteNodeData();
+    SetNodeStatus(NS_SERVER_RS485_ENABLE,ON);
+    return SENSOR_AGB_POWER;
 #endif
 
     if(Si7013_Detect(I2C0, SI7021_ADDR, NULL) == TRUE)
@@ -82,35 +92,30 @@ uchar CheckRs485Device()
        switch(rs485_dev)
         {
             case SENSOR_PT485:
-                if(CheckPT485() != TRUE) rs485_dev  = SENSOR_DISCONNECT;
-                break;
+                if(CheckPT485() != TRUE)    rs485_dev  = SENSOR_DISCONNECT;  break;
             case SENSOR_AIP:
-                if(CheckAIP() != TRUE) rs485_dev  = SENSOR_DISCONNECT;
-                break;
+                if(CheckAIP() != TRUE)      rs485_dev  = SENSOR_DISCONNECT; break;
             case SENSOR_A308M:
-                if(CheckA308M() != TRUE) rs485_dev  = SENSOR_DISCONNECT;
-                break;
+                if(CheckA308M() != TRUE)    rs485_dev  = SENSOR_DISCONNECT; break;
             case SENSOR_WATER_LEVEL:
-                if(CheckWaterLevel() != TRUE) rs485_dev  = SENSOR_DISCONNECT;
-                break;
+                if(CheckWaterLevel() != TRUE) rs485_dev  = SENSOR_DISCONNECT;  break;
             case SENSOR_JNC_SD:
-                if(CheckJncSd() != TRUE) rs485_dev  = SENSOR_DISCONNECT;
-                break;
+                if(CheckJncSd() != TRUE)    rs485_dev  = SENSOR_DISCONNECT;  break;
             case SENSOR_ULTRA_SOUND:
-                if(CheckUltraSound() != TRUE) rs485_dev  = SENSOR_DISCONNECT;
-                break;            
+                if(CheckUltraSound() != TRUE) rs485_dev  = SENSOR_DISCONNECT; break;            
             case SENSOR_A6D6:
-                if(CheckA6D6() != TRUE) rs485_dev  = SENSOR_DISCONNECT;
-                break;            
-            
+                if(CheckA6D6() != TRUE)     rs485_dev  = SENSOR_DISCONNECT; break;            
+            case SENSOR_IAQS:
+                if(CheckIaqs() != TRUE)     rs485_dev  = SENSOR_DISCONNECT;  break;            
+            case SENSOR_CW9:
+                if(CheckCw9() != TRUE)      rs485_dev  = SENSOR_DISCONNECT; break;            
             default: TraceErr1("CheckRs485Device",rs485_dev);
-                rs485_dev = SENSOR_DISCONNECT;
-                break;
+                rs485_dev = SENSOR_DISCONNECT;  break;
         };
       }
 Assigned:
 
-    //rs485_dev = SENSOR_A308M;
+   // rs485_dev = SENSOR_CW9; //debug
 
      if(rs485_dev == SENSOR_DISCONNECT)  rs485_dev = ScanRs485Device();     
     pMeshNodeData->SensorClass = rs485_dev;
@@ -126,6 +131,8 @@ Assigned:
     else if(rs485_dev == SENSOR_A6D6 ) {pFunSensor = GetA6D6Info; GetDeviceInfoDelay = 1;}
     else if(rs485_dev == SENSOR_SI7021 ){pFunSensor = GetSi7021Info;GetDeviceInfoDelay = 5;} //for default function
     else if(rs485_dev == SENSOR_RELAY ) {pFunSensor = GetRelay; GetDeviceInfoDelay = 2;}
+    else if(rs485_dev == SENSOR_IAQS ) {pFunSensor = GetIaqsInfo; GetDeviceInfoDelay = 2;}
+    else if(rs485_dev == SENSOR_CW9 ) {pFunSensor = GetCw9Info; GetDeviceInfoDelay = 2;}
     else {TraceErr("Sensor Check");} // 
 
     
@@ -209,12 +216,12 @@ bool CheckRs485Connect()
     bool ret_code = FALSE;
     uint16 loop;
    // return TRUE;
-    //uchar modbus_cmd[8]={0x01, 0x04, 0x00, 0x00, 0x00, 0x01, 0x31, 0xCA}; //to get device model name
+    uchar modbus_cmd1[8]={0x01, 0x04, 0x00, 0x00, 0x00, 0x01, 0x31, 0xCA}; //to get device model name
     uchar modbus_cmd[8]={0x01, 0x03, 0x04, 0x0A, 0x00, 0x02, 0xE5, 0x39}; //to get device model name
     SetLed(LED_BLUE,ON); SetLed(LED_RED,OFF);
     for(loop=0; loop<15; loop++)
         {TraceDec1("CheckRs485Connect",loop);
-         CHECK_RS485_CMD(modbus_cmd,8);
+         CHECK_RS485_CMD(modbus_cmd,8); CHECK_RS485_CMD(modbus_cmd1,8);
         if(UsartGetRxCounter() != 0) 
             {Trace("RS-485 Connect 1");
              ret_code = TRUE; break;           
@@ -286,28 +293,34 @@ uchar ScanRs485Device()
 {
     uchar ret_code = SENSOR_DISCONNECT;
     
-    if(CheckPT485() == TRUE) {
+    if(CheckPT485() == TRUE) {Trace("PT485 connect");
          ret_code = SENSOR_PT485;
         }
-    else if(CheckAIP() == TRUE)  {
+    else if(CheckAIP() == TRUE)  {Trace("AIP connect");
          ret_code = SENSOR_AIP;
         }
-    else if(CheckA308M() == TRUE) {
+    else if(CheckA308M() == TRUE) {Trace("A308M connect");
          ret_code = SENSOR_A308M;
         }
-    else if(CheckWaterLevel() == TRUE) {
+    else if(CheckWaterLevel() == TRUE) {Trace("Water Level connect");
          ret_code = SENSOR_WATER_LEVEL;
         }
-    else if(CheckJncSd() == TRUE) {
+    else if(CheckJncSd() == TRUE) {Trace("JNC SD connect");
          ret_code = SENSOR_JNC_SD;
         }
-    else if(CheckUltraSound() == TRUE) {
+    else if(CheckUltraSound() == TRUE) {Trace("Ultra Sound connect");
          ret_code = SENSOR_ULTRA_SOUND;
         }    
-    else if(CheckA6D6() == TRUE) {
+    else if(CheckA6D6() == TRUE) {Trace("A6D6 connect");
          ret_code = SENSOR_A6D6;
-        } 
-    else {ret_code = SENSOR_RELAY;}
+        }
+    else if(CheckIaqs() == TRUE) {Trace("IAQS connect");
+         ret_code = SENSOR_IAQS;
+        }
+    else if(CheckCw9() == TRUE) {Trace("CW9 connect");
+         ret_code = SENSOR_CW9;
+        }    
+    else {ret_code = SENSOR_RELAY;Trace("BTM Relay Only");}
 
     return ret_code;
 }
@@ -328,7 +341,10 @@ bool CheckPT485()
     if(UsartGetRxCounter() != 0) 
         {//Trace("RS-485 Connect");
          if(memcmp(model_name,UsartGetBuff(USART_ID_RX),DEVICE_NAME_LEN) == 0)
-            {ret_code = TRUE;}
+            {Trace("PT485 Connect");ret_code = TRUE;}
+         else TraceErr("PT485 Disconnect 1");
+        }
+    else{ TraceErr("PT485 Disconnect 2");
         }
     UsartResetRxTx(USART_ID_TX_RX);
     return ret_code;
@@ -346,8 +362,12 @@ bool CheckAIP()
     if(UsartGetRxCounter() != 0) 
         {//Trace("RS-485 Connect");
          if(memcmp(model_name,UsartGetBuff(USART_ID_RX),DEVICE_NAME_LEN) == 0)
-            {ret_code = TRUE; }
+            {Trace("AIP Connect");ret_code = TRUE; }
+         else {TraceErr("AIP Disconnect 1"); }
         }
+    else{ TraceErr("AIP Disconnect 2");
+        }
+
     UsartResetRxTx(USART_ID_TX_RX);
 
     return ret_code;
@@ -381,8 +401,12 @@ bool CheckA308M()
     if(UsartGetRxCounter() != 0) 
         {//Trace("A308M Connect");
          if(memcmp(model_name,UsartGetBuff(USART_ID_RX),DEVICE_NAME_LEN) == 0)
-            {ResetA308M();ret_code = TRUE;}
+            {ResetA308M();Trace("A308M Connect");ret_code = TRUE;}
+         else {TraceErr("A308M Disconnect 1"); }
         }
+    else{ TraceErr("A308M Disconnect 2");
+        }
+
     UsartResetRxTx(USART_ID_TX_RX);
     return ret_code;
 }
@@ -396,7 +420,10 @@ bool CheckWaterLevel()
     if(UsartGetRxCounter() != 0) 
         {
          if(memcmp(model_name,UsartGetBuff(USART_ID_RX),8) == 0)
-            {ret_code = TRUE;}
+            {Trace("Water Level Connect 1");ret_code = TRUE;}
+         else TraceErr("Water Level Disconnect 2");
+        }
+    else{ TraceErr("Water Level Disconnect 3");
         }
     UsartResetRxTx(USART_ID_TX_RX);
     return ret_code;
@@ -413,12 +440,18 @@ bool CheckJncSd()
     uchar device_name[8]={0x01, 0x03, 0x00, 0x00, 0x00, 0x03, 0x05, 0xCB}; 
     uchar model_name[11]={0x01, 0x03, 0x06, 0x53, 0x44, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x19};
     
+  // ModbusInitDelay(1000*20);
+    
     CHECK_RS485_CMD(device_name,sizeof(device_name));        
     if(UsartGetRxCounter() != 0) 
         {
          if(memcmp(model_name,UsartGetBuff(USART_ID_RX),DEVICE_NAME_LEN) == 0)
-            {ret_code = TRUE;}
+            {Trace("JNC-SD Connect 1");ret_code = TRUE;}
+         else TraceErr("JNC-SD Disconnect 2");
         }
+    else{ TraceErr("JNC-SD Disconnect 3");
+        }
+//    ret_code = TRUE;
     UsartResetRxTx(USART_ID_TX_RX);
     return ret_code;
 }
@@ -433,10 +466,31 @@ bool CheckIaqs()
     if(UsartGetRxCounter() != 0) 
         {
          if(memcmp(model_name,UsartGetBuff(USART_ID_RX),DEVICE_NAME_LEN) == 0)
-            {ret_code = TRUE;}
+            {Trace("IAQS Connect 1");ret_code = TRUE;}
+         else TraceErr("IAQS Disconnect 2");
+        }
+    else{ TraceErr("IAQS Disconnect 3");
         }
     UsartResetRxTx(USART_ID_TX_RX);
-    ret_code = FALSE;
+    return ret_code;
+}
+
+bool CheckCw9()
+{
+    bool ret_code = FALSE;
+    uchar device_name[8]={0x01, 0x03, 0x00, 0x00, 0x00, 0x03, 0x05, 0xCB}; 
+    uchar model_name[11]={0x01, 0x03, 0x06, 0x57, 0x43, 0x20, 0x39, 0x20, 0x20, 0xAA, 0x88};// CW9
+    
+    CHECK_RS485_CMD(device_name,sizeof(device_name));
+    if(UsartGetRxCounter() != 0) 
+        {
+         if(memcmp(model_name,UsartGetBuff(USART_ID_RX),DEVICE_NAME_LEN) == 0)
+            {Trace("CW9 Connect 1");ret_code = TRUE;}
+         else TraceErr("Cw9 Disconnect 2");
+        }
+    else{ TraceErr("Cw9 Disconnect 3");
+        }
+    UsartResetRxTx(USART_ID_TX_RX);
     return ret_code;
 }
 
@@ -451,7 +505,10 @@ bool CheckUltraSound()
     if(UsartGetRxCounter() != 0) 
         {
          if(memcmp(model_name,UsartGetBuff(USART_ID_RX),DEVICE_NAME_LEN) == 0)
-            {ret_code = TRUE;}
+            {Trace("JNC-UltraSound Connect 1");ret_code = TRUE;}
+         else TraceErr("JNC-UltraSound Disconnect 2");
+        }
+    else{ TraceErr("JNC-UltraSound Disconnect 3");
         }
     UsartResetRxTx(USART_ID_TX_RX);
     return ret_code;
@@ -462,16 +519,17 @@ bool CheckA6D6()
 {
     bool ret_code = FALSE;
     uchar device_name[8]={0x01, 0x03, 0x00, 0x00, 0x00, 0x03, 0x05, 0xCB}; 
-    uchar model_name[11]={0x01, 0x03, 0x06, 0x38, 0x41, 0x36, 0x44, 0x20, 0x20, 0x4E, 0x47   };// Ultra Sound
+    uchar model_name[11]={0x01, 0x03, 0x06, 0x38, 0x41, 0x36, 0x44, 0x20, 0x20, 0x4E, 0x47   };
     
-    CHECK_RS485_CMD(device_name,sizeof(device_name)); UsartPrintBuff(USART_ID_RX);
+    CHECK_RS485_CMD(device_name,sizeof(device_name)); //UsartPrintBuff(USART_ID_RX);
     if(UsartGetRxCounter() != 0) 
         {
          if(memcmp(model_name,UsartGetBuff(USART_ID_RX),DEVICE_NAME_LEN) == 0)
-            {ret_code = TRUE;}
+            {Trace("JNC-A6D6 Connect 1");ret_code = TRUE;}
+         else TraceErr("JNC-A6D6 Disconnect 2");
+        }
+    else{ TraceErr("JNC-A6D6 Disconnect 3");
         }
     UsartResetRxTx(USART_ID_TX_RX);
     return ret_code;
 }
-
-

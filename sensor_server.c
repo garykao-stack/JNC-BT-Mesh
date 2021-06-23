@@ -175,7 +175,7 @@ static const sensor_descriptor_t descriptors1[NUMBER_OF_SENSORS] = // define pro
  ******************************************************************************/
  
 uint32 EvtSensorServerEventsProc(PCmdPacket pCmdEvent)
-{//TraceProc();
+{
     uint32 ret_code = TRUE;
     uint32 event_id;
     event_id = BGLIB_MSG_ID(pCmdEvent->header);
@@ -199,7 +199,7 @@ uint32 EvtSensorServerEventsProc(PCmdPacket pCmdEvent)
  * Otherwise this function is called after provisioning is completed.
  ******************************************************************************/
 void SensorServerNodeInit(void)
-{TraceProc();
+{
     NodeWakeUp();
     uint16_t result = mesh_lib_sensor_server_init(SENSOR_ELEMENT, NUMBER_OF_SENSORS, descriptors);
     Printf("sensor init result %02x\r\n", result);

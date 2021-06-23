@@ -34,6 +34,8 @@ bool CheckPT485();
 bool CheckAIP();
 bool CheckJncSd();
 bool CheckIaqs();
+bool CheckCw9();
+
 bool CheckWaterLevel();
 bool CheckA308M();
 bool CheckUltraSound();

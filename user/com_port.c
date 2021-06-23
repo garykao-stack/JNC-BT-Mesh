@@ -31,7 +31,7 @@ void ComPortInit()
 
 
 void ComPortProc(void)
-{//TraceProc();
+{
  //   uchar response_num;
 //    UsartMonitor();
     return;
@@ -66,7 +66,7 @@ uchar ProtocolProc()
 // 2. To COM port Tx
 //
 void ComPortSendCmd(uchar size)
-{TraceProc();
+{
     UsartSendCmd(size);
 }
 

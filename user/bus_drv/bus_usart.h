@@ -31,8 +31,8 @@
 #define BAUDRATE_CLOSE              0xFF
 
 #define MAX_BAUD_RATE_NUM           14
-#define USART_TX_BUFF_SIZE          40
-#define USART_RX_BUFF_SIZE          40 //Bug
+#define USART_TX_BUFF_SIZE          50
+#define USART_RX_BUFF_SIZE          50 //Bug
 
 
 
@@ -116,7 +116,7 @@
 #define TIME_OUT_COUNT_RX        WAIT_MS(20)    //20ms
 
 
-extern uchar   CounterRx,CounterTx;
+extern uchar volatile CounterRx,CounterTx;
 extern uchar RxBuff[];
 extern uchar UsartCounterTx,UsartCounterRx;
 

@@ -8,6 +8,13 @@
 #ifndef _MEAH_SERVER_H_
 #define _MEAH_SERVER_H_
 
+
+#define TIMER_WAIT_SEND_INFO        WAIT_MS(TIMER_SERVER_SENS_INFO) 
+#define TIMER_WAIT_SLEEPING         WAIT_SEC(3)     //WAIT_MS(pMeshNodeData->MeshNodeID*3)
+#define TIMER_GET_SENSOR_INFO       WAIT_MS(300)
+
+
+
 #define SENSOR_ELEMENT          0 ///< Sensor client model located in primary element
 #define PUBLISH_ADDRESS         0 ///< The unused 0 address is used for publishing
 #define IGNORED                 0 ///< Parameter ignored for publishing
@@ -62,6 +69,7 @@
 #define AIP_POWER_CTRL_100      4
 
 #define AIP_POWER_CTRL_CMD(cmd)  ((PUCHAR)&AipPowerCtrlCmd[cmd][0])
+#define AGB_POWER_CTRL_CMD(cmd)  ((PUCHAR)&AgbPowerCtrlCmd[cmd][0])
 
 
 #define A308M_CMD_WRITE_NEW_BIAS 0
@@ -109,6 +117,13 @@ bool GetDo485();
 bool GetA6D6Info();
 bool GetPzem();
 bool GetRelay();
+bool GetOemSensor();
+bool GetAgbPower();
+bool GetIaqsInfo();
+bool GetCw9Info();
+bool GetIaqsCw9();
+
+
 
 
 

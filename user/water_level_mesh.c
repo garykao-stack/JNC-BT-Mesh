@@ -143,13 +143,13 @@ bool DeviceLevelInfo(void)
     pDevStartCin = CdcValue;    // start from CIN0
     switch(pDeviceInfo->DeviceKind)
         {
-            case DEVICE_KIND_WATER: 
+            case DEVICE_KIND_WATER: Trace("DEVICE_KIND_WATER");
                     WaterLevelInfo();
                 break;
-            case DEVICE_KIND_OIL:  
+            case DEVICE_KIND_OIL:   Trace("DEVICE_KIND_OIL");
                     OilLevelInfo();
                 break;
-            case DEVICE_KIND_WATER_OIL: 
+            case DEVICE_KIND_WATER_OIL: Trace("DEVICE_KIND_WATER_OIL");
                     WaterOilLevelInfo();
                 break;
             case DEVICE_KIND_WATER_MUD:                

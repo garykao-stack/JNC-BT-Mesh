@@ -92,6 +92,8 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
     printf("Firmware Version for DO-485 Only ==> %1.3f %02d Sec \r\n\r\n", 1.00, TIMER_GET_INFO_SLEEPING);
 #elif defined(PZEM)
     printf("Firmware Version for PZEM Only ==> %1.3f %02d Sec \r\n\r\n", 1.00, TIMER_GET_INFO_SLEEPING);
+#elif defined(OEM_SENSOR)
+        printf("Firmware Version for OEM_SENSOR Only ==> %1.3f %02d Sec \r\n\r\n", 1.00, TIMER_GET_INFO_SLEEPING);
 #else 
     printf("Firmware Version ==> %1.3f %02d Sec \r\n\r\n", FW_VER/100.0, TIMER_GET_INFO_SLEEPING);
 #endif

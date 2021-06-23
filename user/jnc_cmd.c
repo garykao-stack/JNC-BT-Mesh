@@ -16,7 +16,7 @@ void JncCmdInit(void)
 }
 
 uchar JncCmdProc(void)
-{TraceProc();
+{
 }
 
 

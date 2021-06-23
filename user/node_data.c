@@ -34,14 +34,14 @@ word LevelDataRead[12];
 
 
 void NodeDataInit()
-{TraceProc();
+{
 
     TraceDec1("MeshNodeData Size", sizeof(_Mesh_Node_Data));
     pMeshNodeData = &MeshNodeData;
-    pAdjValue = &AdjustValue;
+    pAdjValue = &AdjustValue;   
     ReadNodeData();
     //PrintDataByte("MeshNodeData", (PUCHAR)pMeshNodeData,NODE_DATA_SIZE);
-   // PrintDataByte("Adjust Value", (PUCHAR)pAdjValue,ADJUST_VALUE_SIZE);
+    //PrintDataByte("Adjust Value", (PUCHAR)pAdjValue,ADJUST_VALUE_SIZE);
     if(pMeshNodeData->DataInitID != NODE_DATA_ID) MeshNodeDataReset();
     return;
 }
@@ -49,7 +49,7 @@ void NodeDataInit()
 
 
 void MeshNodeDataReset()
-{TraceProc();
+{
 
     memset(&MeshNodeData,0,NODE_DATA_SIZE);
     pMeshNodeData->DataInitID=NODE_DATA_ID;    
@@ -93,7 +93,7 @@ void MeshNodeDataReset()
 // error code:0x018A
 //
 Result WriteNodeData()
-{TraceProc();
+{
     Result ret_code=RESULT_OK;
 
    ret_code = Cmd_flash_ps_save(PS_KEY_MESH_NODE_DATA,NODE_DATA_SIZE,(const uint8*)pMeshNodeData)->result;
@@ -113,7 +113,7 @@ Result WriteNodeData()
 //
 //
 Result ReadNodeData()
-{TraceProc();
+{
   Result ret_code=RESULT_OK;
 
   struct gecko_msg_flash_ps_load_rsp_t* pRsp;
@@ -136,7 +136,7 @@ Result ReadNodeData()
 //write calibration dat to PS
 //
 Result WriteWlCalData()
-{TraceProc();
+{
     Result ret_code=RESULT_OK;
     
     return ret_code;
@@ -147,7 +147,7 @@ Result WriteWlCalData()
 //
 //
 Result ReadWlCalData()
-{TraceProc();
+{
     Result ret_code=RESULT_OK;
     
     return ret_code;
@@ -190,7 +190,7 @@ Result SetMeshNodeData(uint16 key, PUCHAR pnode_data, uchar size)
 //
 //
 bool EraseCalibrationData()
-{TraceProc();
+{
     bool ret_code=TRUE;
     MSC_Status_TypeDef rsp_code;
     dword ctune=0; 
@@ -212,7 +212,7 @@ bool EraseCalibrationData()
 // pBuff = point to buffer of data
 // write data to UD
 MSC_Status_TypeDef WriteCalibrationData(byte index,void* pBuff)
-{TraceProc();
+{
   MSC_Status_TypeDef ret_code=mscReturnOk;
   uint32_t * ptr_user_data;
   ptr_user_data = (uint32_t*)(CAL_DATA_ADDR+(index*ONE_LEVEL_BUFF_SIZE));
@@ -235,7 +235,7 @@ MSC_Status_TypeDef WriteCalibrationData(byte index,void* pBuff)
 // pBuff = point to buffer of data
 // read data from UD
 int ReadCalibrationData(byte index,void* pBuff)
-{TraceProc();
+{
     int ret_code=TRUE;
     void* ptr_user_data;
     ptr_user_data = (void*)(CAL_DATA_ADDR+(index*ONE_LEVEL_BUFF_SIZE));

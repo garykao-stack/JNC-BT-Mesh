@@ -18,7 +18,7 @@ SPIDRV_Handle_t SpiHandleMaster = &SpiHandleDataMaster;
 
 
 void SpiInit(void) //void initUSART1 (void)
-{TraceProc();
+{
     
     Ecode_t error_code;
     if(!GetMeshNodeStatus(STATUS_SPI_ENABLE)) return;
@@ -104,7 +104,7 @@ if(!GetMeshNodeStatus(STATUS_SPI_ENABLE)) return;
 
 // Set all of the CS of IC ON/OFF
 void SpiSetAllCS(uchar status)
-{//TraceProc();
+{
     _PDeviceSpi p_deviceCs;
     p_deviceCs = DeviceSpi;
     if(!GetMeshNodeStatus(STATUS_SPI_ENABLE)) return;
@@ -119,7 +119,7 @@ void SpiSetAllCS(uchar status)
 
 
 bool SpiWrite(PUCHAR tx_buff,uchar size)
-{//TraceProc();
+{
     Ecode_t err_code; 
     bool ret_code=false;
     if(!GetMeshNodeStatus(STATUS_SPI_ENABLE)) return FALSE;
@@ -135,7 +135,7 @@ bool SpiWrite(PUCHAR tx_buff,uchar size)
 }
 
 bool SpiRead(PUCHAR cmd_buff, int cmd_size,PUCHAR rx_buff,int rx_size)
-{//TraceProc();
+{
 
     bool ret_code=false;
     Ecode_t err_code;
@@ -156,7 +156,7 @@ bool SpiRead(PUCHAR cmd_buff, int cmd_size,PUCHAR rx_buff,int rx_size)
 
 #else
 void SpiInit(void) //void initUSART1 (void)
-{TraceProc();
+{
 }
 
 

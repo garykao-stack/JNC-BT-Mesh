@@ -211,7 +211,7 @@ void BtMeshReset();
 //
 //**********************************************************************************************
 uint32 EvtSoftTimerProc(PCmdPacket pEvent)
-{ 
+{ //
     uint32 ret_code=TRUE;
     uchar    stage;
     CurrTimerHandle = pEvent->data.evt_hardware_soft_timer.handle;
@@ -235,7 +235,24 @@ uint32 EvtSoftTimerProc(PCmdPacket pEvent)
             Trace("TD_NODE_WAKE_UP");
             //NodeLpn(ON);
             break;
-
+       // case TD_USART_RX: //Trace("TD_USART_RX Ending");
+             //SetTimerTaskEvent(TIMER_EVENT_USART_RX,ON);
+            // UsartSetStage(USART_STAGE_RX_END); // for server node 23 bytes
+             //UsartSetStage(USART_STAGE_TX_CLEAN);
+             //if(UsartGetRxCounter() == 8) UsartSetStage(USART_STAGE_RX_END);
+             //else {TraceErr1("TD_USART_RX: Usart Rx Ending",UsartGetRxCounter());UsartSetStage(USART_STAGE_RX_CLEAN);}
+             
+        //    break;
+        /*
+        case TD_SERVER_WAKE_UP:
+            SetTimerTaskEvent(TIMER_EVENT_WAKE_UP,ON);
+           // PowerTimerProc();
+            break;
+        case TD_SERVER_SLEEPING:
+            SetTimerTaskEvent(TIMER_EVENT_WAKE_UP,OFF);
+           // PowerTimerProc();
+            break;
+        */
 //////////////////////////////////// for Client Timer event ///////////////////////////////////////      
         case TD_TASK_CLIENT_SCAN_SERVER: //Trace("TD_TASK_CLIENT_SCAN_SERVER");
             //TimerEvent |= TIMER_EVENT_SCAN_SERVER;
@@ -248,19 +265,19 @@ uint32 EvtSoftTimerProc(PCmdPacket pEvent)
         case TD_SYS_RESET: Trace("System Reset"); Delay_ms(200); //while(1);
             if(!GetMeshNodeStatus(STATUS_BLE_CONNECT)) BtMeshReset();
             break;
-        case TD_GET_SENSOR_INFO:
+        case TD_GET_SENSOR_INFO: //Trace("TD_GET_SENSOR_INFO");
             SetMeshNodeStatus(STATUS_GET_SENSOR_INFO,ON);
             break;        
-        case TD_GET_SENSOR_ENDING: 
+        case TD_GET_SENSOR_ENDING: //Trace("TD_GET_SENSOR_ENDING");
             SetMeshNodeStatus(STATUS_GET_SENSOR_ENDING,OFF);
             break;
-        case TD_SYS_SETUP_RESET: 
+        case TD_SYS_SETUP_RESET: Trace("TD_SETUP_RESET");
             Cmd_sys_reset(0);
             break;
-        case TD_SET_MODBUS_CMD: 
+        case TD_SET_MODBUS_CMD: Trace("TD_SET_MODBUS_CMD"); // 2 sec
             SetMeshNodeStatus(STATUS_SET_MODBUS_CMD,OFF);
             break;
-        case TD_CHECK_DEV_NODE: 
+        case TD_CHECK_DEV_NODE: TraceErr("TD_CHECK_DEV_NODE");
            // CheckNodeActionStatus();
             break;
             
@@ -276,7 +293,7 @@ uint32 EvtSoftTimerProc(PCmdPacket pEvent)
             //TimerEvent |= TIMER_EVENT_OTHER_PROC;
             TimerIdOtherProc();
         break;
-      default: break;
+      default: TraceDec1("Timer Message Error",CurrTimerHandle);  break;
     }
     return ret_code;
 }
@@ -292,19 +309,21 @@ void TimerLedStatus()
 {
     switch(CurrTimerHandle)
         {
-            case TD_UNPROVISION: 
+            case TD_UNPROVISION: Trace("TD_UNPROVISION");
                 SetLedStatus(LED_STATUS_UNPROV);
                 break;
-            case TD_PROVISIONING: 
+            case TD_PROVISIONING: //Trace("TD_PROVISIONING");
                 if (!init_done) SetLedStatus(LED_STATUS_PROVING);
                 break;
-            case TD_NO_EVENT: 
+            case TD_NO_EVENT: //TraceDec1("TD_NO_EVENT",CountNodeEvent);
                 if(GetMeshNodeStatus(STATUS_IVI_UPDATE) == ON)  
-                    {
+                    {Trace("IVI UPDATE ON");
                      SetLedStatus(LED_STATUS_IVI_UPDATE_ON);
                     }
                 if(++CountNodeEvent > COUNT_NO_EVENT) 
-                { Delay_ms(500);
+                { Trace("IVI Update reset"); Delay_ms(500);
+                    //debug to disable
+                    //Cmd_sys_reset(0);
                 }
                 break;
             
@@ -325,15 +344,19 @@ void TimerIdOtherProc()
 {
     switch(CurrTimerHandle)
         {
-            case TD_PROVISIONING: 
+            case TD_PROVISIONING: //Trace("TD_PROVISIONING");
                 if (!init_done) led_set_state(LED_STATE_PROV); 
                 break;
-            case TD_RESTART:
+            case TD_RESTART: Trace("TD_RESTART");
                 Cmd_sys_reset(0);
                 break;
-            case TD_FACTORY_RESET:
+            case TD_FACTORY_RESET:  Trace("TD_FACTORY_RESET");
                 Cmd_sys_reset(0);
                 break;
+           // case TD_LED_TOGGLE:  //Trace("TD_LED_TOGGLE");
+           //     SetLedToggle(LED0);
+           //     break;
+            
             default: TraceErr1("TimerIdOtherProc",CurrTimerHandle); break;
                 
         };    
