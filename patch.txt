@@ -13,3 +13,9 @@
 ==================== v1.15 ====================
 -------------------- 210623 (Richard)----------------
  1.  Visual Sensor 2. Add IAQS and CW9
+
+==================== v1.16 ====================
+-------------------- 210802 (Richard)----------------
+1. add Co2 sensor 
+2. add Gain & Offset 
+3. Add working Timer and Server Class
