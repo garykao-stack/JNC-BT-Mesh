@@ -54,6 +54,7 @@ void iv_config(uint8_t iv_test_mode, uint8_t iv_recovery_mode, uint8_t snb_state
     Printf("%s SNB %s\r\n", snb_state ? "Enable" : "Disable",
     Cmd_mt_set_local_config(mesh_node_beacon, 0, 1, &snb_state)->result ? "FAILED" : "SUCCESS");
 }
+ 
 
 //
 //
@@ -67,12 +68,16 @@ void NodeIviUpdateProc(void)
                 case NODE_STAGE_INIT:   Trace("IVI_UPDATE_INIT");
                     ToNextStage(IVI_DETECT);   //default
                     break;
-                case IVI_DETECT: 
+                case IVI_DETECT: // Trace("IVI_DETECT");
                     if(GetNodeStatus(NS_IVI_UPDATE) == ON)
                         {Trace("To IVI_UPDATE_ACTION 1");
                          ToWaitingStage(IVI_UPDATE_ACTION,WAIT_SEC(1));
                         }
                     break;
+                    
+               // case IVI_UPDATE_WAIT:  //Trace("IVI_UPDATE_WAIT");
+                //    if(CheckWaitTimeOut()) ToNextStage(IVI_UPDATE_ACTION);
+                 //   break;
                     
                 case IVI_UPDATE_ACTION:  Trace("IVI_UPDATE_ACTION");
                     IvIndexUpdate(ON);
@@ -111,7 +116,7 @@ bool MeshCheckSeqNum()
         // Trace1("Remain Seq Nnm",p_remain_seq_num->count);
         if(p_remain_seq_num->count < REMAIN_SEQ_NUM_MIN)
             {
-             ret_code = TRUE;
+             ret_code = FALSE;
             }
 
     }
@@ -147,12 +152,15 @@ Bool IvIndexUpdate(uchar status)
         if(result)
         {
             TraceErr1("Cmd_mt_set_ivupdate_test_mode", result);
+            //return ret_code;
         }
         TraceOk("Cmd_mt_set_ivupdate_test_mode");
+        //richard Add
         result = Cmd_mt_set_iv_index(pMeshNodeData->IvIndex + IVI_INC_MIN)->result;
         if(result)
         {
             TraceErr1("Cmd_mt_set_iv_index", result);
+           // return ret_code;
         }
 
         TraceOk("Cmd_mt_set_iv_index");
@@ -163,6 +171,7 @@ Bool IvIndexUpdate(uchar status)
         result = Cmd_mn_req_ivupdate()->result;
         if(result)
         {TraceErr1("Cmd_mn_req_ivupdate", result);
+          //  return ret_code; // 0x181 error
         }
         TraceOk("Cmd_mn_req_ivupdate");
         IviUpdateStatus(ON);

@@ -49,6 +49,20 @@ typedef struct
     uint16  TotalReg;
     uint16  ModbusCrc;
 } _ModbusCmdF4,*_PModbusCmdF4;
+
+//
+// for Function 6: setup
+//
+typedef struct
+{
+    uchar   ModbusID;
+    uchar   FunCode;
+    uint16  StartAddr;
+    uint16  Value;
+    uint16  ModbusCrc;
+} _ModbusCmdF6,*_PModbusCmdF6;
+
+
 #pragma pack(pop)
 
 #define MODBUS_ADDR_G6S_POWER       0x02FE
@@ -105,8 +119,10 @@ typedef struct
 
 #define BATTERY_POWER           0x0308  //for 
 
+#define SENSOR_CO2              0x0300  //for Co2
 #define SI7021_TEMP             0x0302  //for SI7021
 #define SI7021_RH               0x0303  //for SI7021
+
 
 #define PT485_TEMP              SI7021_TEMP  //for AIP
 
@@ -268,10 +284,12 @@ bool ClientRelay(PRelayNode p_info);
 bool ClientOemSensor(POemSensor p_info);
 bool ClientIAQS(PIaqsInfo p_info);
 bool ClientCW9(PCw9Info p_info);
+bool ClientSkynetCo2(PSkynetCo2 p_info);
 
 void ShowAllNodeInfo(void);
 void ShowEventInfo(PClientInfo p_info);
 uint16 GetProperityID();
+void ModbusAddCrc();
 
 
 

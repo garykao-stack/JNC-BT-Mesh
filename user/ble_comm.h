@@ -198,7 +198,6 @@ typedef struct _EventFun_
 #define TX_POWER_MID                50  //for +50db
 #define TX_POWER_LO                 0   //for +0db
 
-#define TIMER_NODE_SLEEPING         1000    //xx sec
 
 
 // NS ==> NODE_STATUS
@@ -288,6 +287,8 @@ typedef struct _EventFun_
 
 
 #define KEY_FACTORY_RESET           10   // reset bt node to unprovision
+#define KEY_NODE_SETUP              15   // BT Mesh enter setup model
+
 #define BT_NODE_ROLE_OTHER          20
 
 

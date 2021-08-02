@@ -46,6 +46,8 @@ void Rs485StandbyMode()
       }
 }
 
+const uchar PzemClean[4]={0x01, 0x42, 0x80, 0x11};
+const uchar PzemClibr[6]={0xF8, 0x41, 0x37, 0x21, 0xB7, 0x78};
  
 //
 // check RS-485 conect or not
@@ -53,36 +55,43 @@ void Rs485StandbyMode()
 uchar CheckRs485Device()
 {
     uchar rs485_dev = SENSOR_DISCONNECT;
-
-#if defined(JNC_DO_485)
-    pFunSensor = GetDo485;GetDeviceInfoDelay = 5;
-    pMeshNodeData->SensorClass = SENSOR_DO_485;
-    WriteNodeData();
-    return SENSOR_DO_485;
-#elif defined(PZEM)
-    const uchar PzemClean[4]={0x01, 0x42, 0x80, 0x11};
-    const uchar PzemClibr[6]={0xF8, 0x41, 0x37, 0x21, 0xB7, 0x78};
-    CHECK_RS485_CMD((PUCHAR)&PzemClean[0],sizeof_array(PzemClean)); UsartResetRxTx(USART_ID_TX_RX);Delay_ms(500); SetLedToggle(LED_GREEN);
-    pFunSensor = GetPzem;GetDeviceInfoDelay = 5;
-    pMeshNodeData->SensorClass = SENSOR_PZEM;
-    WriteNodeData();
-    return SENSOR_PZEM;
-#elif defined(OEM_SENSOR)
-
-    pFunSensor = GetOemSensor;GetDeviceInfoDelay = 5;
-    pMeshNodeData->SensorClass = SENSOR_OEM;
-    WriteNodeData();
-    return SENSOR_OEM;
-#elif defined(AGB_POWER)
-    pFunSensor = GetAgbPower;GetDeviceInfoDelay = 5;
-    pMeshNodeData->SensorClass = SENSOR_AGB_POWER;
-    WriteNodeData();
-    SetNodeStatus(NS_SERVER_RS485_ENABLE,ON);
-    return SENSOR_AGB_POWER;
-#endif
+   // pMeshNodeData->SensorClass = SENSOR_SI7021;
+    TraceDec1("BTM Sensor", pMeshNodeData->SensorClass);
+    if(pMeshNodeData->SensorClass == SENSOR_PZEM){Trace("SENSOR_PZEM");
+        CHECK_RS485_CMD((PUCHAR)&PzemClean[0],sizeof_array(PzemClean)); UsartResetRxTx(USART_ID_TX_RX);Delay_ms(500); SetLedToggle(LED_GREEN);
+        pFunSensor = GetPzem;GetDeviceInfoDelay = 5;
+        //pMeshNodeData->SensorClass = SENSOR_PZEM; WriteNodeData();
+        SetNodeStatus(NS_SERVER_RS485_ENABLE,ON);
+        rs485_dev = SENSOR_PZEM; goto Check485_End;
+        //return SENSOR_PZEM;
+        
+        }    
+    else if(pMeshNodeData->SensorClass == SENSOR_OEM){Trace("SENSOR_OEM");
+        pFunSensor = GetOemSensor;GetDeviceInfoDelay = 5;
+        //pMeshNodeData->SensorClass = SENSOR_OEM; WriteNodeData();
+        SetNodeStatus(NS_SERVER_RS485_ENABLE,ON);
+        rs485_dev = SENSOR_OEM; goto Check485_End;
+        //return SENSOR_OEM;
+        }
+    else if(pMeshNodeData->SensorClass == SENSOR_AGB_POWER){Trace("SENSOR_AGB_POWER");
+        pFunSensor = GetAgbPower;GetDeviceInfoDelay = 5;
+        //pMeshNodeData->SensorClass = SENSOR_AGB_POWER; WriteNodeData();
+        SetNodeStatus(NS_SERVER_RS485_ENABLE,ON);
+        rs485_dev = SENSOR_AGB_POWER; goto Check485_End;
+       // return SENSOR_AGB_POWER;
+        }
 
     if(Si7013_Detect(I2C0, SI7021_ADDR, NULL) == TRUE)
-        {pMeshNodeData->SensorClass = SENSOR_SI7021;rs485_dev = SENSOR_SI7021;  goto Assigned;}
+      {
+        if(CheckCDMCo2() != TRUE){Trace("Skynet");
+            pMeshNodeData->SensorClass = SENSOR_SI7021;rs485_dev = SENSOR_SI7021;  goto Assigned;
+        }
+        else{ Trace("CDM Co2");
+            pMeshNodeData->SensorClass = SENSOR_SKYNET_CO2;rs485_dev = SENSOR_SKYNET_CO2;  goto Assigned;
+        }
+       
+      }
+  
     if(CheckRs485Connect() == FALSE) 
         {pMeshNodeData->SensorClass = SENSOR_DISCONNECT; goto Assigned;}
     
@@ -115,8 +124,6 @@ uchar CheckRs485Device()
       }
 Assigned:
 
-   // rs485_dev = SENSOR_CW9; //debug
-
      if(rs485_dev == SENSOR_DISCONNECT)  rs485_dev = ScanRs485Device();     
     pMeshNodeData->SensorClass = rs485_dev;
     
@@ -133,15 +140,15 @@ Assigned:
     else if(rs485_dev == SENSOR_RELAY ) {pFunSensor = GetRelay; GetDeviceInfoDelay = 2;}
     else if(rs485_dev == SENSOR_IAQS ) {pFunSensor = GetIaqsInfo; GetDeviceInfoDelay = 2;}
     else if(rs485_dev == SENSOR_CW9 ) {pFunSensor = GetCw9Info; GetDeviceInfoDelay = 2;}
+    else if(rs485_dev == SENSOR_SKYNET_CO2 ) {pFunSensor = GetSkynetCo2Info; GetDeviceInfoDelay = 2;}
     else {TraceErr("Sensor Check");} // 
 
-    
-    if(rs485_dev == SENSOR_SI7021 || rs485_dev == SENSOR_RELAY)
-        {
+
+Check485_End:    
+    if(rs485_dev == SENSOR_SI7021 || rs485_dev == SENSOR_RELAY){
          SetNodeStatus(NS_SERVER_RS485_ENABLE,OFF);
         }
-    else
-        {
+    else{
          SetLedStatus(LED_STATUS_SERVER_TO_RS485);
          SetLedStatus(LED_STATUS_SERVER_IO_CHANGE);
          SetNodeStatus(NS_SERVER_RS485_ENABLE,ON);        
@@ -321,6 +328,25 @@ uchar ScanRs485Device()
          ret_code = SENSOR_CW9;
         }    
     else {ret_code = SENSOR_RELAY;Trace("BTM Relay Only");}
+
+    return ret_code;
+}
+
+//
+//
+bool CheckCDMCo2()
+{
+    bool ret_code = FALSE;
+    uchar device_name[6]={0xFE, 0x64, 0x0F, 0x00, 0x75, 0xE3}; //to get PT485 model name
+    CHECK_RS485_CMD(device_name,sizeof(device_name));
+    if(UsartGetRxCounter() != 0){//Trace("RS-485 Connect");
+         if(memcmp(device_name,UsartGetBuff(USART_ID_RX),sizeof(device_name)) == 0)
+            {Trace("CDMCo2 Connect");ret_code = TRUE;}
+         else TraceErr("CDMCo2 Disconnect 1");
+        }
+    else{ TraceErr("CDMCo2 Disconnect 2");
+        }
+    UsartResetRxTx(USART_ID_TX_RX);
 
     return ret_code;
 }
@@ -533,3 +559,5 @@ bool CheckA6D6()
     UsartResetRxTx(USART_ID_TX_RX);
     return ret_code;
 }
+
+

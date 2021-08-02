@@ -24,13 +24,14 @@ typedef struct
   uint16    IvIndex,AppkeyIndex,NetkeyIndex;
   uint16    NetKey,AppKey,DeviceKey;
   uchar     TxPower;            // for BLE power
-  uchar     CTune;              // for BLE RF sensivity
-  int16     TxGain,RxGain;      //
+  uchar     Reserver1;              // for BLE RF sensivity
+  uint16    WorkingTimer;
+  uint16    Reserver2;      //
   ////// to add other Items
   uint16    Status;
   short     TempDiff,HumidityDiff;// for Temp & RH calibration ±12.7°C and ±20%
-  uint16    WorkingTimer;       // xx sec
-  uint16    Reserver1;          // 
+  uint16    Reserver5;       // xx sec
+  uint16    Reserver4;          // 
   uint32    Reserver[1];
 } _Mesh_Node_Data,*_PMesh_Node_Data;
 
@@ -106,6 +107,7 @@ MSC_Status_TypeDef WriteCalibrationData(uchar index,void* pBuff);
 int ReadCalibrationData(uchar index,void* pBuff);
 uchar GetMeshNodeData(uint16 key, PUCHAR pnode_data);
 Result SetMeshNodeData(uint16 key, PUCHAR pnode_data, uchar size);
+void MeshNodeSetupReset();
 
 
 #endif //_NODE_DATA_

@@ -35,18 +35,17 @@ bool CheckAIP();
 bool CheckJncSd();
 bool CheckIaqs();
 bool CheckCw9();
-
 bool CheckWaterLevel();
 bool CheckA308M();
 bool CheckUltraSound();
 bool CheckA6D6();
+bool CheckCDMCo2();
 
 uchar ScanRs485Device();
 bool CheckRs485Connect();
 bool ModbusCmdPT485();
 bool ModbusCmdAIP();
 uint16 Rs485ValuePT485();
-uchar CheckRs485Device();
 void ModbusInitDelay(uint16 timer_ms);
 
 

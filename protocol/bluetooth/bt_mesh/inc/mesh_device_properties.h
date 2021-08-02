@@ -1071,7 +1071,6 @@ typedef enum mesh_device_properties_e {
   MODBUS_SET_REGS_VALUE                         = 0x2021,   
   
   ///////////////////////////////////////////////////////////////////////////////////////
-#if 1
 
   // for v1.06
   NODE_GET_ALL_SENSOR                           = 0x8030,     // for all sensor info
@@ -1085,23 +1084,6 @@ typedef enum mesh_device_properties_e {
   NODE_GET_WATER_LEVEL                          = 0x803D,     // get water level info
   NODE_GET_OIL_LEVEL                            = 0x803E,     // get oil level info
   NODE_GET_STATUS                               = 0x803F,     // For Node status 8 bits: 1. Switch Open(Urgent), 2. bettry Low
-
-
-#else   
-  //Old define ver1.05
-  
-  NODE_GET_ALL_SENSOR                           = 0x803F,     // for all sensor info
-  NODE_GET_TEMP                                 = 0x8031,     // for Temperature
-  NODE_GET_RH                                   = 0x8032,     // for Humidity
-  NODE_GET_BATTERY_POWER                        = 0x8036,    // for Battery Power
-  NODE_GET_TEMP_RH                              = 0x8033,     // for temperature and humidity
-  NODE_GET_WATER_LEVEL                          = 0x8034,     // get water level info
-  NODE_GET_OIL_LEVEL                            = 0x8035,     // get oil level info
-  
-  
-  NODE_GET_STATUS                               = 0x8030,     // For Node status 8 bits: 1. Switch Open(Urgent), 2. bettry Low
-  
-#endif  
   ///////////////////////////////////////////////////////////////////////////////////////
   NODE_SET_STATUS_CLEAN                         = 0x8040,     // for Set Node function 
   NODE_SET_SLEEPING                             = 0x8041,     // for Set Node function

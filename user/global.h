@@ -12,7 +12,9 @@
 // 1.15
 //          1. For OEM and Visual Sensor 2. Add IAQS and CW9
 
-#define FW_VER              115
+// 1.16     1. add Co2 sensor 2. add Gain & Offset 3. Add working Timer and Server Class
+
+#define FW_VER              116
 #define HW_VER              110
 #define DEVICE_NAME         "JNC-BT-Mesh"
 #define MANUFACTORY_NAME    "JNC"
@@ -24,7 +26,7 @@
 #ifndef _GLOBAL_H_
 #define _GLOBAL_H_
 
-//#define DEBUG_PRINT
+#define DEBUG_PRINT
 #define BTM_TEST
 
 

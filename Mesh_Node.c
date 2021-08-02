@@ -25,7 +25,9 @@ uint32  NodeStatus;
 uchar   NodeRole;       // 0: server, 1: client, 2:Friend, 3: LPN
 _NodeEventInfo  NodeEventInfo;
 PNodeEventInfo  pNodeEventInfo;
-uint16  GetInfoCycle=WAIT_SEC(TIMER_GET_INFO_SLEEPING);
+//uint16  GetInfoCycle=WAIT_SEC(TIMER_GET_INFO_SLEEPING);
+uint16  GetInfoCycle;
+
 uchar   UsartRxCount;   // Receive data from Rx bytes
 PFunSensor pFunSensor;
 
@@ -67,7 +69,9 @@ void MeshNodeInit()
     pNodeEventInfo = &NodeEventInfo;
     SetEventTaskTimer(TD_STAGE_TIMER,  TIMER_STAGE_WAITING,TIMER_EVENT_REPEAT);
     TraceDec1("NodeRole 2",NodeRole);
-    if(NodeRole == NR_CLIENT) ClientNodeInit();
+
+    if(NodeRole == NR_SETUP)BtMeshSetupInit();
+    else if(NodeRole == NR_CLIENT) ClientNodeInit();
     else if(NodeRole == NR_SERVER) ServerNodeInit();
     else if(NodeRole == NR_SETUP_SERVER) ServerSetupNodeInit();
     else {ServerNodeInit();TraceErr1("MeshNodeInit",NodeRole);} //default server node
@@ -168,14 +172,10 @@ bool SetNodeSleeping(uchar status)
 {
     bool ret_code=TRUE;
 
-    if(status == ON)
-        {Trace("Set Node Sleeping ON");
-         //SetNodeStatus(NS_SLEEPING,ON);
+    if(status == ON){Trace("Set Node Sleeping ON"); //SetNodeStatus(NS_SLEEPING,ON);
          SetSleeping(ON);
         }
-    else
-        {Trace("Set Node Sleeping OFF");
-         //SetNodeStatus(NS_SLEEPING,OFF);
+    else{Trace("Set Node Sleeping OFF"); //SetNodeStatus(NS_SLEEPING,OFF);
          SetSleeping(OFF);
         }
     

@@ -335,7 +335,7 @@
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
 		</cconfiguration>
 	</storageModule>
-	<storageModule generalProj.esf.protocolIds="com.silabs.sdk.stack.btmesh:1.7.0._44230506.com.silabs.stack.ble:2.13.6.0_1480539376" generalProj.esf.protocolNames="btmesh" moduleId="com.silabs.ss.framework.ide.project.core.cpp" project.generation="14" projectCommon.boardIds="brd4306b:0.0.0.A01" projectCommon.importModeId="LINK_LIBRARIES" projectCommon.partId="mcu.arm.efr32.bg13.bgm13p32f512ga" projectCommon.sdkId="com.silabs.sdk.stack.btmesh:1.7.0._44230506"/>
+	<storageModule generalProj.esf.protocolIds="com.silabs.sdk.stack.btmesh:1.7.4._1978816429.com.silabs.stack.ble:2.13.9.0_-44239309" generalProj.esf.protocolNames="btmesh" moduleId="com.silabs.ss.framework.ide.project.core.cpp" project.generation="13" projectCommon.boardIds="brd4306b:0.0.0.A01" projectCommon.importModeId="LINK_LIBRARIES" projectCommon.partId="mcu.arm.efr32.bg13.bgm13p32f512ga" projectCommon.sdkId="com.silabs.sdk.stack.btmesh:1.7.0._44230506"/>
 	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
 		<project id="JNC-BT-Mesh.com.silabs.ss.framework.ide.project.core.cdt.cdtMbsProjectType.973678304" name="SLS CDT Project" projectType="com.silabs.ss.framework.ide.project.core.cdt.cdtMbsProjectType"/>
 	</storageModule>

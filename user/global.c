@@ -143,8 +143,6 @@ bool GetMeshNodeStatus(uint32 status)
 void PrintData(PCHAR pTitle,PUINT16 pbuff, UINT len)
 {
     UINT x,y;
-    
-    
     if(pTitle != NULL) Printf("%s ==> Length = %d\r\n",pTitle,len);
     y=0;
     while(len)

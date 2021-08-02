@@ -79,6 +79,8 @@
 #define A308M_CTRL_CMD(cmd)     ((PUCHAR)&A308MCtrlCmd[cmd][0])
 
 
+#define MESH_INFO_SCALING       100
+
 
 
 extern const uchar AipPowerCtrlCmd[5][8];
@@ -122,6 +124,7 @@ bool GetAgbPower();
 bool GetIaqsInfo();
 bool GetCw9Info();
 bool GetIaqsCw9();
+bool GetSkynetCo2Info();
 
 
 
@@ -131,6 +134,14 @@ temperature_8_t get_temperature(void);
 uint16 GetTempRH(uchar select);
 uint16 GetTempAndRH(int16 *Temp, uint16 *humidity);
 uint16 GetAverageTempAndRH(int16 *Temp, uint16 *humidity);
+
+
+
+void BtMeshSetupInit();
+void BtMeshSetupTask();
+void MeshNodeSetupProc();
+bool MeshNodeSetInfoProc();
+bool MeshNodeGetInfoProc();
 
 
 

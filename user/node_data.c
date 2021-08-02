@@ -53,18 +53,16 @@ void MeshNodeDataReset()
 
     memset(&MeshNodeData,0,NODE_DATA_SIZE);
     pMeshNodeData->DataInitID=NODE_DATA_ID;    
-    pMeshNodeData->StructVer=100;
+    pMeshNodeData->StructVer=FW_VER;
     pMeshNodeData->MeshNodeID = 0;
     pMeshNodeData->MeshNodeRole = NR_DEFAULT;
-    pMeshNodeData->SensorClass = SENSOR_AIP; //SENSOR_CLASS_PT485;
+    pMeshNodeData->SensorClass = BTM_SENSOR; 
     pMeshNodeData->BaudRate=USART_BAUDRATE_DEFAULT; //for 9600
     pMeshNodeData->TxPower=TX_POWER_HI;
-    pMeshNodeData->CTune = BSP_CLK_HFXO_CTUNE;
-    pMeshNodeData->TxGain = COMP_TX_POWER;
-    pMeshNodeData->RxGain = COMP_RX_POWER;
     pMeshNodeData->SleepingTimer=TIMER_NODE_SLEEPING;
     pMeshNodeData->TempDiff=0;
     pMeshNodeData->HumidityDiff=0;
+    pMeshNodeData->WorkingTimer = TIMER_DEFAULT_WORKING;
 
 
     pAdjValue->TempGain = 1.0;
@@ -75,10 +73,35 @@ void MeshNodeDataReset()
     pAdjValue->UserTempOffset = 0.0;
     pAdjValue->UserRhGain = 1.0;
     pAdjValue->UserRhOffset = 0.0;
- 
     WriteNodeData();
    
 }
+
+
+//
+//
+//
+void MeshNodeSetupReset()
+{
+
+    pMeshNodeData->SensorClass = BTM_SENSOR; 
+    pMeshNodeData->BaudRate = USART_BAUDRATE_DEFAULT; //for 9600
+    pMeshNodeData->WorkingTimer = TIMER_DEFAULT_WORKING;
+
+
+    pAdjValue->TempGain = 1.0;
+    pAdjValue->TempOffset = 0.0;
+    pAdjValue->HumGain = 1.0;
+    pAdjValue->HumOffset = 0.0;
+    pAdjValue->UserTempGain = 1.0;
+    pAdjValue->UserTempOffset = 0.0;
+    pAdjValue->UserRhGain = 1.0;
+    pAdjValue->UserRhOffset = 0.0;
+    WriteNodeData();
+   
+}
+
+
 
 
 

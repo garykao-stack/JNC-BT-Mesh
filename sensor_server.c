@@ -184,7 +184,7 @@ uint32 EvtSensorServerEventsProc(PCmdPacket pCmdEvent)
         case Evt_ms_server_get_req: 
             EvtGetRequestProc(pCmdEvent);
             break;
-        default:  TraceErr("EvtSensorServerEventsProc");
+        default:  TraceErr1("EvtSensorServerEventsProc",event_id);
         break;
     }
     

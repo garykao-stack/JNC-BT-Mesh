@@ -88,15 +88,6 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
     //DeviceInit();    
     //printf("SDK Version %s\r\n",Mesh_SDK_VER);
     
-#if defined(JNC_DO_485)
-    printf("Firmware Version for DO-485 Only ==> %1.3f %02d Sec \r\n\r\n", 1.00, TIMER_GET_INFO_SLEEPING);
-#elif defined(PZEM)
-    printf("Firmware Version for PZEM Only ==> %1.3f %02d Sec \r\n\r\n", 1.00, TIMER_GET_INFO_SLEEPING);
-#elif defined(OEM_SENSOR)
-        printf("Firmware Version for OEM_SENSOR Only ==> %1.3f %02d Sec \r\n\r\n", 1.00, TIMER_GET_INFO_SLEEPING);
-#else 
-    printf("Firmware Version ==> %1.3f %02d Sec \r\n\r\n", FW_VER/100.0, TIMER_GET_INFO_SLEEPING);
-#endif
     
     gecko_stack_init(pConfig);
     gecko_bgapi_classes_init();
@@ -106,7 +97,6 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
 //#endif    
     DI_Init();                //Initialize Display Interface.
     //Trace("123456789");     while(1);
-    /* Enable AFH */
     //gecko_init_afh(); //richard add
     
     // Initialize LEDs and buttons. Note: some radio boards share the same GPIO
@@ -117,10 +107,19 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
     led_init();  
     button_init();
     DeviceInit();
-    //enable_button_interrupts(); // must disable because buttom that triggle INT
-    BleCommInit(); 
+    BleCommInit();
 
-    //if(MeshNodeStatus & STATUS_CLIENT)
+    
+#if defined(JNC_DO_485)
+        printf("Firmware Version for DO-485 Only ==> v%1.2f %02d Sec \r\n\r\n", 1.00, TIMER_GET_INFO_SLEEPING);
+#elif defined(PZEM)
+        printf("Firmware Version for PZEM Only ==> v%1.2f %02d Sec \r\n\r\n", 1.00, TIMER_GET_INFO_SLEEPING);
+#elif defined(OEM_SENSOR)
+        printf("Firmware Version for OEM_SENSOR Only ==> v%1.2f %02d Sec \r\n\r\n", 1.00, TIMER_GET_INFO_SLEEPING);
+#else 
+        printf("Firmware Version ==> v%1.2f %02d Sec \r\n\r\n", FW_VER/100.0, TIMER_GET_INFO_SLEEPING);
+#endif
+
     if(NodeRole == NR_CLIENT)
         {Trace("Client Node Init 1");
          gecko_bgapi_class_mesh_sensor_client_init();
@@ -132,10 +131,7 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
          gecko_bgapi_class_mesh_sensor_setup_server_init();
         }
     BleEventInit();
-    MeshEventInit();
-   // DeviceInit();
-   // ModbusRtuInit();
-    
+    MeshEventInit();   
 }
 /*******************************************************************************
  * Main application code.
@@ -148,6 +144,8 @@ void ComPortProc(void);
 uint32  debug_count=0;
 void ServerNodeTask();
 void ClientNodeTask();
+void BtMeshSetupTask();
+
 
 
 void appMain(gecko_configuration_t *pConfig)
@@ -177,10 +175,9 @@ GetMeshEvent:
     if(!CheckRunDevTask()) continue;
         
    // if(GetMeshNodeStatus(STATUS_CLIENT)) 
-   if(NodeRole == NR_CLIENT)
-        ClientNodeTask();
-    else 
-        ServerNodeTask();
+   if(NodeRole == NR_CLIENT)        ClientNodeTask();
+    else if(NodeRole == NR_SERVER)  ServerNodeTask();
+    else BtMeshSetupTask();
     } 
 }
 
@@ -208,7 +205,9 @@ bool BleMeshEventProc(PCmdPacket pEvent, PEventFun pEventFun)
     uint32 event_id;
     if(NULL == pEvent) return ret_code;
     event_id = BGLIB_MSG_ID(pEvent->header); //get event ID
- //    EventIDtoStringProc(pEvent);
+    
+    //if(event_id != 0x000C00A0 && event_id != 0x010300A0 ) EventIDtoStringProc(pEvent);
+    
     while(pEventFun->pEventProc != NULL)
     {
         if(pEventFun->EventID == event_id)   // to process the event

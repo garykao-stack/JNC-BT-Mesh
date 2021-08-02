@@ -17,11 +17,16 @@ void UsartInit(void)
     
     USART_InitAsync_TypeDef usart_init = USART_INITASYNC_DEFAULT;
     CMU_ClockEnable(USART_CLOCK, true);
-    
+
+    //TraceDec1("Baudrate", pMeshNodeData->BaudRate);
     // set pin modes for USART TX and RX pins
     GPIO_PinModeSet(USART_PORT, USART_PIN_TX, gpioModePushPull, 1); //TX
-    GPIO_PinModeSet(USART_PORT, USART_PIN_RX, gpioModeInputPull, 1);    //RX  
-    usart_init.baudrate = UsartBaudrate[USART_BAUDRATE_DEFAULT];   //setup baudrate
+    GPIO_PinModeSet(USART_PORT, USART_PIN_RX, gpioModeInputPull, 1);    //RX
+
+    if(NodeRole == NR_CLIENT)
+        usart_init.baudrate = UsartBaudrate[pMeshNodeData->BaudRate];   //setup baudrate
+    else
+        usart_init.baudrate = UsartBaudrate[USART_BAUDRATE_DEFAULT];   //setup baudrate
     USART_InitAsync(USART, &usart_init);   // Initialize USART asynchronous mode and route pins
     
     USART->ROUTELOC0 = USART_LOCATION;
@@ -112,11 +117,11 @@ void UsartClientProc()
                  //SetLed(LED_GREEN,ON);
                  //SetNodeStatus(NS_USART_RX_EVENT,OFF);
                  UsartSetStage(USART_STAGE_RX_ING);
-                 ToWaitingStage(UES_CHECK_RX_END,WAIT_MS(30));
+                 ToWaitingStage(UES_CHECK_RX_END,WAIT_MS(20));
                 }
             else if(UsartGetStatusTxIng()) 
                 {//Trace("---- To Check Tx Ending ------");// Tx ending
-                 ToWaitingStage(UES_CHECK_TX_END,WAIT_MS(60));
+                 ToWaitingStage(UES_CHECK_TX_END,WAIT_MS(30));
                  //SetLed(LED_BLUE,ON);
                 }
             break;
@@ -166,6 +171,10 @@ void UsartClientProc()
         };
 
 }
+
+
+
+
 
 
 //

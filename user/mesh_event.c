@@ -174,8 +174,7 @@ uint32 EvtMeshSensorInitProc(PCmdPacket pEvent)
         pMeshNodeData->MeshNodeID = pMeshInit->address;
         pMeshNodeData->IvIndex = pMeshInit->ivi;
         Printf("node1 is provisioned. Mesh Node ID:0x%x, %d, IVI:%ld\r\n", 
-            pMeshNodeData->MeshNodeID,pMeshNodeData->MeshNodeID, pMeshNodeData->IvIndex);
-        
+                pMeshNodeData->MeshNodeID,pMeshNodeData->MeshNodeID, pMeshNodeData->IvIndex);
         MeshNodeModelInit();
         SetTxPower(TX_POWER_LO);
         SetEventTaskTimer(TD_GET_SENSOR_INFO,200,TIMER_EVENT_ONCE);

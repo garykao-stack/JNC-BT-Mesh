@@ -24,6 +24,7 @@ uchar  SpiStatus,I2cStatus;
 
 void DeviceInit() 
 {
+    NodeDataInit();
     DeviceBusInit();    // must first
     DeviceAllInit();
 }

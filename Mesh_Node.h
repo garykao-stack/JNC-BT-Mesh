@@ -92,7 +92,7 @@ typedef struct _SdInfo_
     int16   Tempature;      // -40°C ~ 85°C
     uint16  Humidity;       // 0% ~ 100%
     uint16  CO2;
-    uint16  PM25;      //for PM2.5
+    uint16  PM25;           //for PM2.5
     uint16  HCHO;
 }_SdInfo,*PSdInfo;
 
@@ -190,6 +190,14 @@ typedef struct _AgbPower_
     uint16  PowerStatus;
 }_AgbPower,*PAgbPower;
 
+typedef struct _SkynetCo2_
+{
+    int16   Tempature;      // -40°C ~ 85°C
+    uint16  Humidity;       // 0% ~ 100%
+    uint16  Co2;
+}_SkynetCo2,*PSkynetCo2;
+
+
 
 typedef struct _SensorInfo_
 {    
@@ -210,6 +218,7 @@ union{
         _RelayNode  RelayNode;
         _OemSensor  OemSensor;
         _AgbPower   AgbPower;
+        _SkynetCo2  SkynetCo2;
         
      };
 }_SensorInfo,*PSensorInfo;
@@ -272,12 +281,17 @@ typedef struct _NodeEventInfo_
 #define BTM_SENSOR           SENSOR_SI7021    //to BT Mesh Built-in sensor for temp&RH
 #define SENSOR_RELAY         11     // Power Only
 #define SENSOR_A6D6          12     // A6D6
-#define SENSOR_PZEM          13     // 
-#define SENSOR_OEM           14     // 
-#define SENSOR_AGB_POWER     15     // 
+
+#define SENSOR_PZEM          13     //
+#define SENSOR_OEM           14     // visual sensor 
+#define SENSOR_AGB_POWER     15     //
+
 #define SENSOR_CW9           16     // 
+#define SENSOR_SKYNET_CO2    17     // Skynet+CO2
 
+//can not auto scan
 
+#define SENSOR_NO_SCAN       53
 
 
 // for ServerStatus
@@ -307,12 +321,18 @@ typedef struct _NodeEventInfo_
 #define SENSOR_INFO_PROC            3
 #define SENSOR_RS485_INFO_PROC      4
 
+// for Node Setup
+#define MESH_NODE_SETUP_PROC        1
 
+
+
+#define TIMER_NODE_SLEEPING         1000    //xx sec
+#define TIMER_DEFAULT_WORKING       60  // xx Sec define
 
 #define SERVER_NODE_MAX             50
 
 #define TIMER_GET_INFO_FULL_POWER   1 //2 //5 // xxx Sec
-#define TIMER_GET_INFO_SLEEPING     18 //62 //18 // xxx sec
+#define TIMER_GET_INFO_SLEEPING     (pMeshNodeData->WorkingTimer)//18 //62 //18 // xxx sec
 #define TIMER_SERVER_SLEEPING       (TIMER_GET_INFO_SLEEPING - 2)    
 #define TIMER_CLI_WAIT_INFO         WAIT_SEC(2)//WAIT_SEC(4) //WAIT_SEC(3)
 #define TIMER_SERVER_DELAY          40  //ms
@@ -334,6 +354,7 @@ typedef struct _NodeEventInfo_
 #define NR_LPN                  4
 #define NR_MASTER               5
 #define NR_SLAVE                6
+#define NR_SETUP                7
 #define NR_DEFAULT              NR_SERVER
 
 

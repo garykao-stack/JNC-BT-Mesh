@@ -28,19 +28,28 @@ extern _TimerEventTask DeviceTaskTbl[];
 
 
 void BleCommInit()
-{
+{TraceProc();
     uchar buttton_status;
     MeshNodeStatus = 0;
-    NodeDataInit();
+    //NodeDataInit();
     buttton_status = GetButtonStatus();
     if( buttton_status == KEY_FACTORY_RESET) 
         {initiate_factory_reset();SetMeshNodeStatus(STATUS_FACTORY_RESET, ON);return;}
-
     
     NodeRole = pMeshNodeData->MeshNodeRole; TraceDec1("Node Role 1", NodeRole);
-    MeshNodeInit();
+   if(pMeshNodeData->WorkingTimer < 5 || pMeshNodeData->WorkingTimer > (3600) ) 
+        {pMeshNodeData->WorkingTimer  = TIMER_DEFAULT_WORKING;  WriteNodeData();}
+
+    //pMeshNodeData->WorkingTimer  = TIMER_DEFAULT_WORKING;
+    
+    TraceDec1("Working Timer", pMeshNodeData->WorkingTimer);
     
 
+    if(buttton_status == KEY_NODE_SETUP) {Trace("\r\n*** Node Enter Setup Model ***\r\n");
+        NodeRole = NR_SETUP;
+        SetEventTaskTimer(TD_PROVISIONING,TIMER_UNPROVISION,TIMER_EVENT_REPEAT);
+    }
+    MeshNodeInit();
     SetMeshNodeStatus(STATUS_FULL_POWER, ON);   // client node must full power
 #if MESH_COLUME_ENABLE
     SetMeshNodeStatus(STATUS_MODBUS_MESH,ON);   // for modbus to bt mesh    Debug
@@ -55,15 +64,18 @@ void BleCommInit()
 // 0: server node(default), 1: client node
 //**********************************************************************************************
 uchar GetButtonStatus()
-{
+{TraceProc();
     uint button0,button1;
     uchar ret_code;
     button0 = GPIO_PinInGet(BSP_BUTTON0_PORT, BSP_BUTTON0_PIN);
     button1 = GPIO_PinInGet(BSP_BUTTON0_PORT, BSP_BUTTON1_PIN);
     
-    if(button0 == LOW & button1 == HIGH)        ret_code = KEY_SERVER_TO_RS485;
+    if(button0 == LOW & button1 == HIGH)        ret_code = KEY_NODE_SETUP;
     else if(button0 == LOW & button1 == LOW)    ret_code = KEY_FACTORY_RESET;
     else ret_code = BT_NODE_ROLE_PRE_DEF;       //default server node
+
+    //debug richard
+   // ret_code = KEY_NODE_SETUP;
     Trace3("button_port", button0,button1,ret_code);
     return ret_code;
 }
@@ -83,8 +95,7 @@ void DeviceTaskProc()
         {   
             if(GetMeshNodeStatus(STATUS_IVI_UPDATE) == OFF)
                 pDeviceTask->pTimerTask();  
-            else
-                {
+            else{
                  if(pDeviceTask->pTimerTask == ClientIviUpdateProc || 
                     pDeviceTask->pTimerTask == ServerSetupProc )
                     pDeviceTask->pTimerTask();                         
