@@ -19,3 +19,12 @@
 1. add Co2 sensor 
 2. add Gain & Offset 
 3. Add working Timer and Server Class
+
+
+==================== v1.18 ====================
+-------------------- 211105 (Richard)----------------
+1. for Android App Setup
+2. Modify Gain & Offset report error for App
+3. Add function for Utility to get information for 9 register
+4. Modify A308M Speed 小數點以下2位
+5. Add UltraSound
