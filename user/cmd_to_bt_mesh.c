@@ -3,7 +3,6 @@
 
 #include "global.h"
 
-//richard Add
 /* BG stack headers */
 #include "sensor_server.h"
 #include "mesh_event.h"
@@ -67,7 +66,6 @@ void ClientModbusCmdInit()
     SetEventTaskTimer(TD_GET_SENSOR_INFO, TIMER_CLIENT_GET_SENSOR_INFO, TIMER_EVENT_ONCE);
     memset(pClientModbusRegs, 0, sizeof(ClientModbusRegs));
 
-    return; //richard debug
     
 }
 

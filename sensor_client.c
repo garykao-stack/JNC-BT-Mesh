@@ -74,7 +74,8 @@ void SensorClientNodeInit(void)
     Cmd_ms_client_init();
 #ifdef FRIEND_NODE        
     NodeFriend(ON);
-#endif 
+#endif
+    LedOnClient();
 }
 
 
@@ -112,6 +113,7 @@ uint32 EvtMeshSensorClientProc(PCmdPacket pEvent)
     uint32 ret_code = TRUE;
     msg_ms_client_descriptor_status_evt *pDescriptorStatus;
     msg_ms_client_status_evt *pClientStatus;
+    msg_ms_client_setting_status_evt *pSetting;
     pDescriptorStatus = &(pEvent->data.evt_mesh_sensor_client_descriptor_status);
     pClientStatus = &(pEvent->data.evt_mesh_sensor_client_status);
     
@@ -126,11 +128,13 @@ uint32 EvtMeshSensorClientProc(PCmdPacket pEvent)
             case Evt_ms_client_status:              //Trace("Evt_ms_client_status");
                 ClientPropertyEvent(pClientStatus); // richard: for new property
                 break;
+            case Evt_ms_client_setting_status: Trace("Evt_ms_client_setting_status");
+                pSetting = &(pEvent->data.evt_mesh_sensor_client_setting_status);
+                PrintDataByte("setting_status", pSetting->raw_value.data , pSetting->raw_value.len);               
+                break;
             default: TraceErr("EvtMeshSensorClientProc");
                 break;
         };
-
-
     return ret_code;
 }
 uchar SanServerStage=0;

@@ -106,18 +106,29 @@ bool MeshNodeModelInit()
     bool ret_code=TRUE;
    // uint8 node_model;
    if(NodeRole == NR_CLIENT)
-       { SensorClientNodeInit(); LedOnClient();
+       { SensorClientNodeInit(); 
         }
     else
        { SensorServerNodeInit();
+         SetServerAllModel();
         }
-    //richard debug
-    //SetEventTaskTimer(TD_NO_EVENT, TIMER_IVI_UPDATE, TIMER_EVENT_REPEAT); 
-    
     return ret_code;
 }
 
 
+#define MODEL_SENSOR_SERVER                 0x1100
+#define MODEL_SENSOR_SETUP_SERVER           0x1101
+
+
+//
+//
+//
+void SetServerAllModel()
+{
+    msg_mt_get_local_model_pub_rsp *p_get_model_pub;
+
+    return; // for Debug
+}
 
 void GetLocalCfg()
 {
@@ -150,6 +161,22 @@ void GetLocalCfg()
 }
 
 
+#define GRP_SVR_PUB_ADDRESS         0xC100
+#define GRP_SVR_PUB_TTL             3
+#define GRP_SVR_PUB_PERIOD          0
+#define GRP_SVR_PUB_RETRANS         0
+#define GRP_SVR_PUB_CREDENTIALS     0
+#define GRP_SVR_SUB_ADDRESSES       { 0xC000 }
+
+#define GRP_CLI_PUB_ADDRESS         0xC000
+#define GRP_CLI_PUB_TTL             3
+#define GRP_CLI_PUB_PERIOD          0
+#define GRP_CLI_PUB_RETRANS         0
+#define GRP_CLI_PUB_CREDENTIALS     0
+#define GRP_CLI_SUB_ADDRESSES       { 0xC100 }
+
+#define MAX_PUB_SUB_MODELS          20
+
 
 //uint16 MeshNodeID;
 //uint32 MeshNodeIVI;
@@ -168,8 +195,7 @@ uint32 EvtMeshSensorInitProc(PCmdPacket pEvent)
         iv_config(IV_TEST_MODE, 0, SNB_STATE);
 
     if(pMeshInit->provisioned)
-    {
-        //GetLocalCfg();  //debug
+    { //GetLocalCfg();  //debug
         SetMeshNodeStatus(STATUS_PROVISIONED,ON);  
         pMeshNodeData->MeshNodeID = pMeshInit->address;
         pMeshNodeData->IvIndex = pMeshInit->ivi;
@@ -177,13 +203,13 @@ uint32 EvtMeshSensorInitProc(PCmdPacket pEvent)
                 pMeshNodeData->MeshNodeID,pMeshNodeData->MeshNodeID, pMeshNodeData->IvIndex);
         MeshNodeModelInit();
         SetTxPower(TX_POWER_LO);
-        SetEventTaskTimer(TD_GET_SENSOR_INFO,200,TIMER_EVENT_ONCE);
-        
+        SetEventTaskTimer(TD_GET_SENSOR_INFO,200,TIMER_EVENT_ONCE);        
 #if BT_RSSI
         Cmd_mn_set_adv_event_filter(0xF,0,NULL); //for RSSI event
 #endif  
         DI_Print("provisioned", DI_ROW_STATUS);
         SetNodePublish(OFF); SetNodeSleeping(OFF);
+    
     }
     else
     {

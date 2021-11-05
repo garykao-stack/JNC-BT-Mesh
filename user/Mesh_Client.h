@@ -101,9 +101,11 @@ typedef struct
 
 #define CNS_PRE_IVI_UPDATE      0x20    // waiting IVI update
 #define CNS_IVI_UPDATE          0x21    // waiting IVI update
+#define CNS_FORCE_FULL_POWER    0x22    // 
 
 
-#define COUNT_NODE_DETECTED     4      // node error couter
+
+#define COUNT_NODE_DETECTED     ((6000*4)/GetInfoCycle)      // node error couter
 
 #define CNS_SET_INFO_INIT       0x00
 #define CNS_SET_WAITING         0x30    // waiting message from host
@@ -180,9 +182,21 @@ typedef struct
 
 
 
-
+//for Water Level
 #define POSITION_WATER          0x0000    
 #define POSITION_OIL            0x0001
+
+//for UltraSound
+#define UD_BATTERY_VOL          0x001D
+#define UD_INPUT_VOL            0x001E
+#define UD_OUTPUT_VOL           0x001F
+#define UD_CHARGE_CURR          0x0020
+#define UD_INPUT_CURR           0x0021
+
+
+
+
+
 
 #define JNC_SD_CO2              0x300
 #define JNC_SD_PM25             0x301
@@ -244,6 +258,7 @@ typedef struct
 #define OEM_ADDR_03             0x0003
 #define OEM_ADDR_0A             0x000A
 
+// Client Node Status
 
 
 
@@ -290,6 +305,7 @@ void ShowAllNodeInfo(void);
 void ShowEventInfo(PClientInfo p_info);
 uint16 GetProperityID();
 void ModbusAddCrc();
+void ClientGetInfoActionNow();
 
 
 

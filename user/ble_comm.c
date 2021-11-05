@@ -1,7 +1,6 @@
 #include "global.h" 
 #include "graphics.h"
 
-//richard Add
  /* BG stack headers */
 
 #include "sleep.h"
@@ -28,35 +27,39 @@ extern _TimerEventTask DeviceTaskTbl[];
 
 
 void BleCommInit()
-{TraceProc();
+{
     uchar buttton_status;
     MeshNodeStatus = 0;
     //NodeDataInit();
     buttton_status = GetButtonStatus();
     if( buttton_status == KEY_FACTORY_RESET) 
-        {initiate_factory_reset();SetMeshNodeStatus(STATUS_FACTORY_RESET, ON);return;}
-    
+        {initiate_factory_reset();SetMeshNodeStatus(STATUS_FACTORY_RESET, ON);return;}    
     NodeRole = pMeshNodeData->MeshNodeRole; TraceDec1("Node Role 1", NodeRole);
    if(pMeshNodeData->WorkingTimer < 5 || pMeshNodeData->WorkingTimer > (3600) ) 
         {pMeshNodeData->WorkingTimer  = TIMER_DEFAULT_WORKING;  WriteNodeData();}
 
-    //pMeshNodeData->WorkingTimer  = TIMER_DEFAULT_WORKING;
+#if BTM_FOR_DEMO_TEST
+   pMeshNodeData->WorkingTimer  = TIMER_DEMO_WORKING; //for demo only
+   TraceDec1("Working Timer ==> Demo", pMeshNodeData->WorkingTimer);
+#else
+ // printf("Working Timer ==> %d sec \r\n",pMeshNodeData->WorkingTimer); 
+ // TraceDec1("Working Timer", pMeshNodeData->WorkingTimer);  
+#endif    
     
-    TraceDec1("Working Timer", pMeshNodeData->WorkingTimer);
     
-
-    if(buttton_status == KEY_NODE_SETUP) {Trace("\r\n*** Node Enter Setup Model ***\r\n");
+    
+    if(buttton_status == KEY_NODE_SETUP) { Trace("\r\n*** Node Enter Setup Model ***\r\n");
         NodeRole = NR_SETUP;
         SetEventTaskTimer(TD_PROVISIONING,TIMER_UNPROVISION,TIMER_EVENT_REPEAT);
-    }
+    } 
+    else enable_button_interrupts(); // Init Key pad function
+
+    
     MeshNodeInit();
     SetMeshNodeStatus(STATUS_FULL_POWER, ON);   // client node must full power
 #if MESH_COLUME_ENABLE
     SetMeshNodeStatus(STATUS_MODBUS_MESH,ON);   // for modbus to bt mesh    Debug
-#endif    
-    
-
-    
+#endif  
 }
 
 //**********************************************************************************************
@@ -64,7 +67,7 @@ void BleCommInit()
 // 0: server node(default), 1: client node
 //**********************************************************************************************
 uchar GetButtonStatus()
-{TraceProc();
+{
     uint button0,button1;
     uchar ret_code;
     button0 = GPIO_PinInGet(BSP_BUTTON0_PORT, BSP_BUTTON0_PIN);
@@ -213,6 +216,7 @@ void CheckStageTimer()
 
 uint16  TimerEvent=0;
 uchar CurrTimerHandle;
+uint16  ForcePowerCounter;
 
 
 void BtMeshReset();
@@ -241,29 +245,10 @@ uint32 EvtSoftTimerProc(PCmdPacket pEvent)
         case TD_NODE_SLEEP: Trace("TD_NODE_SLEEP");
             SetNodeSleeping(ON);
             break;
-        case TD_NODE_WAKE_UP: 
-            SetNodeSleeping(OFF);   
-            Trace("TD_NODE_WAKE_UP");
+        case TD_NODE_WAKE_UP: Trace("TD_NODE_WAKE_UP");
+            SetNodeSleeping(OFF); 
             //NodeLpn(ON);
             break;
-       // case TD_USART_RX: //Trace("TD_USART_RX Ending");
-             //SetTimerTaskEvent(TIMER_EVENT_USART_RX,ON);
-            // UsartSetStage(USART_STAGE_RX_END); // for server node 23 bytes
-             //UsartSetStage(USART_STAGE_TX_CLEAN);
-             //if(UsartGetRxCounter() == 8) UsartSetStage(USART_STAGE_RX_END);
-             //else {TraceErr1("TD_USART_RX: Usart Rx Ending",UsartGetRxCounter());UsartSetStage(USART_STAGE_RX_CLEAN);}
-             
-        //    break;
-        /*
-        case TD_SERVER_WAKE_UP:
-            SetTimerTaskEvent(TIMER_EVENT_WAKE_UP,ON);
-           // PowerTimerProc();
-            break;
-        case TD_SERVER_SLEEPING:
-            SetTimerTaskEvent(TIMER_EVENT_WAKE_UP,OFF);
-           // PowerTimerProc();
-            break;
-        */
 //////////////////////////////////// for Client Timer event ///////////////////////////////////////      
         case TD_TASK_CLIENT_SCAN_SERVER: //Trace("TD_TASK_CLIENT_SCAN_SERVER");
             //TimerEvent |= TIMER_EVENT_SCAN_SERVER;
@@ -273,7 +258,8 @@ uint32 EvtSoftTimerProc(PCmdPacket pEvent)
             //TimerEvent |= TIMER_EVENT_GET_PROPERTY;
             //ClientGetServerDataProc();
             break;
-        case TD_SYS_RESET: Trace("System Reset"); Delay_ms(200); //while(1);
+        case TD_SYS_RESET: //Trace("System Reset"); 
+            Delay_ms(200); //while(1);
             if(!GetMeshNodeStatus(STATUS_BLE_CONNECT)) BtMeshReset();
             break;
         case TD_GET_SENSOR_INFO: //Trace("TD_GET_SENSOR_INFO");
@@ -282,16 +268,22 @@ uint32 EvtSoftTimerProc(PCmdPacket pEvent)
         case TD_GET_SENSOR_ENDING: //Trace("TD_GET_SENSOR_ENDING");
             SetMeshNodeStatus(STATUS_GET_SENSOR_ENDING,OFF);
             break;
-        case TD_SYS_SETUP_RESET: Trace("TD_SETUP_RESET");
+        case TD_SYS_SETUP_RESET://Trace("TD_SETUP_RESET");
             Cmd_sys_reset(0);
             break;
-        case TD_SET_MODBUS_CMD: Trace("TD_SET_MODBUS_CMD"); // 2 sec
+        case TD_SET_MODBUS_CMD: //Trace("TD_SET_MODBUS_CMD"); // 2 sec
             SetMeshNodeStatus(STATUS_SET_MODBUS_CMD,OFF);
             break;
         case TD_CHECK_DEV_NODE: TraceErr("TD_CHECK_DEV_NODE");
            // CheckNodeActionStatus();
             break;
-            
+        case TD_FORCE_POWER_STATUS: //Trace("TD_FORCE_POWER_STATUS"); // 2 sec
+            if(ForcePowerCounter == OFF){Trace("TD_FORCE_POWER_STATUS OFF ****");
+                SetForceFullPowerTime(OFF);                
+                }
+            else {ForcePowerCounter--; SetLedToggle(LED_BLUE);}
+                
+            break;
         case TD_NO_EVENT:
         case TD_UNPROVISION:
         case TD_PROVISIONING:
@@ -497,7 +489,7 @@ void ShowTimerRTC()
 void initiate_factory_reset(void)
 {
   Printf("factory reset\r\n");
-  DI_Print("\n***\nFACTORY RESET\n***", DI_ROW_STATUS);
+  //DI_Print("\n***\nFACTORY RESET\n***", DI_ROW_STATUS);
 
   // If connection is open then close it before rebooting
   if (ConnectHandle != 0xFF) Cmd_connect_close(ConnectHandle);
@@ -536,7 +528,7 @@ void set_device_name(bd_addr *pAddr)
   }
 
   // Show device name on the LCD
-  DI_Print(name, DI_ROW_NAME);
+  //DI_Print(name, DI_ROW_NAME);
 }
 
 
@@ -584,9 +576,37 @@ void SaveMeshNodeInfo(uchar save_id,void* p_event)
         };
 }
 
+//
+// 60 min
+//
+void SetForceFullPowerTime(uchar status)
+{
+    if(status == ON)
+        {//ON
+         
+         if(NodeRole == NR_CLIENT)  ClientGetInfoActionNow();
+         else {ServerGetInfoActionNow(); SetNodeSleeping(OFF);}
+
+         SetNodeStatus(NS_FORCE_FULL_POWER,ON);
+         ForcePowerCounter = 60*60; //60 Min to close
+         SetEventTaskTimer(TD_FORCE_POWER_STATUS, TIMER_1SEC, TIMER_EVENT_REPEAT);
+         SetNodeStatus(NS_FULL_POWER,ON);   // force to full power
+         
+        }
+    else
+        {//OFF
+         if(NodeRole == NR_CLIENT)  SetLed(LED_BLUE,ON);
+         else {ServerSetPowerStatus(); SetLed(LED_BLUE,OFF);}
+         
+         SetNodeStatus(NS_FORCE_FULL_POWER,OFF);
+         ForcePowerCounter = OFF;
+         SetEventTaskTimer(TD_FORCE_POWER_STATUS, 0, TIMER_EVENT_ONCE);
+         
+        }
+}
+
 
 // BLE and Mesh common event 
-
 //**********************************************************************************************
 // Event: gecko_evt_system_external_signal_id
 //
@@ -594,40 +614,26 @@ void SaveMeshNodeInfo(uchar save_id,void* p_event)
 uint32 EvtSysExternalSignalProc(PCmdPacket pEvent)
 {
     uint32 ret_code=TRUE;
-    /*
-    uint32 signal;
-    uint16              result;
-    uint32  setting_data=0x12345678;
-    msg_sys_external_signal_evt *pEvt_ext_signal = &pEvent->data.evt_system_external_signal;
-    signal = pEvt_ext_signal->extsignals;
+    uint32 ext_signal;
 
-  result = Cmd_ms_client_set_setting(SENSOR_ELEMENT, PUBLISH_ADDRESS, IGNORED, 0x02,MODBUS_GET_REGS_VALUE,
-                                    8,4,(uint8*)&setting_data)->result;
-  if(result) TraceErr("Cmd_ms_client_set_setting");
-  else TraceOk("Cmd_ms_client_set_setting");
-*/        
-    // debug
-    return ret_code;
-/*    
-    if(GetMeshNodeStatus(STATUS_CLIENT) != TRUE || GetMeshNodeStatus(STATUS_PROVISIONED) != TRUE)
-        return ret_code;
 
-    if (signal & EXT_SIGNAL_PB1_PRESS) {Trace("PB1 pressed");
-      if(GetCurrProperty() == PRESENT_AMBIENT_TEMPERATURE)
-        SetPropertyIndex(PROPERTY_INDEX_PEOPLE);
-      else
-        SetPropertyIndex(PROPERTY_INDEX_TEMPERATURE);
-    }
-    
-    if (signal & EXT_SIGNAL_PB0_PRESS) {
-        Trace("PB0 pressed");
-        StartScanServerNode(); // debug
-    }
+    ext_signal = pEvent->data.evt_system_external_signal.extsignals;
+
+    if(ext_signal == PB_SPEED_NORMAL) 
+        {Trace("PB_SPEED_NORMAL");
+        GetPropertyID = NODE_GET_INFO_FULL_POWER_OFF;
+        SetForceFullPowerTime(OFF);
+        } 
+    else if(ext_signal == PB_SPEED_5SEC) 
+        {Trace("PB_SPEED_5SEC");
+        GetPropertyID = NODE_GET_INFO_FULL_POWER_ON;  
+        SetForceFullPowerTime(ON);
+        }    
+    else if(ext_signal == PB1_PRESS_ON) Trace("PB1_PRESS_ON");
+    else if(ext_signal == PB1_PRESS_OFF) Trace("PB1_PRESS_OFF");
+    else TraceErr("EvtSysExternalSignalProc");
 
     return ret_code;
-*/    
 }
-
-
 
 

@@ -151,18 +151,13 @@ typedef struct _EventFun_
 
 #define TD_CHECK_DEV_NODE   14  //to check all of th node status for 10sec
 
-/*
-#define TD_TASK_10MS          40  // for 10 ms interval
-#define TD_TASK_100MS         41  // for 100 ms interval
-#define TD_TASK_1SEC          42  // for 1 sec interval
-#define TD_TASK_10SEC         43  // for 10 sec interval
-*/
-#define TD_USART_RX           50  // for 10 ms
-
 #define TD_SYS_RESET          60  // for 10 ms
 
 #define TD_GET_SENSOR_INFO    70  // for 1 sec once
 #define TD_GET_SENSOR_ENDING  71
+
+#define TD_FORCE_POWER_STATUS  72
+
 
 #define TD_LED_TOGGLE         75  // for 1 sec once
 
@@ -171,9 +166,6 @@ typedef struct _EventFun_
 #define TD_SYS_SETUP_RESET     78
 
 #define TD_SET_MODBUS_CMD     79      // limit modbus cmd timing
-
-
-
 // LED Status
 #define TD_UNPROVISION        80
 #define TD_NO_EVENT           81  // check BT event or to reset
@@ -414,6 +406,7 @@ extern _PTimerEventTask pDeviceTask;
 extern Result  result;
 extern PRspResult pResult;
 extern _MeshNodeInfo MeshNodeInfo;
+extern uint16  GetPropertyID;
 
 void BleCommInit();
 
@@ -466,6 +459,7 @@ bool CheckDeviceTaskActive1ms();
 _PTimerEventTask GetDeviceTaskTbl();
 void TimerLedStatus();
 void ResetEventCounter(uchar event);
+void SetForceFullPowerTime(uchar status);
 
 
 

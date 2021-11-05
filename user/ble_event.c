@@ -3,6 +3,7 @@
 
 //richard Add
 /* BG stack headers */
+#include "Mesh_Node.h"
 #include "MeshFeatures.h"
 #include "sensor_client.h"
 #include "ble_event.h"
@@ -137,7 +138,7 @@ uint32 EvtSystemBootProc(PCmdPacket pEvent)
     {
         snprintf(buf, 30, "init failed (0x%x)", result);
         
-        DI_Print(buf, DI_ROW_STATUS);
+        //DI_Print(buf, DI_ROW_STATUS);
     }
     return ret_code;
 }
@@ -182,8 +183,9 @@ uint32 EvtBleConnectionProc(PCmdPacket pEvent)
             BleNodeNum++;
             ConnectHandle = pEvt_open->connection;
             SetMeshNodeStatus(STATUS_BLE_CONNECT,ON);
+            SetNodeStatus(NS_LINKING,ON);
             NodeWakeUp();
-            DI_Print("connected", DI_ROW_CONNECTION);
+           // DI_Print("connected", DI_ROW_CONNECTION);
             break;
 
         case Evt_connect_parameters: Trace("Evt_connect_parameters");
@@ -197,6 +199,7 @@ uint32 EvtBleConnectionProc(PCmdPacket pEvent)
         case Evt_connect_closed:  Trace("Evt_connect_closed");
             // Check if need to boot to dfu mode
             SetMeshNodeStatus(STATUS_BLE_CONNECT,OFF);
+            SetNodeStatus(NS_LINKING,OFF);
             if(boot_to_dfu) { Cmd_sys_reset(2); } // Enter to DFU OTA mode
             
             Printf("evt:conn closed, reason 0x%x\r\n",  pEvt_close->reason);

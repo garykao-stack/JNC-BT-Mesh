@@ -82,8 +82,7 @@ static int EEPROM_AckPoll(I2C_TypeDef *i2c, uint8_t addr)
 {
   I2C_TransferSeq_TypeDef    seq;
   I2C_TransferReturn_TypeDef ret;
-  int time_out=200; //richard add
-
+  int time_out=200; 
   /* Do acknowledge polling waiting for write process to finish in EEPROM */
   seq.addr  = addr;
   seq.flags = I2C_FLAG_WRITE;

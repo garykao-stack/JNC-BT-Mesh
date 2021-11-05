@@ -131,7 +131,7 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
          gecko_bgapi_class_mesh_sensor_setup_server_init();
         }
     BleEventInit();
-    MeshEventInit();   
+    MeshEventInit();
 }
 /*******************************************************************************
  * Main application code.
@@ -171,13 +171,17 @@ GetMeshEvent:
             if(BleMeshEventProc(pEvent,MeshEventFun) == FALSE)
                 EventIDtoStringProc(pEvent);
         }
+
+   // if(NodeRole == NR_SETUP) { BtMeshSetupTask(); continue;} 
     
     if(!CheckRunDevTask()) continue;
         
    // if(GetMeshNodeStatus(STATUS_CLIENT)) 
-   if(NodeRole == NR_CLIENT)        ClientNodeTask();
-    else if(NodeRole == NR_SERVER)  ServerNodeTask();
-    else BtMeshSetupTask();
+   if(NodeRole == NR_CLIENT) 
+        ClientNodeTask();
+   else if(NodeRole == NR_SERVER || NodeRole == NR_SETUP_SERVER)  
+        ServerNodeTask();
+   else BtMeshSetupTask();
     } 
 }
 
@@ -186,7 +190,8 @@ bool CheckRunDevTask()
     bool ret_code=TRUE;
 
     //if(!GetMeshNodeStatus(STATUS_PROVISIONED) || GetMeshNodeStatus(STATUS_IVI_UPDATE) || GetMeshNodeStatus(STATUS_BLE_CONNECT) )    
-    if(!GetMeshNodeStatus(STATUS_PROVISIONED) ||  GetMeshNodeStatus(STATUS_BLE_CONNECT) )    
+    //if(!GetMeshNodeStatus(STATUS_PROVISIONED) ||  GetMeshNodeStatus(STATUS_BLE_CONNECT) )
+    if(!GetMeshNodeStatus(STATUS_PROVISIONED))    
         ret_code = FALSE;
 
     return ret_code;

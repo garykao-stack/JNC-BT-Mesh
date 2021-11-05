@@ -13,20 +13,53 @@
 //          1. For OEM and Visual Sensor 2. Add IAQS and CW9
 
 // 1.16     1. add Co2 sensor 2. add Gain & Offset 3. Add working Timer and Server Class
+// 1.17     
+/*
+(1)ON/OFF維修模式 方法:
+    1. Client Node:
+    按下PB0 2sec以上ON.
+    按下PB0 馬上放開OFF.
+    2. Server Node: 可以依照上面的方法獨自 ON/OFF
+    3. 維修模式ON: Blue LED 會閃爍.
+    4.  維修模式ON: System Response Time < 5 Sec
+    5.  維修模式啟用一次 最長維持時間 60 分鐘,會自動恢復原始設定
+(2) 增加來自I6對維俢模式控制: Status: ON/OFF
+    Modbus Cmd: FC6, Register=0xF000,  
+    value: 0x00: OFF, 0x01:ON
 
-#define FW_VER              116
+(3) Win-Utility 可以修改下面參數
+    1. 溫溼度 Gain and Offset
+    2. Working Time
+    3. 設定 BT Mesh 連接Sensor種類
+
+(4) 增加來自I6對維俢模式控制: Status: ON/OFF
+    Modbus Cmd: FC6, Register=0xF000,  
+    value: 0x00: OFF, 0x01:ON    
+
+(5) Support Android App Get BT Mesh Information  
+
+
+*/
+
+/* 1.18     1. for Android App Setup
+            2. Modify Gain & Offset report error for App
+            3. Add function for Utility to get information for 9 register
+            4. Modify A308M Speed 小數點以下2位
+            5. Add UltraSound
+*/
+#define FW_VER              118
 #define HW_VER              110
 #define DEVICE_NAME         "JNC-BT-Mesh"
 #define MANUFACTORY_NAME    "JNC"
 #define NODE_DATA_ID        0xA5A5
-#define MODEL_NAME          "BTM-01"
+#define MODEL_NAME          "BTM001"
 
 
 
 #ifndef _GLOBAL_H_
 #define _GLOBAL_H_
 
-#define DEBUG_PRINT
+//#define DEBUG_PRINT
 #define BTM_TEST
 
 
@@ -35,6 +68,7 @@
 #else
 #define Printf(fmt,...) //(0)
 #endif
+
 
 
 
@@ -202,7 +236,7 @@ typedef struct _EventIDToString_
 #define Trace16Ptr_3(ptr,v1,v2,v3) \
         Printf("%s=%04Xh %s=%04Xh %s=%04Xh \r\n",#v1,ptr->v1,#v2,ptr->v2,#v3,ptr->v3)
 #define Trace16Ptr_4(ptr,v1,v2,v3,v4) \
-                Printf("%s=%04Xh %s=%04Xh \r\n%s=%04Xh %s=%04Xh \r\n",#v1,ptr->v1,#v2,ptr->v2,#v3,ptr->v3,#v4,ptr->v4)
+                Printf("%s=%04Xh %s=%04Xh \r\n %s=%04Xh %s=%04Xh \r\n",#v1,ptr->v1,#v2,ptr->v2,#v3,ptr->v3,#v4,ptr->v4)
 
 #define Trace32Ptr_1(ptr,v1) \
         Printf("%s=%08lXh \r\n",#v1,(uint32)ptr->v1)

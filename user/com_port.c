@@ -1,6 +1,5 @@
 #include "global.h"
 
-//richard Add
 /* BG stack headers */
 #include "sensor_server.h"
 #include "mesh_event.h"

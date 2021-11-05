@@ -229,8 +229,8 @@ void SetNodePublish(uchar status)
     struct gecko_msg_mesh_test_get_local_model_pub_rsp_t* pEvent;
     uint8 public_timer=0;    
     pEvent = Cmd_mt_get_local_model_pub(0,0xFFFF,BTM_MODE_ID);             
-    printf("1. mesh_test_get_local_model result = 0x%x\r\n",pEvent->result);
-    printf("appkey_index = 0x%x pub_address=0x%x ttl=%d period=%d retrans=%d credentials=%d \r\n",
+    Printf("1. mesh_test_get_local_model result = 0x%x\r\n",pEvent->result);
+    Printf("appkey_index = 0x%x pub_address=0x%x ttl=%d period=%d retrans=%d credentials=%d \r\n",
     pEvent->appkey_index,pEvent->pub_address,pEvent->ttl,pEvent->period,pEvent->retrans,pEvent->credentials);
     
     if(status == ON) {public_timer = BTM_PBULIC_TIME_ON;Trace("Publish ON");}

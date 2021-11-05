@@ -56,7 +56,7 @@ void MeshNodeDataReset()
     pMeshNodeData->StructVer=FW_VER;
     pMeshNodeData->MeshNodeID = 0;
     pMeshNodeData->MeshNodeRole = NR_DEFAULT;
-    pMeshNodeData->SensorClass = BTM_SENSOR; 
+    pMeshNodeData->SensorClass = SENSOR_AUTO_SCAN; 
     pMeshNodeData->BaudRate=USART_BAUDRATE_DEFAULT; //for 9600
     pMeshNodeData->TxPower=TX_POWER_HI;
     pMeshNodeData->SleepingTimer=TIMER_NODE_SLEEPING;
@@ -84,7 +84,7 @@ void MeshNodeDataReset()
 void MeshNodeSetupReset()
 {
 
-    pMeshNodeData->SensorClass = BTM_SENSOR; 
+    pMeshNodeData->SensorClass = SENSOR_AUTO_SCAN; 
     pMeshNodeData->BaudRate = USART_BAUDRATE_DEFAULT; //for 9600
     pMeshNodeData->WorkingTimer = TIMER_DEFAULT_WORKING;
 

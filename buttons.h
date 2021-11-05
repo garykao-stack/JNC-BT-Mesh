@@ -32,9 +32,18 @@
  * External signal definitions. These are used to signal button press events
  * from GPIO interrupt handler to application.
  ******************************************************************************/
-#define EXT_SIGNAL_PB0_PRESS         0x01
-#define EXT_SIGNAL_PB1_PRESS         0x02
-#define EXT_SIGNAL_PB0_MEDIUM_PRESS  0x04
+#define PB_SPEED_5SEC           0x01    //
+#define PB_SPEED_NORMAL         0x02    // System to normal status
+ 
+
+#define PB1_PRESS_OFF           0x11
+#define PB1_PRESS_ON            0x12
+
+
+
+#define PB0_MEDIUM_PRESS        0x10
+
+
 
 /***************************************************************************//**
  * Button initialization. Configure pushbuttons PB0, PB1 as inputs.

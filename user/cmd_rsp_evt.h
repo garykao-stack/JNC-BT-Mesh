@@ -7,9 +7,9 @@
 #ifndef _CMD_RSP_EVT_
 #define _CMD_RSP_EVT_
 
-typedef struct gecko_cmd_packet     CmdPacket;      // richard Add
-typedef struct gecko_cmd_packet*    PCmdPacket;    // richard Add
-typedef struct gecko_cmd_packet*    PRspPacket;    // richard Add
+typedef struct gecko_cmd_packet     CmdPacket;      
+typedef struct gecko_cmd_packet*    PCmdPacket;    
+typedef struct gecko_cmd_packet*    PRspPacket;    
 
 
 //From BLE Mesh v1.5
@@ -749,7 +749,7 @@ typedef struct gecko_cmd_packet*    PRspPacket;    // richard Add
 #define Rsp_ms_client_get_cadence                      gecko_rsp_mesh_sensor_client_get_cadence_id
 #define Rsp_ms_client_set_cadence                      gecko_rsp_mesh_sensor_client_set_cadence_id
 #define Rsp_ms_client_get_settings                	   gecko_rsp_mesh_sensor_client_get_settings_id
-#define Rsp_ms_client_get_setting                	  	 gecko_rsp_mesh_sensor_client_get_setting_id
+#define Rsp_ms_client_get_setting                	   gecko_rsp_mesh_sensor_client_get_setting_id
 #define Rsp_ms_client_set_setting                      gecko_rsp_mesh_sensor_client_set_setting_id
 #define Rsp_user_message_to_target                     gecko_rsp_user_message_to_target_id
 

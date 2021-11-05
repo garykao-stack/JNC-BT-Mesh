@@ -10,7 +10,7 @@
 
 
 #define TIMER_WAIT_SEND_INFO        WAIT_MS(TIMER_SERVER_SENS_INFO) 
-#define TIMER_WAIT_SLEEPING         WAIT_SEC(3)     //WAIT_MS(pMeshNodeData->MeshNodeID*3)
+#define TIMER_WAIT_SLEEPING         WAIT_SEC(2) //WAIT_SEC(3)     //WAIT_MS(pMeshNodeData->MeshNodeID*3)
 #define TIMER_GET_SENSOR_INFO       WAIT_MS(300)
 
 
@@ -81,6 +81,8 @@
 
 #define MESH_INFO_SCALING       100
 
+#define SetNodeInfoSize(info)   ServerInfo.NodeInfoSize = sizeof(_NodeHeader) + sizeof(info)
+#define SetNodeClass(class)     pSensorHeader->SensorClass = class
 
 
 extern const uchar AipPowerCtrlCmd[5][8];
@@ -125,6 +127,8 @@ bool GetIaqsInfo();
 bool GetCw9Info();
 bool GetIaqsCw9();
 bool GetSkynetCo2Info();
+bool GetBtmMeshInfo();
+
 
 
 
@@ -142,6 +146,9 @@ void BtMeshSetupTask();
 void MeshNodeSetupProc();
 bool MeshNodeSetInfoProc();
 bool MeshNodeGetInfoProc();
+void BtmRfsense(Bool status);
+void ServerGetInfoActionNow();
+void ServerSetPowerStatus();
 
 
 

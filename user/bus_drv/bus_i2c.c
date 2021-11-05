@@ -209,7 +209,7 @@ int16 GetTempature()
       tempature = RET_VALUE_ERROR;
     }
     
-    printf("Tempature 1 ==> %3.1f -C\r\n",(float)tempature/10);
+  //  printf("Tempature 1 ==> %3.1f -C\r\n",(float)tempature/10);
     return (int16)tempature;
     //return -100;
 }
@@ -228,14 +228,14 @@ int16 GetHumidity()
     } else {
       humidity = RET_VALUE_ERROR;
     }
-    printf("Humidity 2 ==> %ld%\r\n",(int16)humidity/10);
+   // printf("Humidity 2 ==> %ld%\r\n",(int16)humidity/10);
     return (int16)humidity;
 
 }
 
 //const uint16 AdcValue[22]={2700,};
 #define ADC_VOL_MAX     2670 //2650
-#define ADC_VOL_MIN     1800 //1900
+#define ADC_VOL_MIN     2060 //1800 //1900 // for v3.2 to 5%
 #define ADC_DIFF        (ADC_VOL_MAX - ADC_VOL_MIN)
 uchar BatteryPower;
 
@@ -270,7 +270,6 @@ uchar GetBatteryPower()
              BatteryPower = power_percent;
             }
         }
-    TraceDec1("Power Percent",BatteryPower);
     return BatteryPower; //75;
 }
 

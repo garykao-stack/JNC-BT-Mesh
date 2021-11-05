@@ -114,19 +114,17 @@ void UsartClientProc()
         case UES_STANDBY_MODE: //Trace("UES_STANDBY_MODE");
             if(UsartGetStatusRxIng() == TRUE)
                 {
-                 //SetLed(LED_GREEN,ON);
-                 //SetNodeStatus(NS_USART_RX_EVENT,OFF);
                  UsartSetStage(USART_STAGE_RX_ING);
-                 ToWaitingStage(UES_CHECK_RX_END,WAIT_MS(20));
+                 ToWaitingStage(UES_CHECK_RX_END,WAIT_MS(30)); 
                 }
             else if(UsartGetStatusTxIng()) 
                 {//Trace("---- To Check Tx Ending ------");// Tx ending
-                 ToWaitingStage(UES_CHECK_TX_END,WAIT_MS(30));
-                 //SetLed(LED_BLUE,ON);
+                 ToWaitingStage(UES_CHECK_TX_END,WAIT_MS(60));            
                 }
             break;
         case UES_CHECK_TX_END: //Trace("UES_CHECK_TX_END");
-            if(UsartGetStatusTxEnd()) 
+           //if(UsartGetStatusTxEnd() && (CheckWaitTimeOut() == TRUE) )
+           if(UsartGetStatusTxEnd())
             {//Trace1("Tx End 1",UsartStatus);
             UsartSetStage(USART_STAGE_TX_END);ToNextStage(UES_STANDBY_MODE);  
             }
@@ -260,7 +258,7 @@ void UsartSetStage(uchar stage)
                 UsartSetStatus(USART_RX_END,ON);
                 UsartSetStatus(USART_RX_ING,OFF); UsartSetStatus(USART_TX_ING,OFF);
                 UsartSetStatus(USART_RX_WAITING,OFF);
-                USART_IntClear(USART, USART_IFS_RXUF);   //richard debug gygy: Rx
+                USART_IntClear(USART, USART_IFS_RXUF);  
                 break;
             case USART_STAGE_RX_CLEAN:
                 UsartResetRxTx(USART_ID_RX);
@@ -379,9 +377,10 @@ void UsartClose()
 
 bool UsartSendCmd(uchar size)
 {
-    CounterTx = size;   
+    CounterTx = size;    
     UsartResetRxTx(USART_ID_RX);
     UsartSetStage(USART_STAGE_TX_ING);
+
     return TRUE;
 }
 
@@ -390,9 +389,6 @@ bool UsartTxSendCmd(PUCHAR pBuff,uchar size)
     bool ret_code=FALSE;
     PUCHAR p_tx_buff = UsartGetBuff(USART_ID_TX);
     memcpy(p_tx_buff,pBuff,size);
-   // PrintDataByte("Usart Tx", pBuff, size);
-
-
    
    if(UsartGetStatusTxIng() == OFF || CounterTx == 0)
     {

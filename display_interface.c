@@ -51,7 +51,7 @@ void DI_Config(init_func_t init, print_func_t print)
 void DI_Init(void)
 {//log("DI_Config");
   if (display_interface.init == NULL) {
-    log("DI_Init: Display interface is NULL.\r\n");
+    //log("DI_Init: Display interface is NULL.\r\n");
     return;
   }
 
@@ -68,7 +68,7 @@ void DI_Init(void)
 void DI_Print(char *str, uint8_t row)
 {
   if (display_interface.print == NULL) {
-    log("DI_Print: %s\r\n", str);
+    //log("DI_Print: %s\r\n", str);
     return;
   }
 

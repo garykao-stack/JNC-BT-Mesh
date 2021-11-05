@@ -9,11 +9,19 @@
 //#define OEM_SENSOR    1   //visual sensor
 //#define AGB_POWER     1
 
+#ifndef DEBUG_PRINT
+#define BTM_FOR_DEMO_TEST    0
+#else
+#define BTM_FOR_DEMO_TEST    1
+#endif
 
 
 
 #ifndef _MEAH_NODE_H_
 #define _MEAH_NODE_H_
+
+#define ACK_OK          0
+#define ACK_ERROR       (-1)
 
 
 
@@ -137,6 +145,14 @@ typedef struct _Cw9Info_
 typedef struct _UltarSound_
 {
     uint16   WaterLevel;
+    uint16   OilLevel;
+    /////////////////////
+    uint16   BatteryVol;
+    uint16   InputVol;
+    uint16   OutputVol;
+    uint16   ChargeCurr;
+    uint16   InputCurr;
+    
 }_UltraSoundInfo,*PUltraSoundInfo;
 
 typedef struct _JncDo485_
@@ -197,6 +213,16 @@ typedef struct _SkynetCo2_
     uint16  Co2;
 }_SkynetCo2,*PSkynetCo2;
 
+typedef struct _BtMeshInfo_
+{
+    uchar   ModelName[6];           // BTM001
+    uint16  Version;                // Firmware version
+    int16   TempGain,TempOffset;    // Tempature Gain & Offset  
+    int16   RhGain,RhOffset;        // RH Gain & Offset
+    uint16  WorkingTime;            // >5 and <3600 sec
+    uint16  BtmClass;               //1 : for JNC Sensor(Auto Scan) 2 : PZEM 3 : Visual Sensor 4 : AGB Motor Control(恆達) 
+    
+}_BtMeshInfo,*PBtMeshInfo;
 
 
 typedef struct _SensorInfo_
@@ -219,6 +245,7 @@ union{
         _OemSensor  OemSensor;
         _AgbPower   AgbPower;
         _SkynetCo2  SkynetCo2;
+        _BtMeshInfo BtmMeshInfo;
         
      };
 }_SensorInfo,*PSensorInfo;
@@ -278,7 +305,7 @@ typedef struct _NodeEventInfo_
 #define SENSOR_A308M         10      //for 
 #define SENSOR_A308M_JNC     SENSOR_A308M      //for JNC
 
-#define BTM_SENSOR           SENSOR_SI7021    //to BT Mesh Built-in sensor for temp&RH
+#define SENSOR_AUTO_SCAN     SENSOR_SI7021    //to BT Mesh Built-in sensor for temp&RH
 #define SENSOR_RELAY         11     // Power Only
 #define SENSOR_A6D6          12     // A6D6
 
@@ -288,11 +315,12 @@ typedef struct _NodeEventInfo_
 
 #define SENSOR_CW9           16     // 
 #define SENSOR_SKYNET_CO2    17     // Skynet+CO2
+#define SENSOR_BTM_MESH_INFO 18     // return BTM Mesh Infomation
+
 
 //can not auto scan
 
 #define SENSOR_NO_SCAN       53
-
 
 // for ServerStatus
 #define AIP_POWER_STATUS_MASK          (BIT1|BIT0) // BIT0,BIT1: 00    00%
@@ -328,10 +356,12 @@ typedef struct _NodeEventInfo_
 
 #define TIMER_NODE_SLEEPING         1000    //xx sec
 #define TIMER_DEFAULT_WORKING       60  // xx Sec define
+#define TIMER_DEMO_WORKING          20  // 20 Sec define
+
 
 #define SERVER_NODE_MAX             50
 
-#define TIMER_GET_INFO_FULL_POWER   1 //2 //5 // xxx Sec
+#define TIMER_GET_INFO_FULL_POWER   2 //5 // xxx Sec
 #define TIMER_GET_INFO_SLEEPING     (pMeshNodeData->WorkingTimer)//18 //62 //18 // xxx sec
 #define TIMER_SERVER_SLEEPING       (TIMER_GET_INFO_SLEEPING - 2)    
 #define TIMER_CLI_WAIT_INFO         WAIT_SEC(2)//WAIT_SEC(4) //WAIT_SEC(3)
@@ -376,6 +406,8 @@ typedef struct _NodeEventInfo_
 #define NS_USART_RX_EVENT       BIT10    //
 #define NS_CLIENT_GET_INFO      BIT11    //
 #define NS_CLIENT_SET_INFO      BIT12    //
+#define NS_CLIENT_CHANGE_POWER  BIT13    // Change System Power Status
+
 
 
 //Server node
@@ -389,6 +421,8 @@ typedef struct _NodeEventInfo_
 // Device
 #define NS_USART_RX_ACTION      BIT24    // 
 #define NS_USART_TX_ENDING      BIT25    //
+#define NS_FORCE_FULL_POWER     BIT26    // Force System To Full Status
+
 
 #define NS_RELAY_ONLY           BIT30   // only for relay role 
 //#define NS_SIMLUATION           BIT31    // node simulation active

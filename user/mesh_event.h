@@ -183,6 +183,7 @@ void FriendNodeInit();
 void FriendNodeDeInit();
 uint32 EvtMeshLpnFriendProc(PCmdPacket pEvent);
 void GetLocalCfg();
+void SetServerAllModel();
 
 
 

@@ -1079,6 +1079,9 @@ typedef enum mesh_device_properties_e {
   NODE_GET_BATTERY_POWER                        = 0x8033,     // for Battery Power
   NODE_GET_TEMP_RH                              = 0x8034,     // for temperature and humidity
   NODE_GET_AIP_POWER_WATT                       = 0x8035,     // for AIP/Watt
+  NODE_GET_INFO_FULL_POWER_ON                   = 0x8036,     // for Full Speed Enable
+  NODE_GET_INFO_FULL_POWER_OFF                  = 0x8037,     // for Full Speed Disable
+  NODE_GET_BTM_INFO                             = 0x8038,     // Get Node information
 
   
   NODE_GET_WATER_LEVEL                          = 0x803D,     // get water level info
@@ -1117,19 +1120,12 @@ typedef enum mesh_device_properties_e {
   NODE_SET_DO4_OFF                              = 0x8063,     // for A6D6 OFF
   NODE_SET_DO5_OFF                              = 0x8064,     // for A6D6 OFF 
   NODE_SET_DO6_OFF                              = 0x8065,     // for A6D6 OFF
-  
-  ///////////////////////////////////////////////////////////////////////////////////////
-  // 1. Switch Open, 2. bettry Low
-  NODE_GET_URGENT_STATUS                        = 0x8050,     // for Node Urgent Status, 8 bits, can not sleeping  
-  NODE_GET_STATUS1                              = 0x8051,     // Get node status 1
-  NODE_GET_STATUS2                              = 0x8052,     // Get node status 1
-  NODE_GET_STATUS3                              = 0x8053,     // Get node status 1
-  NODE_GET_STATUS4                              = 0x8054,     // Get node status 1
-  NODE_GET_STATUS5                              = 0x8055,     // Get node status 1
-  NODE_GET_STATUS6                              = 0x8056,     // Get node status 1
-  NODE_GET_STATUS7                              = 0x8057,     // Get node status 1
-  NODE_GET_STATUS8                              = 0x8058,     // Get node status 1
-  NODE_GET_STATUs9                              = 0x8059,     // Get node status 1
+
+
+//Setup Server Set & Get
+  NODE_SENSOR_SETUP_SET                         = 0x8070,     // for Sensor Server Setup Set
+  NODE_SENSOR_SETUP_GET                         = 0x8071,     // for Sensor Server Setup Get 
+
   
   
   JNC_DEF_ENDING                                = 0xF000          // 
