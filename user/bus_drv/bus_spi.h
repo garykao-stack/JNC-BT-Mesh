@@ -33,11 +33,11 @@
 #define SPI_SCLK_PIN        (8U)
 
 
-#define SPI_CS_PORT         gpioPortC   //CS0
-#define SPI_CS_PIN          (9U)
+#define SPI_CS_PORT         gpioPortA   //CS0
+#define SPI_CS_PIN          (5U)
 
-#define SPI_TEST_PORT       gpioPortA   //CS1
-#define SPI_TEST_PIN        (4U)
+//#define SPI_TEST_PORT       gpioPortA   //CS1
+//#define SPI_TEST_PIN        (4U)
 
 
 // US1_CLK       on location 11 = PC8 per datasheet section 6.4 = EXP Header pin 8

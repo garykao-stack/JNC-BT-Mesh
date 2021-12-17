@@ -7,7 +7,7 @@
 #include "bus_spi.h"
 #include "AD7147.h"
 
-#if DEVICE_SPI_ENABLE
+#if AD7147_ENABLE
 
 const uint16 AD7147_Bank1Tbl[BANK1_INIT_TBL_SIZE]={
   WORD_SWAP(SPI_7147_WR|0x0000), //start address

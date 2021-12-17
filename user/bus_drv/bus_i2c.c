@@ -23,6 +23,7 @@ UCHAR ReadEepromTestTbl[16];
 
 #endif
 
+
 void I2CInit()
 {
 
@@ -44,6 +45,7 @@ void I2CInit()
 #endif //HAL_I2CSENSOR_ENABLE
     GetTempature();
     GetHumidity();
+    
 #if 0
     int eeprom_num;
     GetTempHumi(); //while(1);
@@ -209,7 +211,7 @@ int16 GetTempature()
       tempature = RET_VALUE_ERROR;
     }
     
-  //  printf("Tempature 1 ==> %3.1f -C\r\n",(float)tempature/10);
+    printf("Tempature 1 ==> %3.1f -C\r\n",(float)tempature/10);
     return (int16)tempature;
     //return -100;
 }
@@ -228,7 +230,7 @@ int16 GetHumidity()
     } else {
       humidity = RET_VALUE_ERROR;
     }
-   // printf("Humidity 2 ==> %ld%\r\n",(int16)humidity/10);
+    printf("Humidity 2 ==> %ld%\r\n",(int16)humidity/10);
     return (int16)humidity;
 
 }
@@ -270,6 +272,7 @@ uchar GetBatteryPower()
              BatteryPower = power_percent;
             }
         }
+    TraceDec1("Power Percent",BatteryPower);
     return BatteryPower; //75;
 }
 

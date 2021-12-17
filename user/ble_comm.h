@@ -206,7 +206,7 @@ typedef struct _EventFun_
 // for Client Node
 #define STATUS_SCAN_SERVER_NODE     BIT9  // 0: Scan Server Node 1: Get server property
 //#define STATUS_GET_PROPERTY         BIT8  // 
-//#define STATUS_SPI_ENABLE           BIT10  //
+#define STATUS_SPI_ENABLE           BIT10  //
 #define STATUS_GET_SENSOR_ENDING    BIT11  // 
 #define STATUS_SET_MODBUS_CMD       BIT12  // 
 

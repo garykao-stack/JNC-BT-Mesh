@@ -152,6 +152,9 @@ typedef struct _UltarSound_
     uint16   OutputVol;
     uint16   ChargeCurr;
     uint16   InputCurr;
+    //v1.19
+    int16    Tempature;      // -40°C ~ 85°C
+    uint16   Humidity;       // 0% ~ 100%
     
 }_UltraSoundInfo,*PUltraSoundInfo;
 
@@ -224,6 +227,25 @@ typedef struct _BtMeshInfo_
     
 }_BtMeshInfo,*PBtMeshInfo;
 
+typedef struct _BtmG6_
+{
+    uint16   Status;
+    uint16   G6Speed;
+    uint16   Control;
+    uint16   Config;
+//    uint16   DacGainCal;
+//    uint16   DacZeroCal;
+    
+}_BtmG6,*PBtmG6;
+
+typedef struct _Velocity_
+{
+    float RawFlowVelocity;  //for Adr=0x09
+    float FlowVelocity;     //for Adr=0x401 ~ 0x402
+    float Tempature;        //for Adr=0x415 ~ 0x416 
+    
+}_Velocity,*PVelocity;
+
 
 typedef struct _SensorInfo_
 {    
@@ -246,6 +268,8 @@ union{
         _AgbPower   AgbPower;
         _SkynetCo2  SkynetCo2;
         _BtMeshInfo BtmMeshInfo;
+        _BtmG6      BtmG6;
+        _Velocity   Velocity;
         
      };
 }_SensorInfo,*PSensorInfo;
@@ -316,6 +340,10 @@ typedef struct _NodeEventInfo_
 #define SENSOR_CW9           16     // 
 #define SENSOR_SKYNET_CO2    17     // Skynet+CO2
 #define SENSOR_BTM_MESH_INFO 18     // return BTM Mesh Infomation
+#define SENSOR_BTM_G6        19     // for G6 Control
+#define SENSOR_VELOCITY      20     // for G6 Control
+
+
 
 
 //can not auto scan
@@ -346,8 +374,8 @@ typedef struct _NodeEventInfo_
 // for Server Node
 #define SERVER_GET_INFO_PROC        1
 #define SERVER_SET_NODE_PROC        2
-#define SENSOR_INFO_PROC            3
-#define SENSOR_RS485_INFO_PROC      4
+#define SENSOR_BTM_G6_PROC          3
+#define SENSOR_RESERVE_PROC         4
 
 // for Node Setup
 #define MESH_NODE_SETUP_PROC        1
@@ -359,7 +387,7 @@ typedef struct _NodeEventInfo_
 #define TIMER_DEMO_WORKING          20  // 20 Sec define
 
 
-#define SERVER_NODE_MAX             50
+#define SERVER_NODE_MAX             45 //50
 
 #define TIMER_GET_INFO_FULL_POWER   2 //5 // xxx Sec
 #define TIMER_GET_INFO_SLEEPING     (pMeshNodeData->WorkingTimer)//18 //62 //18 // xxx sec
@@ -415,7 +443,8 @@ typedef struct _NodeEventInfo_
 #define NS_GET_SENSOR_ERR       BIT17    // 
 #define NS_GET_SENSOR_OK        BIT18    // get sensor info ending
 #define NS_SERVER_RS485_ENABLE  BIT19    // RS-485 Enable: Get info from RS-485 sensor
-//#define NS_SERVER_READY         BIT20    // sensor ready to get information
+#define NS_G6_READY             BIT20    // sensor ready to get information
+
 
 
 // Device

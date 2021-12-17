@@ -138,7 +138,6 @@ uint32 EvtSystemBootProc(PCmdPacket pEvent)
     {
         snprintf(buf, 30, "init failed (0x%x)", result);
         
-        //DI_Print(buf, DI_ROW_STATUS);
     }
     return ret_code;
 }
@@ -185,7 +184,6 @@ uint32 EvtBleConnectionProc(PCmdPacket pEvent)
             SetMeshNodeStatus(STATUS_BLE_CONNECT,ON);
             SetNodeStatus(NS_LINKING,ON);
             NodeWakeUp();
-           // DI_Print("connected", DI_ROW_CONNECTION);
             break;
 
         case Evt_connect_parameters: Trace("Evt_connect_parameters");

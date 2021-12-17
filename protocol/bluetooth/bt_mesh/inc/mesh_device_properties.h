@@ -1126,6 +1126,9 @@ typedef enum mesh_device_properties_e {
   NODE_SENSOR_SETUP_SET                         = 0x8070,     // for Sensor Server Setup Set
   NODE_SENSOR_SETUP_GET                         = 0x8071,     // for Sensor Server Setup Get 
 
+// for AIP Power Percent
+  NODE_SENSOR_G6AIP_00                          = 0x8100,
+  NODE_SENSOR_G6AIP_100                         = 0x8164,
   
   
   JNC_DEF_ENDING                                = 0xF000          // 

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<iarUserArgVars>
+  <group active="true" name="BLE SDK">
+    <variable>
+      <name>BGBUILD_EXECUTABLE_PATH</name>
+      <value>D:\Compiler\SimplicityStudio\developer\sdks\blemesh\v1.7\protocol\bluetooth\bin\bgbuild.exe</value>
+    </variable>
+  </group>
+</iarUserArgVars>

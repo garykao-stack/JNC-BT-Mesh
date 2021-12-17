@@ -40,6 +40,9 @@ bool CheckA308M();
 bool CheckUltraSound();
 bool CheckA6D6();
 bool CheckCDMCo2();
+bool CheckG6();
+bool CheckVelocity();
+
 
 uchar ScanRs485Device();
 bool CheckRs485Connect();

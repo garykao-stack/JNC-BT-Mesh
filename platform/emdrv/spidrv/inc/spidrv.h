@@ -269,7 +269,7 @@ typedef SPIDRV_HandleData_t * SPIDRV_Handle_t;
     spidrvSlaveStartImmediate   /* Slave start transfers immediately*/ \
   }
 #else
-#define SPIDRV_MASTER_USART1                                           \
+#define SPIDRV_MASTER_USART1  /* Richard: for SPI */                                         \
   {                                                                    \
     USART1,                     /* USART port                       */ \
     _USART_ROUTELOC0_TXLOC_LOC11, /* USART Tx pin location number   */ \

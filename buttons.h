@@ -39,6 +39,9 @@
 #define PB1_PRESS_OFF           0x11
 #define PB1_PRESS_ON            0x12
 
+#define PB_SPEED_ON             0x20
+#define PB_SPEED_OFF            0x21
+
 
 
 #define PB0_MEDIUM_PRESS        0x10

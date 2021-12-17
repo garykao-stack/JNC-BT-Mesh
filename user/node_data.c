@@ -35,8 +35,7 @@ word LevelDataRead[12];
 
 void NodeDataInit()
 {
-
-    TraceDec1("MeshNodeData Size", sizeof(_Mesh_Node_Data));
+    //TraceDec1("MeshNodeData Size", sizeof(_Mesh_Node_Data));
     pMeshNodeData = &MeshNodeData;
     pAdjValue = &AdjustValue;   
     ReadNodeData();
@@ -63,16 +62,17 @@ void MeshNodeDataReset()
     pMeshNodeData->TempDiff=0;
     pMeshNodeData->HumidityDiff=0;
     pMeshNodeData->WorkingTimer = TIMER_DEFAULT_WORKING;
-
-
+    
     pAdjValue->TempGain = 1.0;
     pAdjValue->TempOffset = 0.0;
     pAdjValue->HumGain = 1.0;
     pAdjValue->HumOffset = 0.0;
+    /*
     pAdjValue->UserTempGain = 1.0;
     pAdjValue->UserTempOffset = 0.0;
     pAdjValue->UserRhGain = 1.0;
     pAdjValue->UserRhOffset = 0.0;
+    */
     WriteNodeData();
    
 }
@@ -92,11 +92,8 @@ void MeshNodeSetupReset()
     pAdjValue->TempGain = 1.0;
     pAdjValue->TempOffset = 0.0;
     pAdjValue->HumGain = 1.0;
-    pAdjValue->HumOffset = 0.0;
-    pAdjValue->UserTempGain = 1.0;
-    pAdjValue->UserTempOffset = 0.0;
-    pAdjValue->UserRhGain = 1.0;
-    pAdjValue->UserRhOffset = 0.0;
+    pAdjValue->HumOffset = 0.0;    
+    pAdjValue->G6Speed = 25; //25%
     WriteNodeData();
    
 }
@@ -121,15 +118,39 @@ Result WriteNodeData()
 
    ret_code = Cmd_flash_ps_save(PS_KEY_MESH_NODE_DATA,NODE_DATA_SIZE,(const uint8*)pMeshNodeData)->result;
    if(ret_code) {Trace1("Write Node Data Error %x",ret_code);}
-   else Delay_ms(20);
+   else Delay_ms(5);
 
     ret_code = Cmd_flash_ps_save(PS_KEY_ADJUST_VALUE,ADJUST_VALUE_SIZE,(const uint8*)pAdjValue)->result;
     if(ret_code) {Trace1("Write AdjustValue Error %x",ret_code);}
-    else Delay_ms(20);
+    else Delay_ms(5);
 
    
     return ret_code;
 }
+
+Result WriteMeshNodeData()
+{
+     Result ret_code=RESULT_OK;
+    
+    ret_code = Cmd_flash_ps_save(PS_KEY_MESH_NODE_DATA,NODE_DATA_SIZE,(const uint8*)pMeshNodeData)->result;
+    if(ret_code) {TraceErr1("WriteMeshNodeData",ret_code);}
+    else Delay_ms(5);
+    return ret_code;
+
+}
+
+Result WriteAdjValue()
+{
+    Result ret_code=RESULT_OK;
+
+    ret_code = Cmd_flash_ps_save(PS_KEY_ADJUST_VALUE,ADJUST_VALUE_SIZE,(const uint8*)pAdjValue)->result;
+    if(ret_code) {TraceErr1("WriteAdjValue Error",ret_code);}
+    else Delay_ms(5);
+    return ret_code;
+
+
+}
+
 
 
 // Read node data to PS key
@@ -138,15 +159,31 @@ Result WriteNodeData()
 Result ReadNodeData()
 {
   Result ret_code=RESULT_OK;
+  uint8  len;
 
   struct gecko_msg_flash_ps_load_rsp_t* pRsp;
   pRsp = Cmd_flash_ps_load(PS_KEY_MESH_NODE_DATA);
-  if(pRsp->result == RESULT_OK) memcpy((void *)pMeshNodeData, (void *)&(pRsp->value.data), pRsp->value.len);
+  if(pRsp->result == RESULT_OK){
+    if(pRsp->value.len > sizeof(_AdjustValue) ) { TraceErr("ReadNodeData 1");
+    len = sizeof(_AdjustValue);
+    }else len = pRsp->value.len;
+    memcpy((void *)pMeshNodeData, (void *)&(pRsp->value.data),len);
+    }
   else {ret_code = pRsp->result; Trace1("ReadNodeData Error %x",pRsp->result);}
 
+  TraceDec1("value.len 1",pRsp->value.len);
+
   pRsp = Cmd_flash_ps_load(PS_KEY_ADJUST_VALUE);
-  if(pRsp->result == RESULT_OK) memcpy((void *)pAdjValue, (void *)&(pRsp->value.data), pRsp->value.len);
+  if(pRsp->result == RESULT_OK) {
+     if(pRsp->value.len > sizeof(_AdjustValue) ) { TraceErr("ReadNodeData 2");
+     len = sizeof(_AdjustValue);
+     }else len = pRsp->value.len;
+     
+     memcpy((void *)pAdjValue, (void *)&(pRsp->value.data), len);
+    }
   else {ret_code = pRsp->result; Trace1("Read Adjust Value Error %x",pRsp->result);}
+
+  TraceDec1("value.len 2",pRsp->value.len); TraceDec1("value.len 2-1",sizeof(_AdjustValue));
 
   return ret_code;
 }

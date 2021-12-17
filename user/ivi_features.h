@@ -7,7 +7,7 @@
 #ifndef _IVI_FEATURES_
 #define _IVI_FEATURES_
 
-#define IVI_UPDATE_ON   1
+#define IVI_UPDATE_ON   0
 
 /***********************************************************************************************//**
  * @addtogroup Application
@@ -41,6 +41,8 @@ typedef enum {
   test_end
 }test_p_t;
 
+#define REMAIN_SEQ_NUM_MIN      (0x2500) //for final SEQ to release
+  
 #define ELEMENT_SEQNUM_MAX      0x01000000
 #define IVI_INC_MIN             1 //MIN(TEST_IV_HOP, MAX_IV_HOP - 1)
 

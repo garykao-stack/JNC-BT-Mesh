@@ -3,6 +3,7 @@
 #ifndef _NODE_DATA_
 #define _NODE_DATA_
 #include "em_msc.h"
+#include "G6_BT_Mesh.h"
 
 //#define NODE_USER_PAGE       USERDATA_BASE //((uint32_t *)0x0FE00000) /**< Address of the user page */
 #pragma pack(push) 
@@ -30,7 +31,7 @@ typedef struct
   ////// to add other Items
   uint16    Status;
   short     TempDiff,HumidityDiff;// for Temp & RH calibration ±12.7°C and ±20%
-  uint16    Reserver5;       // xx sec
+  uint16    Reserver3;       //00 ~ 100%
   uint16    Reserver4;          // 
   uint32    Reserver[1];
 } _Mesh_Node_Data,*_PMesh_Node_Data;
@@ -42,8 +43,9 @@ typedef struct
 
 typedef struct
 {
-    float     TempGain,TempOffset,HumGain,HumOffset;
-    float     UserTempGain,UserTempOffset,UserRhGain,UserRhOffset;
+    float   TempGain,TempOffset,HumGain,HumOffset;
+    uint16  G6Speed;
+  _G6OnDate G6OnDate[5];
     
 }_AdjustValue,*_PAdjustValue;
 
@@ -108,6 +110,8 @@ int ReadCalibrationData(uchar index,void* pBuff);
 uchar GetMeshNodeData(uint16 key, PUCHAR pnode_data);
 Result SetMeshNodeData(uint16 key, PUCHAR pnode_data, uchar size);
 void MeshNodeSetupReset();
+Result WriteMeshNodeData();
+Result WriteAdjValue();
 
 
 #endif //_NODE_DATA_

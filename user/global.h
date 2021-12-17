@@ -47,13 +47,52 @@
             4. Modify A308M Speed 小數點以下2位
             5. Add UltraSound
 */
-#define FW_VER              118
+// v1.20
+//            1. Add Server + Relay Node Number to 45 ~ 50
+//            2. UltraSound Add Temp & RH
+//            3. Add 風速計-宇田FMT95/95
+//            3. modify Temp%RH Offset Error
+
+
+///////////////////////////////////////////////////////////
+//for G6-DAC7760
+// version: 0.9
+
+//#define G6_BT_MESH              1   //for BT Mesh Control G6
+//#define ULTRA_SOUND_SKYNET      1
+#define JNC_BT_MESH             1   //for JNC BT Mesh
+
+
+#ifdef  G6_BT_MESH
+#define FW_VER              90
+#define HW_VER              100
+#define DEVICE_NAME         "G6-BT-Mesh"
+#define MANUFACTORY_NAME    "JNC"
+#define NODE_DATA_ID        0xA5A5
+#define MODEL_NAME          "BTM_G6"
+#endif
+
+#ifdef  ULTRA_SOUND_SKYNET
+
+#define FW_VER              100
+#define HW_VER              110
+#define DEVICE_NAME         "UD-BT-Mesh"
+#define MANUFACTORY_NAME    "JNC"
+#define NODE_DATA_ID        0xA5A5
+#define MODEL_NAME          "BTM-UD"
+
+#endif
+
+#ifdef  JNC_BT_MESH
+
+#define FW_VER              120
 #define HW_VER              110
 #define DEVICE_NAME         "JNC-BT-Mesh"
 #define MANUFACTORY_NAME    "JNC"
 #define NODE_DATA_ID        0xA5A5
 #define MODEL_NAME          "BTM001"
 
+#endif
 
 
 #ifndef _GLOBAL_H_
@@ -130,7 +169,7 @@
 #define BLE_MESH_SDK    MESH_SDK_V1501
 
 
-#define UART_PORT      1
+#define UART_PORT       1
 #define SWO_PORT        2
 
 #define DEBUG_PORT      UART_PORT //SWO_PORT  //richard

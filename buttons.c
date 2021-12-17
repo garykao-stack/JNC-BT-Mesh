@@ -67,16 +67,20 @@ void button_interrupt(uint8_t pin)
                 else  
                     gecko_external_signal(PB_SPEED_NORMAL);
             }
-        else{ 
-                TimerPB0 = RTCC_CounterGet();
-            }
+        else{TimerPB0 = RTCC_CounterGet(); }
     } 
   else if(pin == BSP_BUTTON1_PIN) 
     {
         if(GPIO_PinInGet(BSP_BUTTON1_PORT, BSP_BUTTON1_PIN) == HIGH) 
             gecko_external_signal(PB1_PRESS_OFF);
         else gecko_external_signal(PB1_PRESS_ON);
-  }
+    }
+  else if(pin == BSP_G6_SPEED_PIN) 
+    {
+      if(GPIO_PinInGet(BSP_G6_SPEED_PORT, BSP_G6_SPEED_PIN) == HIGH)
+        gecko_external_signal(PB_SPEED_OFF);
+      else gecko_external_signal(PB_SPEED_ON);
+    }
 }
 
 /*******************************************************************************
@@ -92,10 +96,13 @@ void enable_button_interrupts(void)
                     true, true, true);
   GPIO_ExtIntConfig(BSP_BUTTON1_PORT, BSP_BUTTON1_PIN, BSP_BUTTON1_PIN,
                     true, true, true);
+  GPIO_ExtIntConfig(BSP_G6_SPEED_PORT, BSP_G6_SPEED_PIN, BSP_G6_SPEED_PIN,
+                    true, true, true);
 
   /* register the callback function that is invoked when interrupt occurs */
   GPIOINT_CallbackRegister(BSP_BUTTON0_PIN, button_interrupt);
   GPIOINT_CallbackRegister(BSP_BUTTON1_PIN, button_interrupt);
+  GPIOINT_CallbackRegister(BSP_G6_SPEED_PIN, button_interrupt);
 }
 
 /** @} (end addtogroup Buttons) */

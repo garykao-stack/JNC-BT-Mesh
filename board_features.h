@@ -508,11 +508,10 @@
 
 #define MESH_COLUME_ENABLE      0       //Mesh-Modbus Enable for ColumeRequest
 #define DEVICE_SPI_ENABLE       0
+#define AD7147_ENABLE           0
+
 #define FEATURE_PA_HIGH_POWER
 #undef HARDWARE_RESET
-
-
-
 
 #if(BOARD_ACTION == BOARD_SILICON)
 #define FEATURE_LCD_SUPPORT 

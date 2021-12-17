@@ -110,7 +110,7 @@ void EvtSetGettingRequestProc(PCmdPacket pCmdEvent);
 bool ServerSendModbusCmd(PUCHAR modbus_cmd,uchar len);
 
 bool GetSensorInfo();
-bool GetSi7021Info();
+bool GetSkynetInfo();
 bool GetPT485Info();
 bool GetAipInfo();
 bool GetA308mInfo();
@@ -128,6 +128,9 @@ bool GetCw9Info();
 bool GetIaqsCw9();
 bool GetSkynetCo2Info();
 bool GetBtmMeshInfo();
+bool GeBtmG6Info();
+bool GeVelocityInfo();
+
 
 
 

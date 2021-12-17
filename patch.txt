@@ -28,3 +28,13 @@
 3. Add function for Utility to get information for 9 register
 4. Modify A308M Speed 小數點以下2位
 5. Add UltraSound
+
+
+==================== v1.20 ====================
+-------------------- 211216 (Richard)----------------
+// v1.20
+1. Add Server + Relay Node Number to 45 ~ 50
+2. UltraSound Add Temp & RH
+3. Add 風速計-宇田FMT95/95
+
+

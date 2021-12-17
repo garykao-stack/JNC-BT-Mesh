@@ -46,6 +46,10 @@
 #define BSP_BUTTON1_PIN                               (7U)
 #define BSP_BUTTON1_PORT                              (gpioPortF)
 
+#define BSP_G6_SPEED_PIN                               (4U)
+#define BSP_G6_SPEED_PORT                              (gpioPortA)
+
+
 #define BSP_BUTTON_COUNT                              (2U)
 #define BSP_BUTTON_INIT                               { { BSP_BUTTON0_PORT, BSP_BUTTON0_PIN }, { BSP_BUTTON1_PORT, BSP_BUTTON1_PIN } }
 #define BSP_BUTTON_GPIO_DOUT                          (HAL_GPIO_DOUT_LOW)

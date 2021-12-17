@@ -9,6 +9,7 @@
 
 // device initialize
 #include "AD7147.h"
+#include "G6_BT_Mesh.h"
 #include "water_level_mesh.h"
 #include "mod_bus.h"
 #include "com_port.h"
@@ -37,6 +38,9 @@ void DeviceBusInit()
     Rs485Init();
     I2CInit();
     SpiInit();
+#ifdef  G6_BT_MESH    
+    G6BtMeshInit();
+#endif
 }
 
 void DeviceAllInit()

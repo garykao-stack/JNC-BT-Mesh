@@ -111,13 +111,13 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
 
     
 #if defined(JNC_DO_485)
-        printf("Firmware Version for DO-485 Only ==> v%1.2f %02d Sec \r\n\r\n", 1.00, TIMER_GET_INFO_SLEEPING);
+        printf("%s: Firmware Version for DO-485 Only ==> v%1.2f %02d Sec \r\n\r\n",MODEL_NAME, 1.00, TIMER_GET_INFO_SLEEPING);
 #elif defined(PZEM)
-        printf("Firmware Version for PZEM Only ==> v%1.2f %02d Sec \r\n\r\n", 1.00, TIMER_GET_INFO_SLEEPING);
+        printf("%s: Firmware Version for PZEM Only ==> v%1.2f %02d Sec \r\n\r\n",MODEL_NAME, 1.00, TIMER_GET_INFO_SLEEPING);
 #elif defined(OEM_SENSOR)
-        printf("Firmware Version for OEM_SENSOR Only ==> v%1.2f %02d Sec \r\n\r\n", 1.00, TIMER_GET_INFO_SLEEPING);
+        printf("%s: Firmware Version for OEM_SENSOR Only ==> v%1.2f %02d Sec \r\n\r\n",MODEL_NAME, 1.00, TIMER_GET_INFO_SLEEPING);
 #else 
-        printf("Firmware Version ==> v%1.2f %02d Sec \r\n\r\n", FW_VER/100.0, TIMER_GET_INFO_SLEEPING);
+        printf("%s: Firmware Version ==> v%1.2f %02d Sec \r\n\r\n", MODEL_NAME, FW_VER/100.0, TIMER_GET_INFO_SLEEPING);
 #endif
 
     if(NodeRole == NR_CLIENT)

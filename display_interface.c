@@ -68,7 +68,7 @@ void DI_Init(void)
 void DI_Print(char *str, uint8_t row)
 {
   if (display_interface.print == NULL) {
-    //log("DI_Print: %s\r\n", str);
+   // log("DI_Print: %s\r\n", str);
     return;
   }
 

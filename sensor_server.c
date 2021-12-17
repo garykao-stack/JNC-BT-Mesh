@@ -190,7 +190,7 @@ uint16 ModbusReg0=0x1001,ModbusReg1=0x2002,ModbusReg2=0x3003,ModbusReg3=0x4004;
 // Get Modbus information
 //
 uint16 GetDevModbusInfo(uint16 reg)
-{
+{TraceProc() ;
     uint16 ret_code=0;
    if(reg == 0) ret_code = ModbusReg0;
    else if(reg == 1) ret_code = ModbusReg1;
@@ -212,7 +212,7 @@ uint16 GetDevModbusInfo(uint16 reg)
  * gecko_evt_mesh_sensor_server_get_request_id
  ******************************************************************************/
 void EvtServerGetRequestProc(   PCmdPacket pCmdEvent)
-{
+{TraceProc() ;
     //Trace("gecko_evt_mesh_sensor_server_get_request_id");
     msg_ms_server_get_request_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_server_get_request);
     uint8_t sensor_data[10];
@@ -284,7 +284,7 @@ void ModBusCmdToDevice(void);
 uchar DeviceModBusID=1;//1;//2; //1;
 
 void EvtServerGetColumeRequest(PCmdPacket pCmdEvent)
-{
+{ TraceProc() ;
     msg_ms_server_get_column_request_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_server_get_column_request);
     //TraceDec1("DeviceModBusID",DeviceModBusID);    
     Trace16_1(pEvent->elem_index);
@@ -311,7 +311,7 @@ void EvtServerGetColumeRequest(PCmdPacket pCmdEvent)
  ******************************************************************************/
  #define    TO_CLIENT_BUFF_SIZE     9
 void EvtServerGetSeriesReqest(PCmdPacket pCmdEvent)
-{
+{TraceProc() ;
     msg_ms_server_get_series_request_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_server_get_series_request);
     uchar ToClientBuff[TO_CLIENT_BUFF_SIZE]={0x41,0x42,0x43,0x44,0x45,0x46,0x47,0x48,0x49};
 
@@ -336,7 +336,7 @@ void EvtServerGetSeriesReqest(PCmdPacket pCmdEvent)
  * @param[in] pEvent  Pointer to sensor server publish request event
  ******************************************************************************/
 void EvtServerPubEvent(PCmdPacket pCmdEvent)
-{
+{//TraceProc() ;
     msg_ms_server_publish_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_server_publish);
   //  uint8_t sensor_data[32];
   //  uint8_t len = 0;

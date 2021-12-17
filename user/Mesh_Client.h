@@ -192,6 +192,16 @@ typedef struct
 #define UD_OUTPUT_VOL           0x001F
 #define UD_CHARGE_CURR          0x0020
 #define UD_INPUT_CURR           0x0021
+#define UD_TEMP                 0x0022
+#define UD_RH                   0x0023
+
+//for Velocity
+#define FTM_RAW_VEL_1           0x09
+#define FTM_RAW_VEL_2           0x0A
+#define FTM_VEL_1               0x0401
+#define FTM_VEL_2               0x0402
+#define FTM_VEL_TEMP_1          0x0415
+#define FTM_VEL_TEMP_2          0x0416
 
 
 
@@ -284,7 +294,7 @@ PClientInfo GetServerInfoPos(uint16 node_addr);
 bool ClientPrepareToHost();
 bool ClientOtherModbusCmd();
 
-bool ClientSi7021(PSi7021Info p_info);
+bool ClientSkynet(PSi7021Info p_info);
 bool ClientPT485(PPT485Info p_info);
 bool ClientAIP(PAIPInfo p_info);
 bool ClientA308m(PA308mInfo p_info);
@@ -300,6 +310,8 @@ bool ClientOemSensor(POemSensor p_info);
 bool ClientIAQS(PIaqsInfo p_info);
 bool ClientCW9(PCw9Info p_info);
 bool ClientSkynetCo2(PSkynetCo2 p_info);
+bool ClientBtmG6(PBtmG6 p_info);
+bool ClientVelocity(PVelocity p_info);
 
 void ShowAllNodeInfo(void);
 void ShowEventInfo(PClientInfo p_info);

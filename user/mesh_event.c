@@ -124,10 +124,37 @@ bool MeshNodeModelInit()
 //
 //
 void SetServerAllModel()
-{
+{//
     msg_mt_get_local_model_pub_rsp *p_get_model_pub;
 
     return; // for Debug
+/*    
+    result = Cmd_mt_bind_local_model_app(0,0,0xFFFF,MODEL_SENSOR_SETUP_SERVER)->result;
+    if(result) TraceErr1("Cmd_mt_bind_local_model_app",result); 
+    else TraceOk("Cmd_mt_bind_local_model_app");
+
+    p_get_model_pub = Cmd_mt_get_local_model_pub(0,0xFFFF,MODEL_SENSOR_SETUP_SERVER);
+    if(p_get_model_pub->result == 0) 
+        {
+        Trace16Ptr_4(p_get_model_pub, appkey_index,pub_address, ttl, period);
+        Trace16Ptr_2(p_get_model_pub, retrans,credentials);
+            
+        result = gecko_cmd_mesh_test_set_local_model_pub(
+            0,0,0xFFFF,MODEL_SENSOR_SETUP_SERVER, //model id
+            0xC100, //p_get_model_pub->pub_address,
+            p_get_model_pub->ttl,
+            p_get_model_pub->period, p_get_model_pub->retrans,
+            p_get_model_pub->credentials)->result;
+        
+        if(result) TraceErr1("gecko_cmd_mesh_test_set_local_model_pub",result); 
+        else TraceOk1("gecko_cmd_mesh_test_set_local_model_pub",result);
+        }
+    else TraceErr1("Cmd_mt_get_local_model_pub",p_get_model_pub->result);
+    result = gecko_cmd_mesh_test_add_local_model_sub(0, 0xFFFF,MODEL_SENSOR_SETUP_SERVER,0xC000)->result;
+    if(result) TraceErr1("gecko_cmd_mesh_test_add_local_model_sub",result); 
+        else TraceOk1("gecko_cmd_mesh_test_add_local_model_sub",result);
+
+  */
 }
 
 void GetLocalCfg()
