@@ -61,24 +61,15 @@ void NodeIviUpdateProc(void)
                     IvIndexUpdate(OFF);
                     ToNextStage(IVI_DETECT);
                     break;
-
-                default: TraceErr1("NodeIviUpdateProc",ActiveStage()); break;
             };
 }
 
-//
-// FALSE ==> IVI Update enable
-// TRUE ==> IVI Update disable
 bool MeshCheckSeqNum()
 {
     bool ret_code = TRUE;
 
 #if IVI_UPDATE_ON
     msg_mn_get_seq_remaining_rsp *p_remain_seq_num = Cmd_mn_get_seq_remaining(PRIMARY_ELEM);
-    if(p_remain_seq_num->result){
-        TraceErr1("Error", p_remain_seq_num->result);
-        }
-    else{ 
         if(p_remain_seq_num->count < REMAIN_SEQ_NUM_MIN)  {ret_code = TRUE;  }
     }
 #endif
@@ -97,7 +88,7 @@ Bool IvIndexUpdate(uchar status)
         UsartIrq(USART_ID_RX,OFF);
         result = Cmd_mt_set_ivupdate_test_mode(ON)->result;
         if(result)
-        {TraceErr1("Cmd_mt_set_ivupdate_test_mode", result);
+        {
             return ret_code;
         }
         result = Cmd_mt_set_iv_index(pMeshNodeData->IvIndex + IVI_INC_MIN)->result;
@@ -107,8 +98,8 @@ Bool IvIndexUpdate(uchar status)
         result = Cmd_mn_req_ivupdate()->result;
         if(result){return ret_code; }
         IviUpdateStatus(ON);
-        result = Cmd_mt_send_beacons()->result; //richard: to send secure network beacons
-        if(result){return ret_code;}else TraceOk("----- Cmd_mt_send_beacons Ok");
+        result = Cmd_mt_send_beacons()->result;
+        if(result){return ret_code;}
         ret_code = TRUE;
     }
 
@@ -117,7 +108,7 @@ Bool IvIndexUpdate(uchar status)
         result = Cmd_mt_set_ivupdate_state(OFF)->result;
         if(result == bg_err_success)
         {IviUpdateStatus(OFF);
-        result = Cmd_mt_send_beacons()->result; //richard: to send secure network beacons
+        result = Cmd_mt_send_beacons()->result;
          if(result)
          {return ret_code;}else 
          {ret_code = TRUE;}
@@ -186,17 +177,11 @@ uint32 EvtMeshIviClientProc(PCmdPacket pEvent)
 
         case Evt_mn_changed_ivupdate_state:        
             if(p_iv_update->state == ON)
-                {result = Cmd_mt_send_beacons()->result; //richard: to send secure network beacons
-                  if(result) TraceErr1("Error 1", result);                  
+                {result = Cmd_mt_send_beacons()->result; 
                 }
-            else{result = Cmd_mt_send_beacons()->result; //richard: to send secure network beacons
-                 if(result)
-                 { TraceErr1("Error  2", result);
-                 }else printf("-- Ok\r\n");
+            else{result = Cmd_mt_send_beacons()->result;
                 }
             pMeshNodeData->IvIndex = p_iv_update->ivindex;
-            break;
-        default: TraceErr("EvtMeshIviProc");
             break;
 
     };
@@ -218,20 +203,19 @@ uint32 EvtMeshIviServerProc(PCmdPacket pEvent)
     switch(event_id)
     {
         case Evt_mn_changed_ivupdate_state: 
-            if(p_iv_update->state == YES)
-            { IviUpdateStatus(ON);
-              SetLedStatus(LED_STATUS_OFF);
+            if(p_iv_update->state == YES){ 
+                IviUpdateStatus(ON);
+                SetLedStatus(LED_STATUS_OFF);
             }
-            else
-            {IviUpdateStatus(OFF);
-             SetLedStatus(LED_STATUS_IVI_UPDATE_OFF);
+            else {
+                IviUpdateStatus(OFF);
+                SetLedStatus(LED_STATUS_IVI_UPDATE_OFF);
             }
             break;
 
         case Evt_mn_ivrecovery_needed: 
             if(GetMeshNodeStatus(STATUS_PROXY_CONNECT) == TRUE)  break;
-            if(p_ivrecovery->network_ivindex != p_ivrecovery->node_ivindex)
-            {                
+            if(p_ivrecovery->network_ivindex != p_ivrecovery->node_ivindex){                
                 Cmd_mt_set_iv_index(p_ivrecovery->network_ivindex);
                 IviUpdateStatus(OFF);
             }
@@ -240,12 +224,9 @@ uint32 EvtMeshIviServerProc(PCmdPacket pEvent)
             Cmd_mt_set_element_seqnum(PRIMARY_ELEM, 0); //set sequence num = 0
             SetMeshNodeStatus(STATUS_IVI_UPDATE, ON);
             break;
-        default: TraceErr("EvtMeshIviProc");
 
     };
     return ret_code;
 
 }
-
-
 

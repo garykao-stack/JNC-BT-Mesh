@@ -1,8 +1,5 @@
 #include "global.h" 
 #include "graphics.h"
-
- /* BG stack headers */
-
 #include "sleep.h"
 #include "leds.h"
 #include "sensor_client.h"
@@ -16,14 +13,16 @@
 #include "ivi_features.h"
 #include "Mesh_node.h"
 #include "G6_BT_Mesh.h"
+#include "bus_rs485.h"
 #include "ble_comm.h"
+
 
 //PRspResult  pResult;
 Result result;
 _MeshNodeInfo MeshNodeInfo;
 _PTimerEventTask pDeviceTask;
 extern _TimerEventTask DeviceTaskTbl[];
-
+uchar PowerKeyCount;
 
 void BleCommInit()
 {
@@ -46,18 +45,17 @@ void BleCommInit()
     
     
     
-    if(buttton_status == KEY_NODE_SETUP) {
+    if(buttton_status == KEY_NODE_SETUP) {Trace("KEY_NODE_SETUP 1");
         NodeRole = NR_SETUP;
-        SetEventTaskTimer(TD_PROVISIONING,TIMER_UNPROVISION,TIMER_EVENT_REPEAT);
     } 
     else enable_button_interrupts(); // Init Key pad function
-
-    
     MeshNodeInit();
     SetMeshNodeStatus(STATUS_FULL_POWER, ON);   // client node must full power
 #if MESH_COLUME_ENABLE
     SetMeshNodeStatus(STATUS_MODBUS_MESH,ON);   // for modbus to bt mesh    Debug
-#endif  
+#endif 
+    PowerKeyCount=0xFF;
+
 }
 
 //**********************************************************************************************
@@ -74,13 +72,8 @@ uchar GetButtonStatus()
     if(button0 == LOW & button1 == HIGH)        ret_code = KEY_NODE_SETUP;
     else if(button0 == LOW & button1 == LOW)    ret_code = KEY_FACTORY_RESET;
     else ret_code = BT_NODE_ROLE_PRE_DEF;       //default server node
-
-    //debug richard
-   // ret_code = KEY_NODE_SETUP;
-    Trace3("button_port", button0,button1,ret_code);
     return ret_code;
 }
-#include "bus_rs485.h"
 void ServerNodeTask();
     
 //*************************************************************************************
@@ -200,9 +193,15 @@ void CheckStageTimer()
     CheckNodeTimerCount();
 }
 
+extern uint16 ActMotoSpeed;
 uint16  TimerEvent=0;
-uchar CurrTimerHandle;
+uchar   CurrTimerHandle;
 uint16  ForcePowerCounter;
+uint16  FilterCounter,TimerFilter;
+
+#define FILTER_TIME_BASE      (6000) //(1000) //(6000)   //60*100
+
+
 
 
 void BtMeshReset();
@@ -214,26 +213,20 @@ void BtMeshReset();
 uint32 EvtSoftTimerProc(PCmdPacket pEvent)
 { //
     uint32 ret_code=TRUE;
-    uchar    stage;
+    uchar    loop;
     CurrTimerHandle = pEvent->data.evt_hardware_soft_timer.handle;
    // TraceDec1("CurrTimerHandle", CurrTimerHandle);
    // return ret_code;
     switch (CurrTimerHandle) 
     {
-        //case TD_DEVICE_TASK: //Trace("TD_DEVICE_TASK"); 50ms repeat
-          //   SetTimerTaskEvent(TIMER_EVENT_DEVICE_TASK,ON);
-            //break;
         case TD_STAGE_TIMER: //Trace("TD_STAGE_TIMER");
             CheckStageTimer();
-            //SetLedToggle(LED_BLUE);
             break;
-            
         case TD_NODE_SLEEP: Trace("TD_NODE_SLEEP");
             SetNodeSleeping(ON);
             break;
         case TD_NODE_WAKE_UP: Trace("TD_NODE_WAKE_UP");
             SetNodeSleeping(OFF); 
-            //NodeLpn(ON);
             break;
 //////////////////////////////////// for Client Timer event ///////////////////////////////////////      
         case TD_TASK_CLIENT_SCAN_SERVER: //Trace("TD_TASK_CLIENT_SCAN_SERVER");
@@ -245,7 +238,7 @@ uint32 EvtSoftTimerProc(PCmdPacket pEvent)
             //ClientGetServerDataProc();
             break;
         case TD_SYS_RESET: //Trace("System Reset"); 
-            Delay_ms(200); //while(1);
+            Delay_ms(200);
             if(!GetMeshNodeStatus(STATUS_BLE_CONNECT)) BtMeshReset();
             break;
         case TD_GET_SENSOR_INFO: //Trace("TD_GET_SENSOR_INFO");
@@ -281,11 +274,68 @@ uint32 EvtSoftTimerProc(PCmdPacket pEvent)
         case TD_LED_TOGGLE:
             //TimerEvent |= TIMER_EVENT_OTHER_PROC;
             TimerIdOtherProc();
-        break;
-      default: TraceDec1("Timer Message Error",CurrTimerHandle);  break;
+            break;
+#ifdef  BT_MESH_G6
+        
+        case TD_TIMER_FILTER_CLEAN: TraceDec1("TD_TIMER_FILTER_CLEAN",FilterCounter);
+
+            if(FilterCounter == 3) {
+                if(pMeshNodeData->FilterAllTime1 == pMeshNodeData->FilterAllTime2)
+                    {//Trace("Filter Clean 1");//clear filter 1
+                     pMeshNodeData->G6Status |=G6_CLEAR_FILETER1;
+                     G6SetActStatus(G6S_CLEAR_FILERT1|G6_STATUS_CHANGE,ON); CLEAR_LED_FILTER1();
+                    }
+                else{//Trace("Filter Clean All");//clear filter All
+                     //pMeshNodeData->G6Status |=G6_CLEAR_FILETER_ALL;
+                     pMeshNodeData->G6Status &=~G6_CLEAR_FILETER_ALL; 
+                     G6SetActStatus(G6S_CLEAR_ALL_FILTER|G6_STATUS_CHANGE,ON); CLEAR_LED_ALL_FILTER();
+                    }
+                
+              }
+            else{Trace("Filter Error");
+                    FilterCounter = 0; G6SetActStatus(G6_STATUS_CHANGE,OFF);
+                }
+            break;
+        case TD_TIMER_DOOR_OPEN: FilterCounter = 0;
+            if(!G6GetActStatus(G6S_DOOR_OPEN)){Trace("TD_TIMER_DOOR_OPEN 1");
+                G6SetActStatus(G6S_DOOR_OPEN,ON);G6SetActStatus(G6_STATUS_CHANGE,ON);
+             }
+            break;
+        case TD_TIMER_DOOR_CLOSE: FilterCounter = 0;
+                if(GetDoorStatus() == CLOSE)
+                    {G6SetActStatus(G6S_DOOR_OPEN,OFF);G6SetActStatus(G6_STATUS_CHANGE,ON);}
+            break;
+        
+      case TD_TIMER_KEY_POWER:TraceDec1("TD_TIMER_KEY_POWER",PowerKeyCount);
+            pMeshNodeData->G6HostPPercent = PowerKeyCount;
+            if(pMeshNodeData->G6HostPPercent == MENUAL_KEY_AUTO) {G6SetAutoRun(ON);}
+            else {G6SetAutoRun(OFF);}
+            G6SetActStatus(G6_STATUS_CHANGE,ON);
+            WriteMeshNodeData();
+            loop=0; 
+            MENUAL_LED_SPEED();
+            /* 
+            do{
+                 MENUAL_LED_SPEED(); loop++;
+              }while(loop < PowerKeyCount);
+            */
+            PowerKeyCount = 0xFF;
+            break;
+      case TD_TIMER_CHK_FILTER:
+            TimerFilter += ActMotoSpeed;  TraceDec2("Check Filter",TimerFilter,ActMotoSpeed);
+            if(TimerFilter > FILTER_TIME_BASE){TraceDec1("Filter + 1HR",TimerFilter);
+                TimerFilter = ActMotoSpeed;
+                G6FilterTimeInc();
+              }
+            break;
+            
+#endif          
+      default:   break;
     }
     return ret_code;
 }
+
+
 
 
 uint16 CountNodeEvent;
@@ -305,14 +355,11 @@ void TimerLedStatus()
                 if (!init_done) SetLedStatus(LED_STATUS_PROVING);
                 break;
             case TD_NO_EVENT: //TraceDec1("TD_NO_EVENT",CountNodeEvent);
-                if(GetMeshNodeStatus(STATUS_IVI_UPDATE) == ON)  
-                    {Trace("IVI UPDATE ON");
+                if(GetMeshNodeStatus(STATUS_IVI_UPDATE) == ON){Trace("IVI UPDATE ON");
                      SetLedStatus(LED_STATUS_IVI_UPDATE_ON);
                     }
-                if(++CountNodeEvent > COUNT_NO_EVENT) 
-                { Trace("IVI Update reset"); Delay_ms(500);
-                    //debug to disable
-                    //Cmd_sys_reset(0);
+                if(++CountNodeEvent > COUNT_NO_EVENT){ Trace("IVI Update reset"); 
+                    Delay_ms(500);
                 }
                 break;
             
@@ -336,17 +383,13 @@ void TimerIdOtherProc()
             case TD_PROVISIONING: //Trace("TD_PROVISIONING");
                 if (!init_done) led_set_state(LED_STATE_PROV); 
                 break;
-            case TD_RESTART: Trace("TD_RESTART");
+            case TD_RESTART: 
                 Cmd_sys_reset(0);
                 break;
-            case TD_FACTORY_RESET:  Trace("TD_FACTORY_RESET");
+            case TD_FACTORY_RESET: 
                 Cmd_sys_reset(0);
                 break;
-           // case TD_LED_TOGGLE:  //Trace("TD_LED_TOGGLE");
-           //     SetLedToggle(LED0);
-           //     break;
-            
-            default: TraceErr1("TimerIdOtherProc",CurrTimerHandle); break;
+            default:  break;
                 
         };    
 }
@@ -370,8 +413,7 @@ void DeviceSleeping()
 {
     return ; // debug: sleeping disable
     
-    if(!GetMeshNodeStatus(BLE_LINK_STATUS))
-        { Trace("Goto Sleeping");
+    if(!GetMeshNodeStatus(BLE_LINK_STATUS)){ Trace("Goto Sleeping");
         SetTaskWork(DeviceSleeping,DEVICE_TASK_OFF);
         SetTaskWork(DeviceWakeUp,DEVICE_TASK_ON);
         SetLedStatus(LED_STATUS_SLEEP);
@@ -395,18 +437,15 @@ void PowerTimerProc()
 void PowerModelProc()
 {
 
-    switch(CurrTimerHandle)
-        {
+    switch(CurrTimerHandle){
         case TD_SERVER_WAKE_UP: Trace("TD_SERVER_WAKE_UP 1");
             NodeWakeUp();
             break;
         case TD_SERVER_SLEEPING: Trace("TD_SERVER_SLEEPING 1");
-            if(GetMeshNodeStatus(BLE_LINK_STATUS))
-            {// BLE connect can not slepping
+            if(GetMeshNodeStatus(BLE_LINK_STATUS)){// BLE connect can not slepping
               SetEventTaskTimer(TD_SERVER_SLEEPING,CYCLE_PROXY_CONNECT_WAITING,TIMER_EVENT_ONCE);    
             }
-            else
-            {      
+            else{      
               SetEventTaskTimer(TD_SERVER_WAKE_UP,CYCLE_SERVER_SLEEPING,TIMER_EVENT_ONCE);
               NodeSleeping();
             }
@@ -427,12 +466,10 @@ Result SetEventTaskTimer(uchar event,uint32 timer,uchar single_shot)
 {   
     uint32 timer_tick=0;
 
-    if(timer >= TIMER_5MIN)
-        {
+    if(timer >= TIMER_5MIN){
             timer_tick = (((TIMER_CLK_FREQ)*(timer/100))*10)/100; 
         }
-    else
-        {
+    else {
             timer_tick = TIMER_MS_2_TICKS(timer);
         }
 
@@ -475,7 +512,6 @@ void ShowTimerRTC()
 void initiate_factory_reset(void)
 {
   Printf("factory reset\r\n");
-  DI_Print("\n***\nFACTORY RESET\n***", DI_ROW_STATUS);
 
   // If connection is open then close it before rebooting
   if (ConnectHandle != 0xFF) Cmd_connect_close(ConnectHandle);
@@ -483,11 +519,12 @@ void initiate_factory_reset(void)
   // Perform a factory reset by erasing PS storage. This removes all the keys
   // and other settings that have been configured for this node
   Cmd_flash_ps_erase_all();
-  // Reboot after a small delay
+  pMeshNodeData->DataInitID = NODE_DATA_ID;   //for v1.22
+  WriteNodeData();
   Cmd_set_soft_timer(TIMER_MS_2_TICKS(5000),TD_FACTORY_RESET,1);
 }
 
-/***************************************************************************//**
+/***************************************************************************
  * Set device name in the GATT database. A unique name is generated using
  * the two last bytes from the Bluetooth address of this device. Name is also
  * displayed on the LCD.
@@ -534,12 +571,10 @@ void SetTxPower(int16 power)
 // wake up: ON
 void PowerMode(uchar status)
 {
-    if(status == POWER_MODE_WAKEUP)
-        { Trace("Power Mode Wake up");
+    if(status == POWER_MODE_WAKEUP){ Trace("Power Mode Wake up");
          SetLedStatus(LED_STATUS_ACTIVE); // the can increment power consumption
         }
-    else
-        { Trace("Power Mode Sleeping"); // sleep mode
+    else{ Trace("Power Mode Sleeping"); // sleep mode
          SetLedStatus(LED_STATUS_OFF); // the can increment power consumption
         
         }
@@ -592,10 +627,6 @@ void SetForceFullPowerTime(uchar status)
 }
 
 
-
-
-
-
 // BLE and Mesh common event 
 //**********************************************************************************************
 // Event: gecko_evt_system_external_signal_id
@@ -605,94 +636,53 @@ uint32 EvtSysExternalSignalProc(PCmdPacket pEvent)
 {
     uint32 ret_code=TRUE;
     uint32 ext_signal;
-    uint16 G6Speed=0;
-//    return ret_code;
     ext_signal = pEvent->data.evt_system_external_signal.extsignals;
 
-    if(ext_signal == PB_SPEED_NORMAL) 
-        {Trace("PB_SPEED_NORMAL");
+    if(ext_signal == PB_SPEED_NORMAL){Trace("PB_SPEED_NORMAL");
         GetPropertyID = NODE_GET_INFO_FULL_POWER_OFF;
         SetForceFullPowerTime(OFF);
         //SetVolDecInc(1);
         } 
-    else if(ext_signal == PB_SPEED_5SEC) 
-        {Trace("PB_SPEED_5SEC");
+    else if(ext_signal == PB_SPEED_5SEC){Trace("PB_SPEED_5SEC");
         GetPropertyID = NODE_GET_INFO_FULL_POWER_ON;  
         SetForceFullPowerTime(ON);
         }    
-    else if(ext_signal == PB1_PRESS_ON) 
-        {Trace("PB1_PRESS_ON");
-         //SetVolDecInc(0);
+    else if(ext_signal == PB1_PRESS_ON){Trace("PB1_PRESS_ON");
         }
     else if(ext_signal == PB1_PRESS_OFF) Trace("PB1_PRESS_OFF");
-#ifdef  G6_BT_MESH
-    
-    else if(ext_signal == PB_SPEED_ON) 
-        {Trace("PB_SPEED_ON");
-        GetSysDate();
-        G6Speed = pAdjValue->G6Speed;
-        G6Speed = G6Speed/25; G6Speed++;
-        if(G6Speed >4 ) G6Speed=0;       
-        G6SetVol(G6Speed*25); // set voltage
-          
+#ifdef  BT_MESH_G6
+    else if(ext_signal == PB_SPEED_KEY){
+         SetEventTaskTimer(TD_TIMER_KEY_POWER, TIMER_1SEC,TIMER_EVENT_ONCE);//clear open
+         if(PowerKeyCount == 0xFF) PowerKeyCount = pMeshNodeData->G6HostPPercent;
+         if(++PowerKeyCount>MENUAL_KEY_AUTO) PowerKeyCount=0;
+         //TraceDec2("PB_SPEED_ON",PowerKeyCount,pMeshNodeData->G6HostPPercent);
         }
+    else if(ext_signal == PB_CLEAN_FILTER1){Trace("PB_CLEAN_FILTER1 1");
+        }
+    else if(ext_signal == PB_CLEAN_FILTER2){Trace("PB_CLEAN_FILTER2 2");
+        }
+     
+   else if(ext_signal == PB_DOOR_CLOSE){//Trace("PB_DOOR_CLOSE 3");
+        SetEventTaskTimer(TD_TIMER_DOOR_OPEN, 0,TIMER_EVENT_ONCE);
+        FilterCounter++;
+        if(FilterCounter >= 3)
+            SetEventTaskTimer(TD_TIMER_DOOR_CLOSE, 0,TIMER_EVENT_ONCE);//clear open
+        else  
+            SetEventTaskTimer(TD_TIMER_DOOR_CLOSE, TIMER_2SEC,TIMER_EVENT_ONCE);//clear open
+         
+         SetEventTaskTimer(TD_TIMER_FILTER_CLEAN, TIMER_1SEC,TIMER_EVENT_ONCE);         
+            
+       }
+   else if(ext_signal == PB_DOOR_OPEN){//Trace("PB_DOOR_OPEN 4");
+         SetEventTaskTimer(TD_TIMER_DOOR_CLOSE, 0,TIMER_EVENT_ONCE);//clear open 
+         SetEventTaskTimer(TD_TIMER_DOOR_OPEN, TIMER_1SEC,TIMER_EVENT_ONCE);
+       }
+  else if(ext_signal == PB_G6_RESET){//Trace("PB_G6_RESET");
+        BtmG6Reset();
+        CLEAR_LED_G6_RESET();
+      }
 #endif    
-   // else if(ext_signal == PB_SPEED_OFF) Trace("PB_SPEED_OFF");
-    else TraceErr("EvtSysExternalSignalProc");
-
     return ret_code;
 }
-
-#if 0
-
-typedef struct _SetupBtMesh_
-{  
-	int16   TempGain;		// for Temature Gain
-	int16	TempOffset;    	// for Tempature Offset  
-    int16   RhGain;			// for RH Gain		
-	int16	RhOffset;       // RH Offset
-    uint16  WorkingTimer;   // >5 and <3600 sec
-    uint16  BtmClass;       //1 : for JNC Sensor(Auto Scan) 2 : PZEM 3 : Visual Sensor 4 : AGB Motor Control(?†é?) 
-}SetupBtMesh,*PSetupBtMesh;
-
-//
-// for Other Test
-// 
-uint32 EvtSysExternalSignalProc1(PCmdPacket pEvent)
-{
-    uint32 ret_code=TRUE;
-    uint32 ext_signal;
-    SetupBtMesh bt_mesh_data_nor={100,0,100,0,20,1};
-    SetupBtMesh bt_mesh_data_set={120,50,120,100,20,1};
-
-    if(NodeRole != NR_CLIENT) return ret_code;
-    
-    ext_signal = pEvent->data.evt_system_external_signal.extsignals;
-
-    if(ext_signal == PB_SPEED_NORMAL) 
-        {Trace("*** To Set BT Mesh ***");
-            result = Cmd_ms_client_set_setting(SENSOR_ELEMENT,5,IGNORED,0x02,NODE_SENSOR_SETUP_SET,0x01,sizeof(SetupBtMesh),(PUCHAR)&bt_mesh_data_set)->result;
-            if(result) TraceErr1(" To Set BT Mesh ",result);
-            else TraceOk(" To Set BT Mesh ");
-        } 
-    else if(ext_signal == PB_SPEED_5SEC) 
-        {Trace("*** To Normal Set ***");
-            result = Cmd_ms_client_set_setting(SENSOR_ELEMENT,5,IGNORED,0x02,NODE_SENSOR_SETUP_SET,0x01,sizeof(SetupBtMesh),(PUCHAR)&bt_mesh_data_nor)->result;
-            if(result) TraceErr1(" To Set BT Mesh ",result);
-            else TraceOk(" To Set BT Mesh ");
-        }    
-    else if(ext_signal == PB1_PRESS_ON) 
-        {Trace("*** To Get Set Data");
-         result = Cmd_ms_client_get_setting(SENSOR_ELEMENT,5,IGNORED,0x02,NODE_SENSOR_SETUP_SET,0x01)->result;
-            if(result) TraceErr1(" To Get Set data",result);
-            else TraceOk(" To Get Set Data ");
-        }
-    else if(ext_signal == PB1_PRESS_OFF) Trace("PB1_PRESS_OFF");
-    else TraceErr("EvtSysExternalSignalProc");
-
-    return ret_code;
-}
-
-#endif
 
 

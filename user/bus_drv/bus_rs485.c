@@ -62,15 +62,9 @@ uchar CheckRs485Device()
     rs485_dev = SENSOR_ULTRA_SOUND;  goto Assigned;
 #endif
 
-#ifdef G6_BT_MESH
-       SetNodeStatus(NS_G6_READY,ON);
+#ifdef BT_MESH_G6
        pMeshNodeData->SensorClass = SENSOR_BTM_G6;
-       //rs485_dev = SENSOR_BTM_G6;
-       //rs485_dev = SENSOR_BTM_G6;  goto Assigned;
 #endif
-
-    //pMeshNodeData->SensorClass == SENSOR_VELOCITY;
-    
     TraceDec1("BTM Sensor", pMeshNodeData->SensorClass);
     if(pMeshNodeData->SensorClass == SENSOR_PZEM){
         CHECK_RS485_CMD((PUCHAR)&PzemClean[0],sizeof_array(PzemClean)); UsartResetRxTx(USART_ID_TX_RX);
@@ -89,13 +83,14 @@ uchar CheckRs485Device()
         SetNodeStatus(NS_SERVER_RS485_ENABLE,ON);
         rs485_dev = SENSOR_AGB_POWER; goto Check485_End;
         }    
-    else if(pMeshNodeData->SensorClass == SENSOR_BTM_G6){
-        pFunSensor = GeBtmG6Info;GetDeviceInfoDelay = 5;
+    else if(pMeshNodeData->SensorClass == SENSOR_BTM_G6){Trace("BTM G6");
+        SetNodeStatus(NS_G6_READY|NS_SYS_NO_WAITING,ON);
+        pFunSensor = GetBtmG6Info;GetDeviceInfoDelay = 5;
         SetNodeStatus(NS_SERVER_RS485_ENABLE,ON);
         rs485_dev = SENSOR_BTM_G6; goto Check485_End;
-        }        
+        }    
     else if(pMeshNodeData->SensorClass == SENSOR_VELOCITY){
-        pFunSensor = GeVelocityInfo;GetDeviceInfoDelay = 5;
+        pFunSensor = GetVelocityInfo;GetDeviceInfoDelay = 5;
         SetNodeStatus(NS_SERVER_RS485_ENABLE,ON);
         rs485_dev = SENSOR_VELOCITY; goto Check485_End;
         }
@@ -141,10 +136,11 @@ uchar CheckRs485Device()
                 if(CheckIaqs() != TRUE)     rs485_dev  = SENSOR_DISCONNECT;  break;
             case SENSOR_CW9:
                 if(CheckCw9() != TRUE)      rs485_dev  = SENSOR_DISCONNECT; break;
+#ifdef  BT_MESH_G6
+                
             case SENSOR_BTM_G6:
-                if(CheckG6() != TRUE)       rs485_dev  = SENSOR_DISCONNECT; break;
-            case SENSOR_VELOCITY:
-                if(CheckVelocity() != TRUE) rs485_dev  = SENSOR_DISCONNECT; break;    
+                if(CheckBtmG6() != TRUE)       rs485_dev  = SENSOR_DISCONNECT; break;
+#endif                
             default: TraceErr1("CheckRs485Device",rs485_dev);
                 rs485_dev = SENSOR_DISCONNECT;  break;
         };
@@ -154,8 +150,7 @@ Assigned:
      if(rs485_dev == SENSOR_DISCONNECT)  rs485_dev = ScanRs485Device();     
     pMeshNodeData->SensorClass = rs485_dev;
     
-    TraceDec1("*** rs485_dev ***",rs485_dev);
-   // pFunSensor = NULL;
+   //TraceDec1("*** rs485_dev ***",rs485_dev);
     if(rs485_dev == SENSOR_PT485)       {pFunSensor = GetPT485Info;GetDeviceInfoDelay = 5;}
     else if(rs485_dev == SENSOR_AIP)    {pFunSensor = GetAipInfo;GetDeviceInfoDelay = 5;}
     else if(rs485_dev == SENSOR_A308M)  {pFunSensor = GetA308mInfo;GetDeviceInfoDelay = 80;} //80 for wakeup timer
@@ -168,8 +163,8 @@ Assigned:
     else if(rs485_dev == SENSOR_IAQS)   {pFunSensor = GetIaqsInfo; GetDeviceInfoDelay = 2;}
     else if(rs485_dev == SENSOR_CW9 )   {pFunSensor = GetCw9Info; GetDeviceInfoDelay = 2;}
     else if(rs485_dev == SENSOR_SKYNET_CO2) {pFunSensor = GetSkynetCo2Info; GetDeviceInfoDelay = 2;}
-    else if(rs485_dev == SENSOR_BTM_G6)     {pFunSensor = GeBtmG6Info; GetDeviceInfoDelay = 2;}
-    else if(rs485_dev == SENSOR_VELOCITY)   {pFunSensor = GeVelocityInfo; GetDeviceInfoDelay = 2;}
+    else if(rs485_dev == SENSOR_BTM_G6)     {pFunSensor = GetBtmG6Info; GetDeviceInfoDelay = 2;}
+    else if(rs485_dev == SENSOR_VELOCITY)   {pFunSensor = GetVelocityInfo; GetDeviceInfoDelay = 2;}
     else {TraceErr("Sensor Check");} // 
 
 
@@ -331,11 +326,8 @@ uchar ScanRs485Device()
     else if(CheckCw9() == TRUE) {
          ret_code = SENSOR_CW9;
         }
-    else if(CheckG6() == TRUE) {
+    else if(CheckBtmG6() == TRUE) {
          ret_code = SENSOR_BTM_G6;
-        }    
-    else if(CheckVelocity() == TRUE) {
-         ret_code = SENSOR_VELOCITY;
         }    
     else {ret_code = SENSOR_RELAY;}
 
@@ -381,6 +373,8 @@ bool CheckPT485()
             ret_code = TRUE;}
          else TraceErr("PT485 Disconnect 1");
         }
+    else{ TraceErr("PT485 Disconnect 2");
+        }
     UsartResetRxTx(USART_ID_TX_RX);
     return ret_code;
 }
@@ -401,7 +395,11 @@ bool CheckAIP()
             ret_code = TRUE; }
          else {TraceErr("AIP Disconnect 1"); }
         }
+    else{ TraceErr("AIP Disconnect 2");
+        }
+
     UsartResetRxTx(USART_ID_TX_RX);
+
     return ret_code;
 }
 
@@ -436,10 +434,12 @@ bool CheckA308M()
         {
          if(memcmp(model_name,UsartGetBuff(USART_ID_RX),DEVICE_NAME_LEN) == 0)
             {
-             if(ServerSendModbusCmd((PUCHAR)CmdBtA308M_ver,MODBUS_CMD_NUM) == TRUE)                                
+             if(ServerSendModbusCmd((PUCHAR)CmdBtA308M_ver,MODBUS_CMD_NUM) == TRUE)                
                 ResetA308M();ret_code = TRUE;
             }
          else {TraceErr("A308M Disconnect 1"); }
+        }
+    else{ TraceErr("A308M Disconnect 2");
         }
 
     UsartResetRxTx(USART_ID_TX_RX);
@@ -523,6 +523,8 @@ bool CheckIaqs()
             ret_code = TRUE;}
          else TraceErr("IAQS Disconnect 2");
         }
+    else{ TraceErr("IAQS Disconnect 3");
+        }
     UsartResetRxTx(USART_ID_TX_RX);
     return ret_code;
 }
@@ -540,6 +542,8 @@ bool CheckCw9()
             {
             ret_code = TRUE;}
          else TraceErr("Cw9 Disconnect 2");
+        }
+    else{ TraceErr("Cw9 Disconnect 3");
         }
     UsartResetRxTx(USART_ID_TX_RX);
     return ret_code;
@@ -561,23 +565,21 @@ bool CheckA6D6()
             ret_code = TRUE;}
          else TraceErr("JNC-A6D6 Disconnect 2");
         }
+    else{ TraceErr("JNC-A6D6 Disconnect 3");
+        }
     UsartResetRxTx(USART_ID_TX_RX);
     return ret_code;
 }
 
-bool CheckG6()
-{
+bool CheckBtmG6()
+{TraceProc();
     bool ret_code=TRUE;
     ret_code = GetSysDate();
-    return FALSE;
-    //return ret_code;
+
+    if(ret_code) TraceOk("BTM G6");  else TraceErr("BTM G6");
+    
+    //return FALSE;
+    return ret_code;
 }
 
-bool CheckVelocity()
-{
-    bool ret_code = TRUE ;
-    
-    return ret_code;
-    //return ret_code;
-}
 

@@ -85,6 +85,95 @@
 #define SetNodeClass(class)     pSensorHeader->SensorClass = class
 
 
+
+#define G6_FC6_AUTO_RUN         BIT15
+#define G6_FC6_CLS_FILTER1      BIT14   //set filter1 750 Warning Time
+#define G6_FC6_CLS_ALL_FILTER   BIT13
+#define G6_FC3_DOOR_OPEN        BIT12   
+
+
+#define G6_FC3_AUTO_RUN         G6_FC6_AUTO_RUN
+#define G6_FC3_WARNING_FILTER1  G6_FC6_CLS_FILTER1  
+#define G6_FC3_WARNING_FILTER2  G6_FC6_CLS_ALL_FILTER
+
+#define ALL_SETTING_ID                  0x01
+#define TEMP_GAIN_SETTING_ID            0x02
+#define TEMP_OFFSET_SETTING_ID          0x03
+#define RH_GAIN_SETTING_ID              0x04
+#define RH_OFFSET_SETTING_ID            0x05
+#define WORKING_TIME_SETTING_ID         0x06
+#define SENSOR_CLASS_SETTING_ID         0x07
+
+#define SET_FULL_POWER_ON               0x10
+#define SET_FULL_POWER_OFF              0x11
+
+#define MENUAL_KEY_AUTO                 6 //5
+#define MENUAL_POWER_OFF                5
+
+
+typedef struct _BtAppData_
+{
+    int16   TempGain,TempOffset;    // Tempature Gain & Offset  
+    int16   RhGain,RhOffset;        // RH Gain & Offset
+    uint16  WorkingTimer;            // >5 and <3600 sec
+    uint16  BtmClass;               //1 : for JNC Sensor(Auto Scan) 2 : PZEM 3 : Visual Sensor 4 : AGB Motor Control(?†é?) 
+}_BtAppData,*PBtAppData;
+
+#define CLASS_TO_UTILITY    0
+#define CLASS_TO_BTM        1
+
+#define G6_ADDR_BEHAVIOR    0x03
+
+#define RTC_ADDR_YEAR       0x38
+#define RTC_ADDR_MONTH      0x39
+#define RTC_ADDR_DATE       0x3A
+#define RTC_ADDR_HOUR       0x3B
+#define RTC_ADDR_MIN        0x3C
+#define RTC_ADDR_SEC        0x3D
+#define RTC_ADDR_WEEK       0x3E
+
+#define SEG1_ON_OFF         0xB8
+#define SEG2_ON_OFF         0xB9
+#define SEG3_ON_OFF         0xBA
+#define SEG4_ON_OFF         0xBB
+#define SEG5_ON_OFF         0xBC
+
+#define SEG1_POWER          0xC0
+#define SEG2_POWER          0xC1
+#define SEG3_POWER          0xC2
+#define SEG4_POWER          0xC3
+#define SEG5_POWER          0xC4
+
+#define SEG1_WEEK           0xC8
+#define SEG2_WEEK           0xC9
+#define SEG3_WEEK           0xCA
+#define SEG4_WEEK           0xCB
+#define SEG5_WEEK           0xCC
+
+#define SEG1_START_TIME     0xD0
+#define SEG2_START_TIME     0xD1
+#define SEG3_START_TIME     0xD2
+#define SEG4_START_TIME     0xD3
+#define SEG5_START_TIME     0xD4
+
+#define SEG1_END_TIME       0xD8
+#define SEG2_END_TIME       0xD9
+#define SEG3_END_TIME       0xDA
+#define SEG4_END_TIME       0xDB
+#define SEG5_END_TIME       0xDC
+
+#define POWER_PERCENT_SEG0  0xF0
+#define POWER_PERCENT_SEG1  0xF1
+#define POWER_PERCENT_SEG2  0xF2
+#define POWER_PERCENT_SEG3  0xF3
+#define POWER_PERCENT_SEG4  0xF4
+
+
+#define RUNING_TIME_FILTER1 0xFA    //setup warning for filter1
+#define RUNING_TIME_FILTER2 0xFB    //setup warning for filter2
+
+
+
 extern const uchar AipPowerCtrlCmd[5][8];
 extern const uchar A308MCtrlCmd[4][8];
 extern uint16  GetDeviceInfoDelay;     //Nx10ms
@@ -128,11 +217,22 @@ bool GetCw9Info();
 bool GetIaqsCw9();
 bool GetSkynetCo2Info();
 bool GetBtmMeshInfo();
-bool GeBtmG6Info();
-bool GeVelocityInfo();
+bool GetBtmG6Info();
+bool GetVelocityInfo();
+bool G6SetupInfo();
+bool G6GetInfo();
+bool ModbusSetupFC6();
 
 
-
+bool G6SetSegPowerPercent(uint16 addr,uint16 value);
+bool G6SetBehavior(uint16 addr,uint16 value);
+bool G6SetInitRtc(uint16 addr,uint16 value);
+bool G6SetSegOnOff(uint16 addr,uint16 value);
+bool G6SetSegPower(uint16 addr,uint16 value);
+bool G6SetSegWeek(uint16 addr,uint16 value);
+bool G6SetSegStartTime(uint16 addr,uint16 value);
+bool G6SetSegEndTime(uint16 addr,uint16 value);
+bool G6SetTimeFilter(uint16 addr,uint16 value);
 
 
 
@@ -152,8 +252,18 @@ bool MeshNodeGetInfoProc();
 void BtmRfsense(Bool status);
 void ServerGetInfoActionNow();
 void ServerSetPowerStatus();
+Bool BtmG6SetCtrl(uint16 property_id);
+uint16  SensorClassChange(uint16 class,uint8 status);
+Bool GetG6InfoFC3(uint16 start_addr,uint16 total_reg);
+Bool G6FC3GetInitRtc(uint16 start_addr);
 
-
+Bool G6FC3GetSegOnOff(uint16 start_addr);
+Bool G6FC3GetSegPower(uint16 start_addr);
+Bool G6FC3GetSegWeek(uint16 start_addr);
+Bool G6FC3GetSegStartTime(uint16 start_addr);
+Bool G6FC3GetSegEndTime(uint16 start_addr);
+Bool G6FC3GetSegPowerPercent(uint16 start_addr);
+Bool G6FC3GetTimeFilter(uint16 start_addr);
 
 
 #endif //_MEAH_SERVER_H_

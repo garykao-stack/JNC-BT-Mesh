@@ -1,20 +1,14 @@
 #include "global.h"
-
-//richard add
 #include "em_device.h"
 #include "em_chip.h"
 #include "em_emu.h"
 #include "em_msc.h"
 #include "em_gpio.h"
 #include "em_cmu.h"
-
-//richard Add
-
 #include "leds.h"
 #include "sensor_client.h"
 #include "bus_usart.h"
 #include "Mesh_Node.h"
-
 #include "node_data.h"
 
 
@@ -25,32 +19,29 @@ _PMesh_Node_Data pMeshNodeData;
 _AdjustValue    AdjustValue;
 _PAdjustValue   pAdjValue;
 
-
-//const long Baudrate[]={2400,4800,9600,19200,38400,57600,115200};
-//uint32 *pNodedata = (uint32*)0x0FE00000;  // pointer to the beginning of UD page
-uint16 val1, val2;
-word LevelData[12]={0,1,2,3,4,5,6,7,8,9,10,11};
-word LevelDataRead[12];
-
-
 void NodeDataInit()
-{
-    //TraceDec1("MeshNodeData Size", sizeof(_Mesh_Node_Data));
+{TraceProc();
     pMeshNodeData = &MeshNodeData;
     pAdjValue = &AdjustValue;   
     ReadNodeData();
-    //PrintDataByte("MeshNodeData", (PUCHAR)pMeshNodeData,NODE_DATA_SIZE);
-    //PrintDataByte("Adjust Value", (PUCHAR)pAdjValue,ADJUST_VALUE_SIZE);
     if(pMeshNodeData->DataInitID != NODE_DATA_ID) MeshNodeDataReset();
+    //MeshNodeDataReset(); while(1);
     return;
 }
 
 
 
 void MeshNodeDataReset()
-{
+{TraceProc();
+    float temp_gain,hum_gain,temp_offset,hum_offset;
 
+    temp_gain = pAdjValue->TempGain; hum_gain = pAdjValue->HumGain;
+    temp_offset = pAdjValue->TempOffset;hum_offset = pAdjValue->HumOffset;
+    if(temp_gain == 0) temp_gain = 1.0;
+    if(hum_gain == 0) hum_gain = 1.0;
+    
     memset(&MeshNodeData,0,NODE_DATA_SIZE);
+    memset(&AdjustValue,0,ADJUST_VALUE_SIZE);
     pMeshNodeData->DataInitID=NODE_DATA_ID;    
     pMeshNodeData->StructVer=FW_VER;
     pMeshNodeData->MeshNodeID = 0;
@@ -59,20 +50,13 @@ void MeshNodeDataReset()
     pMeshNodeData->BaudRate=USART_BAUDRATE_DEFAULT; //for 9600
     pMeshNodeData->TxPower=TX_POWER_HI;
     pMeshNodeData->SleepingTimer=TIMER_NODE_SLEEPING;
-    pMeshNodeData->TempDiff=0;
-    pMeshNodeData->HumidityDiff=0;
     pMeshNodeData->WorkingTimer = TIMER_DEFAULT_WORKING;
-    
-    pAdjValue->TempGain = 1.0;
-    pAdjValue->TempOffset = 0.0;
-    pAdjValue->HumGain = 1.0;
-    pAdjValue->HumOffset = 0.0;
-    /*
-    pAdjValue->UserTempGain = 1.0;
-    pAdjValue->UserTempOffset = 0.0;
-    pAdjValue->UserRhGain = 1.0;
-    pAdjValue->UserRhOffset = 0.0;
-    */
+    pAdjValue->TempGain = temp_gain;
+    pAdjValue->HumGain =hum_gain;
+    pAdjValue->TempOffset = temp_offset;
+    pAdjValue->HumOffset = hum_offset;    
+    // Printf("TempGain=%f hum_gain=%f temp_offset=%f hum_offset=%f ",temp_gain,hum_gain,temp_offset,hum_offset);
+    BtmG6Reset();
     WriteNodeData();
    
 }
@@ -83,21 +67,40 @@ void MeshNodeDataReset()
 //
 void MeshNodeSetupReset()
 {
-
     pMeshNodeData->SensorClass = SENSOR_AUTO_SCAN; 
     pMeshNodeData->BaudRate = USART_BAUDRATE_DEFAULT; //for 9600
     pMeshNodeData->WorkingTimer = TIMER_DEFAULT_WORKING;
-
-
     pAdjValue->TempGain = 1.0;
     pAdjValue->TempOffset = 0.0;
     pAdjValue->HumGain = 1.0;
     pAdjValue->HumOffset = 0.0;    
-    pAdjValue->G6Speed = 25; //25%
     WriteNodeData();
    
 }
 
+
+
+void BtmG6Reset()
+{
+    uint8 loop;
+    memset(&(pAdjValue->G6Schedule),0,sizeof(pAdjValue->G6Schedule));
+    for(loop=0; loop<G6_SCHEDULE_NUM; loop++){
+        pAdjValue->G6Schedule[loop].ScheduleID=loop;
+        }
+     pMeshNodeData->FilterTime1=1500; //Hour
+     pMeshNodeData->FilterTime2=3000;
+     pMeshNodeData->FilterAllTime1=0;
+     pMeshNodeData->FilterAllTime2=0;    
+     pMeshNodeData->G6Status = 0;
+     pMeshNodeData->G6ActPercent = 0;
+     pMeshNodeData->SegPPercent[0]=0;    //for 0%
+     pMeshNodeData->SegPPercent[1]=25;   //for 25%
+     pMeshNodeData->SegPPercent[2]=50;   //for 50%
+     pMeshNodeData->SegPPercent[3]=75;
+     pMeshNodeData->SegPPercent[4]=100;
+     pMeshNodeData->SegPPercent[5]=pMeshNodeData->SegPPercent[0];
+    WriteNodeData();
+}
 
 
 
@@ -108,21 +111,16 @@ void MeshNodeSetupReset()
 #define WRITE_MESH_NODE_DATA        1
 #define WRITE_MESH_ADJ_VALUE        2
 
-
-// write node data to PS key
-// error code:0x018A
 //
 Result WriteNodeData()
 {
     Result ret_code=RESULT_OK;
 
    ret_code = Cmd_flash_ps_save(PS_KEY_MESH_NODE_DATA,NODE_DATA_SIZE,(const uint8*)pMeshNodeData)->result;
-   if(ret_code) {Trace1("Write Node Data Error %x",ret_code);}
-   else Delay_ms(5);
+   Delay_ms(10);
 
-    ret_code = Cmd_flash_ps_save(PS_KEY_ADJUST_VALUE,ADJUST_VALUE_SIZE,(const uint8*)pAdjValue)->result;
-    if(ret_code) {Trace1("Write AdjustValue Error %x",ret_code);}
-    else Delay_ms(5);
+   ret_code = Cmd_flash_ps_save(PS_KEY_ADJUST_VALUE,ADJUST_VALUE_SIZE,(const uint8*)pAdjValue)->result;
+   Delay_ms(10);
 
    
     return ret_code;
@@ -133,8 +131,7 @@ Result WriteMeshNodeData()
      Result ret_code=RESULT_OK;
     
     ret_code = Cmd_flash_ps_save(PS_KEY_MESH_NODE_DATA,NODE_DATA_SIZE,(const uint8*)pMeshNodeData)->result;
-    if(ret_code) {TraceErr1("WriteMeshNodeData",ret_code);}
-    else Delay_ms(5);
+    Delay_ms(10);
     return ret_code;
 
 }
@@ -144,8 +141,7 @@ Result WriteAdjValue()
     Result ret_code=RESULT_OK;
 
     ret_code = Cmd_flash_ps_save(PS_KEY_ADJUST_VALUE,ADJUST_VALUE_SIZE,(const uint8*)pAdjValue)->result;
-    if(ret_code) {TraceErr1("WriteAdjValue Error",ret_code);}
-    else Delay_ms(5);
+    Delay_ms(10);
     return ret_code;
 
 
@@ -164,18 +160,17 @@ Result ReadNodeData()
   struct gecko_msg_flash_ps_load_rsp_t* pRsp;
   pRsp = Cmd_flash_ps_load(PS_KEY_MESH_NODE_DATA);
   if(pRsp->result == RESULT_OK){
-    if(pRsp->value.len > sizeof(_AdjustValue) ) { TraceErr("ReadNodeData 1");
-    len = sizeof(_AdjustValue);
+    if(pRsp->value.len > sizeof(_Mesh_Node_Data) ) { 
+    len = sizeof(_Mesh_Node_Data);
     }else len = pRsp->value.len;
     memcpy((void *)pMeshNodeData, (void *)&(pRsp->value.data),len);
     }
-  else {ret_code = pRsp->result; Trace1("ReadNodeData Error %x",pRsp->result);}
+  else {ret_code = pRsp->result; }
 
-  TraceDec1("value.len 1",pRsp->value.len);
 
   pRsp = Cmd_flash_ps_load(PS_KEY_ADJUST_VALUE);
   if(pRsp->result == RESULT_OK) {
-     if(pRsp->value.len > sizeof(_AdjustValue) ) { TraceErr("ReadNodeData 2");
+     if(pRsp->value.len > sizeof(_AdjustValue) ) {
      len = sizeof(_AdjustValue);
      }else len = pRsp->value.len;
      
@@ -183,7 +178,6 @@ Result ReadNodeData()
     }
   else {ret_code = pRsp->result; Trace1("Read Adjust Value Error %x",pRsp->result);}
 
-  TraceDec1("value.len 2",pRsp->value.len); TraceDec1("value.len 2-1",sizeof(_AdjustValue));
 
   return ret_code;
 }

@@ -28,10 +28,10 @@
 #define MESH_CFG_MAX_SUBSCRIPTIONS              4
 #define MESH_CFG_MAX_NETKEYS                    4
 #define MESH_CFG_MAX_APPKEYS                    4
-#define MESH_CFG_NET_CACHE_SIZE                 256
-#define MESH_CFG_RPL_SIZE                       32
-#define MESH_CFG_MAX_SEND_SEGS                  32
-#define MESH_CFG_MAX_RECV_SEGS                  32
+#define MESH_CFG_NET_CACHE_SIZE                 128
+#define MESH_CFG_RPL_SIZE                       48
+#define MESH_CFG_MAX_SEND_SEGS                  8
+#define MESH_CFG_MAX_RECV_SEGS                  8
 #define MESH_CFG_MAX_VAS                        4
 #define MESH_CFG_MAX_PROV_SESSIONS              2
 #define MESH_CFG_MAX_PROV_BEARERS               2

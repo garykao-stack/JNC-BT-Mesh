@@ -1,9 +1,9 @@
 #ISD afv6
-# Simplicity Studio version: 5.18.7.202008130736-45
+# Simplicity Studio version: 5.20.0.202010151757-46
 
 # Application configuration
 stackId: com.silabs.sdk.stack.btmesh
-stackRoot: D:\Compiler\SimplicityStudio\developer\sdks\blemesh\v1.7
+stackRoot: D:\Compiler\SimplicityStudio_v4\developer\sdks\blemesh\v1.7
 appId: btmesh
 frameworkRoot: app\bluetooth\appbuilder\fwk-mesh
 architecture: efr32~family[B]~series[1]~device_configuration[3]~performance[P]~radio[732]~flash[512K]~temp[G]~package[M]~pins[48]~module[BGM13P32F512GA]+BRD4306B+iar

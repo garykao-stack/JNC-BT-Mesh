@@ -130,6 +130,7 @@ uint16 GetTempRH(uchar select)
     
         tempRH /=100; if(tempRH > 1000) tempRH = 1000;
         tempData /=100;
+        TraceDec2("Temp&Humi 2", tempRH, tempData);
     
         if(select == 0)  {return (int16)tempData;} //tempature
         else {return (int16)tempRH;} //humidity }
@@ -174,6 +175,7 @@ uint16 GetTempAndRH(int16 *Temp, uint16 *humidity)
         tempRH /=100; if(tempRH >= 1000) tempRH = 1000;
         *humidity =tempRH;
         tempData /=100; if(tempData < 800) *Temp = tempData;
+        //TraceDec3("Temp&Humi 3", tempRH, tempData,*Temp);
         }
     else 
         {

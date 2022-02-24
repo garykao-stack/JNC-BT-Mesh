@@ -67,8 +67,6 @@ void MeshNodeInit()
     NodeStatus = 0;
     pNodeEventInfo = &NodeEventInfo;
     SetEventTaskTimer(TD_STAGE_TIMER,  TIMER_STAGE_WAITING,TIMER_EVENT_REPEAT);
-    TraceDec1("NodeRole 2",NodeRole);
-
     if(NodeRole == NR_SETUP)BtMeshSetupInit();
     else if(NodeRole == NR_CLIENT) ClientNodeInit();
     else if(NodeRole == NR_SERVER) ServerNodeInit();

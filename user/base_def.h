@@ -22,6 +22,12 @@
 #define READ            1
 #define HIGH            1
 #define LOW             0
+#define INC             1
+#define DEC             0
+#define OPEN        1
+#define CLOSE       0
+
+
 
 #define SUCCESS         0
 #ifdef NULL

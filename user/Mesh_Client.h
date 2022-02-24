@@ -204,10 +204,6 @@ typedef struct
 #define FTM_VEL_TEMP_2          0x0416
 
 
-
-
-
-
 #define JNC_SD_CO2              0x300
 #define JNC_SD_PM25             0x301
 #define JNC_SD_TEMP             0x302
@@ -267,6 +263,13 @@ typedef struct
 #define OEM_ADDR_02             0x0002
 #define OEM_ADDR_03             0x0003
 #define OEM_ADDR_0A             0x000A
+
+// for BTM-G6 
+
+#define BTM_G6_STATUS           0x0003
+#define BTM_G6_TIME_FILTER1     0x0004
+#define BTM_G6_TIME_FILTER2     0x0005
+
 
 // Client Node Status
 

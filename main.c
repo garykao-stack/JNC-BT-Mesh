@@ -87,7 +87,7 @@ static gecko_configuration_t config =
 #else
   .pa.input = GECKO_RADIO_PA_INPUT_DCDC,
 #endif // defined(FEATURE_PA_INPUT_FROM_VBAT)
-  .max_timers = 16,
+//  .max_timers = 16,
   .rf.flags = GECKO_RF_CONFIG_ANTENNA,   // Enable antenna configuration.
   .rf.antenna = GECKO_RF_ANTENNA,   // Select antenna path!
       .max_timers = 32, //16, richard

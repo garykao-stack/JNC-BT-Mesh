@@ -94,7 +94,7 @@ static const sensor_descriptor_t descriptors[NUMBER_OF_SENSORS] = // define prop
 
 
 void handle_server_get_series(PCmdPacket pCmdEvent)
-{
+{TraceProc();
     uchar test[5]={0x12,0x39,0x24,0x19,0x09};
     msg_ms_server_get_series_request_evt *p_data; 
     p_data = (msg_ms_server_get_series_request_evt * )&(pCmdEvent->data.evt_mesh_sensor_server_get_series_request);
@@ -107,7 +107,7 @@ void handle_server_get_series(PCmdPacket pCmdEvent)
 
 
 void handle_server_get_column(PCmdPacket pCmdEvent)
-{
+{TraceProc();
     uchar test[5]={0x23,0x19,0x23,0x01,0x29};
     msg_ms_server_get_column_request_evt *p_data;
     p_data = (msg_ms_server_get_column_request_evt * )&(pCmdEvent->data.evt_mesh_sensor_server_get_column_request);

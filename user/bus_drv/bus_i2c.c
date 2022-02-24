@@ -182,8 +182,6 @@ uint32 GetTempHumi()
     int16 temp_data,humi_data;
     uint32 temp_humi;
     PUINT16 p_temp_humi;
-    Trace("******************\r\n");
-
     temp_data = humi_data = 0;
     humi_data = GetHumidity();
     temp_data = GetTempature();
@@ -211,7 +209,7 @@ int16 GetTempature()
       tempature = RET_VALUE_ERROR;
     }
     
-    printf("Tempature 1 ==> %3.1f -C\r\n",(float)tempature/10);
+    Printf("Tempature 1 ==> %3.1f -C\r\n",(float)tempature/10);
     return (int16)tempature;
     //return -100;
 }
@@ -230,18 +228,19 @@ int16 GetHumidity()
     } else {
       humidity = RET_VALUE_ERROR;
     }
-    printf("Humidity 2 ==> %ld%\r\n",(int16)humidity/10);
+    Printf("Humidity 2 ==> %ld%\r\n",(int16)humidity/10);
     return (int16)humidity;
 
 }
 
 //const uint16 AdcValue[22]={2700,};
 #define ADC_VOL_MAX     2670 //2650
-#define ADC_VOL_MIN     2060 //1800 //1900 // for v3.2 to 5%
+#define ADC_VOL_MIN     2130 //2060 //1800 //1900 // for v3.2 to 5%
 #define ADC_DIFF        (ADC_VOL_MAX - ADC_VOL_MIN)
-uchar BatteryPower;
+uchar BatteryPower=0;
 
 #define BATTERY_POWER_DIFF      3
+
 
 //
 // return battery power
@@ -251,6 +250,7 @@ uchar GetBatteryPower()
     uint16 adc_value;
     uchar power_percent;
     uint16 power_diff;
+    uchar temp_battery_power;
     adc_value = (uint16)GetBpValue();
     if(adc_value > ADC_VOL_MAX) adc_value = ADC_VOL_MAX;
     if(adc_value <= ADC_VOL_MIN) adc_value = ADC_VOL_MIN;
@@ -258,11 +258,12 @@ uchar GetBatteryPower()
 
     if(power_percent >= BatteryPower)
         {//power on/ power error
-         //TraceDec2("Test1",power_percent,BatteryPower);
-          if((power_percent - BatteryPower) > BATTERY_POWER_DIFF)
-            {//TraceDec2("Test2",power_percent,BatteryPower);
+          //TraceDec2("Test1",power_percent,BatteryPower);
+          if(BatteryPower == 0){//TraceDec2("Test2",power_percent,BatteryPower);
             BatteryPower = power_percent;
             }
+            else if((power_percent - BatteryPower) < BATTERY_POWER_DIFF)
+                    {BatteryPower = power_percent;}
         }
     else 
         {// normal
@@ -272,8 +273,11 @@ uchar GetBatteryPower()
              BatteryPower = power_percent;
             }
         }
-    TraceDec1("Power Percent",BatteryPower);
-    return BatteryPower; //75;
+    temp_battery_power = BatteryPower;
+    if(BatteryPower < 10) temp_battery_power = (float)BatteryPower*0.4;
+    
+    TraceDec1("Percent:",BatteryPower);
+    return temp_battery_power; //75;
 }
 
 

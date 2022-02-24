@@ -9,7 +9,7 @@
 #pragma pack(push) 
 #pragma pack(1)     //mapping to one byte
 
-//current 47 bytes, Max 56 bytes
+//Max 56 bytes
 typedef struct 
 {
   uint16    DataInitID;         // 0xA5A5
@@ -27,27 +27,33 @@ typedef struct
   uchar     TxPower;            // for BLE power
   uchar     Reserver1;              // for BLE RF sensivity
   uint16    WorkingTimer;
-  uint16    Reserver2;      //
+  uchar     G6HostPPercent;      // from host setup power percent 0,1,2,3,4
   ////// to add other Items
   uint16    Status;
-  short     TempDiff,HumidityDiff;// for Temp & RH calibration ±12.7°C and ±20%
-  uint16    Reserver3;       //00 ~ 100%
-  uint16    Reserver4;          // 
-  uint32    Reserver[1];
+  uint16    FilterTime1,FilterAllTime1;
+  uint16    FilterTime2,FilterAllTime2;  // Hour
+  uchar     G6Status,G6ActPercent;
+  uchar     SegPPercent[6]; // for segment power percent
 } _Mesh_Node_Data,*_PMesh_Node_Data;
 
 // Mesh Node Status
 #define NODE_TEMP_HUM               BIT0    //0: from other device 1: from BT itself
 #define NODE_SERVER_TO_RS485        BIT1    //0: from other device 1: from BT itself
 
+#define G6_SCHEDULE_NUM             5
+
+
 
 typedef struct
 {
     float   TempGain,TempOffset,HumGain,HumOffset;
-    uint16  G6Speed;
-  _G6OnDate G6OnDate[5];
-    
+  _G6Schedule G6Schedule[G6_SCHEDULE_NUM];
 }_AdjustValue,*_PAdjustValue;
+
+#define G6_AUTO_RUN             BIT0
+#define G6_SET_AUTO_RUN         BIT1    //by modbus
+#define G6_CLEAR_FILETER1       BIT2
+#define G6_CLEAR_FILETER_ALL    BIT3
 
 
 
@@ -101,6 +107,8 @@ extern _PAdjustValue    pAdjValue;
 
 void NodeDataInit();
 void MeshNodeDataReset();
+void BtmG6Reset();
+
 
 Result WriteNodeData();
 Result ReadNodeData();

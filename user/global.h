@@ -51,29 +51,46 @@
 //            1. Add Server + Relay Node Number to 45 ~ 50
 //            2. UltraSound Add Temp & RH
 //            3. Add 風速計-宇田FMT95/95
-//            3. modify Temp%RH Offset Error
+//            4. modify Temp%RH Offset Error
 
+
+// v1.21
+//            1. Add Server + Relay Node Number to 45
+//            2. Modify Power percent display
+//            3. Modify Android App Error:TempGain and TempOffset can not to be change
+//            4. Modify for TempGain and TempOffset can not to be change
+//            5. TempGain,TempOffset, HumGain, HumOffset can to be reset by reset key
+//            6. Under Unprovision status, then can enter to setup model
+
+// v1.22      1. Do not delete other setup information from user
+
+// BTM G6
+
+/*
+ v0.90
+            1. Add BTM G6
+
+*/
 
 ///////////////////////////////////////////////////////////
 //for G6-DAC7760
 // version: 0.9
 
-//#define G6_BT_MESH              1   //for BT Mesh Control G6
+#define BT_MESH_G6              1   //for BT Mesh Control G6
+//#define JNC_BT_MESH             1   //for JNC BT Mesh
 //#define ULTRA_SOUND_SKYNET      1
-#define JNC_BT_MESH             1   //for JNC BT Mesh
 
 
-#ifdef  G6_BT_MESH
+#ifdef  BT_MESH_G6
 #define FW_VER              90
 #define HW_VER              100
 #define DEVICE_NAME         "G6-BT-Mesh"
 #define MANUFACTORY_NAME    "JNC"
 #define NODE_DATA_ID        0xA5A5
-#define MODEL_NAME          "BTM_G6"
+#define MODEL_NAME          "BTM-G6"
 #endif
 
 #ifdef  ULTRA_SOUND_SKYNET
-
 #define FW_VER              100
 #define HW_VER              110
 #define DEVICE_NAME         "UD-BT-Mesh"
@@ -84,8 +101,7 @@
 #endif
 
 #ifdef  JNC_BT_MESH
-
-#define FW_VER              120
+#define FW_VER              122
 #define HW_VER              110
 #define DEVICE_NAME         "JNC-BT-Mesh"
 #define MANUFACTORY_NAME    "JNC"
@@ -98,7 +114,7 @@
 #ifndef _GLOBAL_H_
 #define _GLOBAL_H_
 
-//#define DEBUG_PRINT
+#define DEBUG_PRINT
 #define BTM_TEST
 
 

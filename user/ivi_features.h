@@ -71,7 +71,6 @@ uint32 EvtMeshIviProc(PCmdPacket pEvent);
 void iv_config(uint8_t iv_test_mode,uint8_t iv_recovery_mode,uint8_t snb_state);
 void iv_update_normal(void);
 void iv_update_hop(void);
-void ShowCurrRemSeq(void);
 uint32 EvtMeshIviClientProc(PCmdPacket pEvent);
 uint32 EvtMeshIviServerProc(PCmdPacket pEvent);
 Bool IvIndexUpdate(uchar status);

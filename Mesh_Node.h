@@ -227,16 +227,6 @@ typedef struct _BtMeshInfo_
     
 }_BtMeshInfo,*PBtMeshInfo;
 
-typedef struct _BtmG6_
-{
-    uint16   Status;
-    uint16   G6Speed;
-    uint16   Control;
-    uint16   Config;
-//    uint16   DacGainCal;
-//    uint16   DacZeroCal;
-    
-}_BtmG6,*PBtmG6;
 
 typedef struct _Velocity_
 {
@@ -245,6 +235,24 @@ typedef struct _Velocity_
     float Tempature;        //for Adr=0x415 ~ 0x416 
     
 }_Velocity,*PVelocity;
+
+typedef union _BtmG6Status_
+{
+    uint16  G6CurrStatus;
+ struct{
+    uchar   PPercent;
+    uchar   G6Status;
+  };
+}_BtmG6Status,*PBtmG6Status;
+
+typedef struct _BtmG6_
+{
+    _BtmG6Status  Status;
+    uint16 TimeFilter1;
+    uint16 TimeFilter2;
+}_BtmG6,*PBtmG6;
+
+
 
 
 typedef struct _SensorInfo_
@@ -268,8 +276,8 @@ union{
         _AgbPower   AgbPower;
         _SkynetCo2  SkynetCo2;
         _BtMeshInfo BtmMeshInfo;
-        _BtmG6      BtmG6;
         _Velocity   Velocity;
+        _BtmG6      BtmG6;
         
      };
 }_SensorInfo,*PSensorInfo;
@@ -375,7 +383,7 @@ typedef struct _NodeEventInfo_
 #define SERVER_GET_INFO_PROC        1
 #define SERVER_SET_NODE_PROC        2
 #define SENSOR_BTM_G6_PROC          3
-#define SENSOR_RESERVE_PROC         4
+#define SENSOR_G6STATUS_PROC        4
 
 // for Node Setup
 #define MESH_NODE_SETUP_PROC        1
@@ -387,7 +395,7 @@ typedef struct _NodeEventInfo_
 #define TIMER_DEMO_WORKING          20  // 20 Sec define
 
 
-#define SERVER_NODE_MAX             45 //50
+#define SERVER_NODE_MAX             45
 
 #define TIMER_GET_INFO_FULL_POWER   2 //5 // xxx Sec
 #define TIMER_GET_INFO_SLEEPING     (pMeshNodeData->WorkingTimer)//18 //62 //18 // xxx sec
@@ -451,6 +459,8 @@ typedef struct _NodeEventInfo_
 #define NS_USART_RX_ACTION      BIT24    // 
 #define NS_USART_TX_ENDING      BIT25    //
 #define NS_FORCE_FULL_POWER     BIT26    // Force System To Full Status
+#define NS_SYS_NO_WAITING       BIT27    // 
+
 
 
 #define NS_RELAY_ONLY           BIT30   // only for relay role 

@@ -110,7 +110,7 @@ bool MeshNodeModelInit()
         }
     else
        { SensorServerNodeInit();
-         SetServerAllModel();
+         //SetServerAllModel();
         }
     return ret_code;
 }
@@ -213,13 +213,14 @@ void GetLocalCfg()
 //
 //**********************************************************************************************
 uint32 EvtMeshSensorInitProc(PCmdPacket pEvent)
-{ 
+{TraceProc();
     uint32 ret_code = TRUE;
     msg_mn_initialized_evt *pMeshInit = &(pEvent->data.evt_mesh_node_initialized);
     if(NodeRole == NR_CLIENT)
         iv_config(IV_TEST_MODE, IV_RECOVERY_MODE, SNB_STATE);
     else
         iv_config(IV_TEST_MODE, 0, SNB_STATE);
+
 
     if(pMeshInit->provisioned)
     { //GetLocalCfg();  //debug
@@ -236,6 +237,11 @@ uint32 EvtMeshSensorInitProc(PCmdPacket pEvent)
 #endif  
         DI_Print("provisioned", DI_ROW_STATUS);
         SetNodePublish(OFF); SetNodeSleeping(OFF);
+        
+    if(NodeRole == NR_SETUP) {Trace("BT Mesh Setup ON 1");
+        SetEventTaskTimer(TD_PROVISIONING,TIMER_UNPROVISION,TIMER_EVENT_REPEAT);
+        SetLed(LED_RED,OFF);SetLed(LED_BLUE,ON);
+    }
     
     }
     else
@@ -244,7 +250,15 @@ uint32 EvtMeshSensorInitProc(PCmdPacket pEvent)
         Cmd_mn_start_unprov_beaconing(PB_ADV | PB_GATT); 
         Trace("node is unprovisioned: starting unprovisioned beaconing..."); //DI_Print("unprovisioned", DI_ROW_STATUS);
         SetLedStatus(LED_STATUS_OFF);
-        SetEventTaskTimer(TD_UNPROVISION,TIMER_UNPROVISION,TIMER_EVENT_REPEAT); // system reset
+        if(NodeRole != NR_SETUP)
+            {
+             SetLedStatus(LED_STATUS_OFF);
+             SetEventTaskTimer(TD_UNPROVISION,TIMER_UNPROVISION,TIMER_EVENT_REPEAT); // system reset
+            }
+        else{Trace("BT Mesh Setup ON 2");
+            SetLed(LED_RED,OFF);SetLed(LED_BLUE,ON);
+            SetEventTaskTimer(TD_PROVISIONING,TIMER_UNPROVISION,TIMER_EVENT_REPEAT);
+            }
     }
 
 

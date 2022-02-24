@@ -47,15 +47,13 @@ void ClientNodeTask()
 {
     uchar rx_count = UsartGetRxCounter();
     if(rx_count >= 7 && GetNodeStatus(NS_USART_RX_EVENT) != TRUE)
-        {
-         Delay_ms(3);
+        {Delay_ms(3);
          UsartClientProc(); UsartClientProc();
-         //return;
         }
     else if(GetNodeStatus(NS_USART_RX_EVENT) == TRUE) 
         {UsartClientProc();ClientFromHostProc();UsartClientProc();ClientFromHostProc(); }
     
-    ClientGetNodeInfoProc(); UsartClientProc(); ClientFromHostProc(); ClientSetNodeInfoProc(); 
+    ClientGetNodeInfoProc(); UsartClientProc(); ClientFromHostProc(); ClientSetNodeInfoProc(); NodeIviUpdateProc();
 }
 //
 //
@@ -107,6 +105,7 @@ uchar GetServerNodeNum()
             if(p_node_info->ServerID != 0 ) ret_code++;
             p_node_info++;
         }
+    TraceDec1("Total Node Num",ret_code);
     return ret_code;
 }
 
@@ -119,8 +118,14 @@ uchar GetServerNodeNum()
 #define A6D6_CTRL_POWER             prx_buff[4]
 #define AIP_CTRL_POWER              prx_buff[5]
 
+#define BTM_AIP_AUTO                prx_buff[4]
+#define BTM_AIP_POWER               prx_buff[5]
+
+
 uint16 SetProperityID=NODE_SET_AIP_POWER_OFF;
 uint16 SetServerFunID=0;
+
+
 
 //
 // return properity ID
@@ -130,6 +135,8 @@ uint16 GetProperityID()
     PUCHAR prx_buff = UsartGetBuff(USART_ID_RX);
     uint16 properity=NULL;
     uint16 modbus_reg;
+    //uchar hi_byte,lo_byte;
+    uint16 btm_cmd;
     modbus_reg = WordSwap(*((PUINT)&prx_buff[2]));
     Trace16_1(modbus_reg);
     if(GET_MODBUS_FUN_CODE == 0x06)
@@ -156,16 +163,26 @@ uint16 GetProperityID()
                 { properity = NODE_GET_INFO_FULL_POWER_OFF;}
             else 
                 { properity = NODE_GET_INFO_FULL_POWER_ON;}
+        }else if(modbus_reg == 0x0003){//Trace16_2(BTM_AIP_AUTO,BTM_AIP_POWER);
+            btm_cmd = WordSwap(*((PUINT16)(&BTM_AIP_AUTO)));  Trace16_1(btm_cmd);
+            if(btm_cmd & G6_FC6_CLS_ALL_FILTER) properity = CLEAR_ALL_FILTER;
+            else if(btm_cmd & G6_FC6_CLS_FILTER1) properity = CLEAR_FILTER1;
+            else if(btm_cmd & G6_FC6_AUTO_RUN) {Trace("G6-Auto");
+                   properity =  AUTO_POWER_0+(btm_cmd&0x00FF); Trace16_1(properity);
+            }
+            else {Trace("G6-Menual");
+                  properity =  MENU_POWER_0+(btm_cmd&0x00FF); Trace16_1(properity);  
+            }            
+            
+            //properity = NULL; //debug
         }
     }
     else if(GET_MODBUS_FUN_CODE == 0x05)
     {//for A6D6
-           if(A6D6_CTRL_POWER == 0xFF) 
-            {//Trace1("A6D6 Set ON", MODBUS_CTRL_REG);
+           if(A6D6_CTRL_POWER == 0xFF){//Trace1("A6D6 Set ON", MODBUS_CTRL_REG);
              properity = (NODE_SET_DO1_ON+(uint16)MODBUS_CTRL_REG); 
             }
-           else 
-            {//Trace1("A6D6 Set OFF", MODBUS_CTRL_REG);
+           else {//Trace1("A6D6 Set OFF", MODBUS_CTRL_REG);
              properity = (NODE_SET_DO1_OFF+(uint16)MODBUS_CTRL_REG); 
             }
 
@@ -191,8 +208,7 @@ void ClientSetNodeInfoProc()
                 if(GetNodeStatus(NS_SET_NODE_ACT) == TRUE)  ToNextStage(CNS_SET_INFO_PRE);
                 break;
                 
-            case CNS_SET_INFO_PRE:  
-                //PrintRx(CNS_SET_INFO_PRE);
+            case CNS_SET_INFO_PRE: //PrintRx(CNS_SET_INFO_PRE);
                 prx_buff = UsartGetBuff(USART_ID_RX);
                 SetServerFunID = (uint16)prx_buff[0]; // get id number
                 SetProperityID = GetProperityID();
@@ -222,10 +238,12 @@ void ClientSetNodeInfoProc()
                 if(result){
                      ToNextStage(CNS_SET_INFO_ERR);
                     }
-                else 
-                    ToNextStage(CNS_SET_INFO_OK);
+                else{
+                     
+                     ToNextStage(CNS_SET_INFO_OK);
+                    }
                 break;
-            case CNS_SET_INFO_OK:   
+            case CNS_SET_INFO_OK:  //Trace1("CNS_SET_INFO_OK",SetProperityID); 
                 prx_buff = UsartGetBuff(USART_ID_RX);
                 UsartTxSendCmd(prx_buff ,MODBUS_CMD_NUM);
                 ToWaitingStage(CNS_SET_UPDATE_INFO,10);
@@ -235,7 +253,7 @@ void ClientSetNodeInfoProc()
                 if(CheckWaitTimeOut())  ToNextStage(CNS_SET_INFO_END);
                 break;
                 
-            case CNS_SET_INFO_END:  
+            case CNS_SET_INFO_END:  Trace1("CNS_SET_INFO_END",SetProperityID); 
                 SetNodeStatus(NS_SET_NODE_ACT,OFF);
                 UsartResetRxTx(USART_ID_RX);
                 ToNextStage(CNS_SET_WAITING); 
@@ -254,7 +272,6 @@ void ClientGetInfoActionNow()
     p_stage_info = GetNodeStageInfo(CLIENT_GET_NODE_INFO_PROC);
     p_stage_info->Timer = WAIT_SEC(1);
 }
-
 
 //
 // handle node response
@@ -291,10 +308,10 @@ void ClientGetNodeInfoProc()
                   }
                 break;
             case CNS_PRE_SEVER_INFO: 
-                    SetLed(LED_SERVER,OFF); 
-                    SetNodeStatus(NS_GET_INFO_ACT,OFF);
-                    if(RespServerNode == 0) {ToWaitingStage(CNS_WAIT_SET_INFO,100);}
-                    else {ToWaitingStage(CNS_WAIT_SET_INFO,GetInfoCycle);}
+                SetLed(LED_SERVER,OFF); 
+                SetNodeStatus(NS_GET_INFO_ACT,OFF);
+                if(RespServerNode == 0) {ToWaitingStage(CNS_WAIT_SET_INFO,100);}
+                else {ToWaitingStage(CNS_WAIT_SET_INFO,GetInfoCycle);}
                 break;
             case CNS_WAIT_SET_INFO: 
                 if(GetNodeStatus(NS_LINKING) ==ON) break;
@@ -303,7 +320,6 @@ void ClientGetNodeInfoProc()
                     }
                 else if(GetNodeStatus(NS_SET_NODE_ACT) != TRUE)
                     ToNextStage(CNS_GET_SEVER_INFO);
-                
                 break;
             case CNS_GET_SEVER_INFO: 
                 
@@ -347,6 +363,7 @@ void ClientGetNodeInfoProc()
                 ToNextStage(CNS_PRE_SEVER_INFO); 
                 break;
             case CNS_GET_INFO_END:
+                ShowAllNodeInfo();
                 GetServerNodeNum();
                 ToNextStage(CNS_PRE_SEVER_INFO); 
                 break;
@@ -502,7 +519,11 @@ void ClientPropertyEvent(msg_ms_client_status_evt *pEvent)
     //PClientNodeInfo p_node_info;
     if((pClientInfo = GetServerInfoPos(pEvent->server_address))== NULL) 
            {TraceErr1("Mesh Node Num Over",pEvent->server_address);return;}
-    TraceDec1("Node ID", pEvent->server_address);
+    TraceDec1("Node ID-2", pEvent->server_address);
+
+    //if(pEvent->server_address == 3) TraceDec1(" 3 = ",RTCC_CounterGet());
+    //else if(pEvent->server_address == 51) TraceDec1(" 4 = ",RTCC_CounterGet());
+    
     //Reset Timer
     GetNodeStageInfo(CLIENT_GET_NODE_INFO_PROC)->Timer = TIMER_CLI_WAIT_INFO;
     RespServerNode++;
@@ -527,6 +548,18 @@ void ClientPropertyEvent(msg_ms_client_status_evt *pEvent)
                    {property_data = &p_sensor_data[pos + PROPERTY_HEADER_SIZE];}
                switch(property_id)
                 {
+                    case AUTO_POWER_0:
+                    case AUTO_POWER_1:
+                    case AUTO_POWER_2:
+                    case AUTO_POWER_3:
+                    case AUTO_POWER_4:
+                    case MENU_POWER_0:
+                    case MENU_POWER_1:
+                    case MENU_POWER_2:
+                    case MENU_POWER_3:
+                    case MENU_POWER_4:
+                    case CLEAR_FILTER1:
+                    case CLEAR_ALL_FILTER:
                     case NODE_GET_ALL_SENSOR:
                     case NODE_GET_INFO_FULL_POWER_ON: 
                     case NODE_GET_INFO_FULL_POWER_OFF:
@@ -1283,11 +1316,23 @@ bool ClientBtmG6(PBtmG6 p_info)
     ModbusToHostCmd.ByteNum = 2;
     start_addr  = WordSwap(pModbusCmd->StartAddr);
     total_reg = WordSwap(pModbusCmd->TotalReg);    
-    Trace16_1(p_info->Status);
     if(start_addr == BATTERY_POWER ){
         ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
       }
-    else{ TraceErr1("ClientBtmG6",total_reg);
+    else if(start_addr == BTM_G6_STATUS ){
+           if(p_info->Status.PPercent > 4) {
+                p_info->Status.PPercent =4;
+            }
+           Trace16_1(p_info->Status.G6CurrStatus);
+           ModbusToHostCmd.Data[0] = WordSwap(p_info->Status.G6CurrStatus); 
+        }
+    else if(start_addr == BTM_G6_TIME_FILTER1 ){Trace16_1(p_info->TimeFilter1);
+           ModbusToHostCmd.Data[0] = WordSwap(p_info->TimeFilter1); 
+        }
+    else if(start_addr == BTM_G6_TIME_FILTER2 ){Trace16_1(p_info->TimeFilter2);
+           ModbusToHostCmd.Data[0] = WordSwap(p_info->TimeFilter2); 
+        }
+    else{
         ret_code=FALSE;
       }
     return ret_code;
@@ -1403,81 +1448,14 @@ void ShowEventInfo(PClientInfo p_info)
             case SENSOR_PT485: 
                 Printf("PT485 Temp= %d\r\n",p_info->SensorInfo.PT485.Tempature);
                 break;
-            case SENSOR_AIP: 
-                Printf("AIP Power= %d Status=%X\r\n",p_info->SensorInfo.AipInfo.AipPower,p_info->SensorInfo.AipInfo.AipPowerStatus);
-                break;
-            case SENSOR_A308M_JNC: p_info_a308m = &(p_info->SensorInfo.A308mInfo);
-
-                Printf("A308M=>X RMS=%ld Skew=%ld Kurt=%ld Freq=%ld Speed=%ld Stength=%ld\r\n",
-                        p_info_a308m->RmsX,p_info_a308m->SkewnessX,p_info_a308m->KurtosisX,p_info_a308m->FrequencyX,
-                        p_info_a308m->SpeedX,p_info_a308m->StengthX);
-   
-                Printf("A308M=>Y RMS=%ld Skew=%ld Kurt=%ld Freq=%ld Speed=%ld Stength=%ld\r\n",
-                        p_info_a308m->RmsY,p_info_a308m->SkewnessY,p_info_a308m->KurtosisY,p_info_a308m->FrequencyY,
-                        p_info_a308m->SpeedY,p_info_a308m->StengthY);
-    
-                Printf("A308M=>Z RMS=%ld Skew=%ld Kurt=%ld Freq=%ld Speed=%ld Stength=%ld\r\n",
-                        p_info_a308m->RmsZ,p_info_a308m->SkewnessZ,p_info_a308m->KurtosisZ,p_info_a308m->FrequencyZ,
-                        p_info_a308m->SpeedZ,p_info_a308m->StengthZ);                        
-                break;
-
-            case SENSOR_WATER_LEVEL: 
-                Printf("Water = %dcm, Oil= %dcm\r\n",p_info->SensorInfo.WaterLevelInfo.WaterLevel,p_info->SensorInfo.WaterLevelInfo.OilLevel);
-                break;
-            case SENSOR_JNC_SD: p_info_jnc_sd = &(p_info->SensorInfo.SdInfo);
-                Printf("CO2 = %d, PM2.5= %d Temp=%d RH=%d\r\n",p_info_jnc_sd->CO2,p_info_jnc_sd->PM25,p_info_jnc_sd->Tempature,p_info_jnc_sd->Humidity);
-                break;  
-            case SENSOR_IAQS: //p_info_iaqs = &(p_info->SensorInfo.IaqsInfo);
-                Printf("Temp=%d Humidity=%d% \r\n",p_info->SensorInfo.IaqsInfo.Tempature,p_info->SensorInfo.IaqsInfo.Humidity);
-                break;   
-            case SENSOR_ULTRA_SOUND: 
-                Printf("Water=%dcm, BatVol=%d  InVol=%d \r\nOutVol=%d ChaCur=%d  InCur=%d Temp=%d RH= %d\r\n",
-                    p_info->SensorInfo.UltraSound.WaterLevel,p_info->SensorInfo.UltraSound.BatteryVol,
-                    p_info->SensorInfo.UltraSound.InputVol,p_info->SensorInfo.UltraSound.OutputVol,
-                    p_info->SensorInfo.UltraSound.ChargeCurr,p_info->SensorInfo.UltraSound.InputCurr,
-                    p_info->SensorInfo.UltraSound.Tempature,p_info->SensorInfo.UltraSound.Humidity);
-                break;            
-            case SENSOR_DO_485: //p_jnc_Do485 = &(p_info->SensorInfo.JncDo485);
-                Printf("Do485: Real=%d Offset=%d Temp=%d Temp_Offset=%d  \r\n",
-                    p_info->SensorInfo.JncDo485.DoRealValue,p_info->SensorInfo.JncDo485.DoOffsetValue,
-                    p_info->SensorInfo.JncDo485.TempRealValue, p_info->SensorInfo.JncDo485.TempOffsetValue);
-                break;
-            case SENSOR_A6D6: p_A6D6 = &(p_info->SensorInfo.A6D6);
-                Printf("A6D6: AiValue1=%x AiValue2=%x AiValue3=%x AiValue4=%x  \r\n",p_A6D6->AiValue1,p_A6D6->AiValue2,p_A6D6->AiValue3,
-                    p_A6D6->AiValue4);
-                Printf("A6D6: AiValue5=%x AiValue6=%x AiValue7=%x AiValue8=%x  \r\n",p_A6D6->AiValue5,p_A6D6->AiValue6,p_A6D6->AiValue7,
-                    p_A6D6->AiValue8);
-                break;            
-            case SENSOR_PZEM: 
-                Printf("PZEM: Vol=%04d CurLo=%x PowerLo=%x ElectLo=%x Freq=%x Warning=%x\r\n",
-                    p_info->SensorInfo.Pzem.Voltage,p_info->SensorInfo.Pzem.CurrentLo,p_info->SensorInfo.Pzem.PowerLo,
-                    p_info->SensorInfo.Pzem.ElectLo,p_info->SensorInfo.Pzem.Frequecny,p_info->SensorInfo.Pzem.Warning);
-                break;            
             case SENSOR_RELAY: 
                 Printf("Relay: Power=%x\r\n",p_info->SensorInfo.Header.BatteryPower);
                 break;            
-            case SENSOR_OEM: 
-                Printf("OEM: Addr0=%d Addr1=%d Addr2=%d Addr3=%d AddrA=%d  \r\n",
-                    p_info->SensorInfo.OemSensor.Addr00,p_info->SensorInfo.OemSensor.Addr01,
-                    p_info->SensorInfo.OemSensor.Addr02, p_info->SensorInfo.OemSensor.Addr03,
-                    p_info->SensorInfo.OemSensor.Addr0A);
+            case SENSOR_BTM_G6:
+                Printf("G6 Status = %04xh Filter1 = %04xh, Filter2 = %04xh, \r\n",
+                        p_info->SensorInfo.BtmG6.Status.G6CurrStatus,p_info->SensorInfo.BtmG6.TimeFilter1,
+                        p_info->SensorInfo.BtmG6.TimeFilter2);
                 break;
-            case SENSOR_AGB_POWER:
-                Printf("PowerStatus = %d \r\n",p_info->SensorInfo.AgbPower.PowerStatus);
-                break;
-            case SENSOR_CW9:
-                Printf("CW9 Data01 = %d \r\n",p_info->SensorInfo.Cw9Info.Data01);
-                break;
-            case SENSOR_SKYNET_CO2: 
-                Printf("SKYNET_CO2 Temp = %d RH = %d CO2 = %d \r\n",p_info->SensorInfo.SkynetCo2.Tempature,
-                        p_info->SensorInfo.SkynetCo2.Humidity,p_info->SensorInfo.SkynetCo2.Co2);
-                break;
-            case SENSOR_VELOCITY: 
-                Printf("Velocity Temp = %.2f RawVel = %.2f RawVel = %.2f \r\n",p_info->SensorInfo.Velocity.Tempature,
-                        p_info->SensorInfo.Velocity.RawFlowVelocity,p_info->SensorInfo.Velocity.FlowVelocity);
-                break;
-                
-            default: TraceErr2("ShowEventInfo",sensor_class,p_info->ServerID);
         };
         
 #endif    

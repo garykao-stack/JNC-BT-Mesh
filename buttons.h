@@ -40,7 +40,15 @@
 #define PB1_PRESS_ON            0x12
 
 #define PB_SPEED_ON             0x20
-#define PB_SPEED_OFF            0x21
+#define PB_SPEED_KEY            0x21
+
+#define PB_G6_RESET             0x22
+
+
+#define PB_DOOR_OPEN            0x30
+#define PB_DOOR_CLOSE           0x31
+#define PB_CLEAN_FILTER1        0x32
+#define PB_CLEAN_FILTER2        0x33
 
 
 

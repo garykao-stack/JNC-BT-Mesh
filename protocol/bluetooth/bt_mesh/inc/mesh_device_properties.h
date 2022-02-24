@@ -1127,12 +1127,24 @@ typedef enum mesh_device_properties_e {
   NODE_SENSOR_SETUP_GET                         = 0x8071,     // for Sensor Server Setup Get 
 
 // for AIP Power Percent
-  NODE_SENSOR_G6AIP_00                          = 0x8100,
-  NODE_SENSOR_G6AIP_100                         = 0x8164,
-  
-  
+  AUTO_POWER_0           = 0x8100,
+  AUTO_POWER_1           = 0x8101,
+  AUTO_POWER_2           = 0x8102,
+  AUTO_POWER_3           = 0x8103,
+  AUTO_POWER_4           = 0x8104,  
+  MENU_POWER_0           = 0x8200,
+  MENU_POWER_1           = 0x8201,
+  MENU_POWER_2           = 0x8202,
+  MENU_POWER_3           = 0x8203,
+  MENU_POWER_4           = 0x8204, 
+  CLEAR_FILTER1          = 0x8301,
+  CLEAR_ALL_FILTER       = 0x8302,
   JNC_DEF_ENDING                                = 0xF000          // 
 } mesh_device_properties_t;
+
+#define BTM_G6_CMD_START       AUTO_POWER_0
+#define BTM_G6_CMD_END         CLEAR_ALL_FILTER  
+
 
 #if 0
 typedef enum mesh_characteristics_e {

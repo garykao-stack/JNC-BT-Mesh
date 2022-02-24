@@ -38,7 +38,7 @@ void DeviceBusInit()
     Rs485Init();
     I2CInit();
     SpiInit();
-#ifdef  G6_BT_MESH    
+#ifdef  BT_MESH_G6    
     G6BtMeshInit();
 #endif
 }

@@ -76,6 +76,11 @@ void gecko_bgapi_classes_init(void)
   
 }
 
+const char* SensorClassStr[7]=
+{
+    "NO Sensor","Auto Scan","PZEM","Visual Sensor","DC600","FTM94","BTM-G6"
+};
+
 //***************************************************************************
 // Initial BLE Stack, IO port,
 //
@@ -83,12 +88,7 @@ void gecko_bgapi_classes_init(void)
 //****************************************************************************
 void BleMeshNodeInit(gecko_configuration_t *pConfig)
 {
-    // Initialize stack
-    
-    //DeviceInit();    
-    //printf("SDK Version %s\r\n",Mesh_SDK_VER);
-    
-    
+    uint8 sensor_index;
     gecko_stack_init(pConfig);
     gecko_bgapi_classes_init();
    // gecko_initCoexHAL();      // Initialize coexistence interface. Parameters are taken from HAL config.
@@ -108,7 +108,6 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
     button_init();
     DeviceInit();
     BleCommInit();
-
     
 #if defined(JNC_DO_485)
         printf("%s: Firmware Version for DO-485 Only ==> v%1.2f %02d Sec \r\n\r\n",MODEL_NAME, 1.00, TIMER_GET_INFO_SLEEPING);
@@ -117,8 +116,14 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
 #elif defined(OEM_SENSOR)
         printf("%s: Firmware Version for OEM_SENSOR Only ==> v%1.2f %02d Sec \r\n\r\n",MODEL_NAME, 1.00, TIMER_GET_INFO_SLEEPING);
 #else 
-        printf("%s: Firmware Version ==> v%1.2f %02d Sec \r\n\r\n", MODEL_NAME, FW_VER/100.0, TIMER_GET_INFO_SLEEPING);
+        printf("%s: Firmware Version ==> v%1.2f \r\n", MODEL_NAME, FW_VER/100.0);
 #endif
+    sensor_index = SensorClassChange(pMeshNodeData->SensorClass,CLASS_TO_UTILITY);
+
+    TraceDec2("Test1",sensor_index,pMeshNodeData->SensorClass);
+    
+    printf("\r\nSensor Class = %s\r\nWorking Timer = %d sec\r\nTemp-Gain = %0.2f, Temp-Offset = %0.2f\r\nRH-Gain   = %0.2f, RH-Offset   = %0.2f\r\n\r\n",
+         SensorClassStr[sensor_index],TIMER_GET_INFO_SLEEPING,pAdjValue->TempGain,pAdjValue->TempOffset,pAdjValue->HumGain,pAdjValue->HumOffset);
 
     if(NodeRole == NR_CLIENT)
         {Trace("Client Node Init 1");
@@ -171,9 +176,6 @@ GetMeshEvent:
             if(BleMeshEventProc(pEvent,MeshEventFun) == FALSE)
                 EventIDtoStringProc(pEvent);
         }
-
-   // if(NodeRole == NR_SETUP) { BtMeshSetupTask(); continue;} 
-    
     if(!CheckRunDevTask()) continue;
         
    // if(GetMeshNodeStatus(STATUS_CLIENT)) 
@@ -191,7 +193,7 @@ bool CheckRunDevTask()
 
     //if(!GetMeshNodeStatus(STATUS_PROVISIONED) || GetMeshNodeStatus(STATUS_IVI_UPDATE) || GetMeshNodeStatus(STATUS_BLE_CONNECT) )    
     //if(!GetMeshNodeStatus(STATUS_PROVISIONED) ||  GetMeshNodeStatus(STATUS_BLE_CONNECT) )
-    if(!GetMeshNodeStatus(STATUS_PROVISIONED))    
+    if(!GetMeshNodeStatus(STATUS_PROVISIONED) && (NodeRole != NR_SETUP)) 
         ret_code = FALSE;
 
     return ret_code;

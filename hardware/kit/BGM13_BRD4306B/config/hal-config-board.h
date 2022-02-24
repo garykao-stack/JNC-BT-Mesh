@@ -49,6 +49,9 @@
 #define BSP_G6_SPEED_PIN                               (4U)
 #define BSP_G6_SPEED_PORT                              (gpioPortA)
 
+#define BSP_G6_RESET_PIN                               (3U)
+#define BSP_G6_RESET_PORT                              (gpioPortA)
+
 
 #define BSP_BUTTON_COUNT                              (2U)
 #define BSP_BUTTON_INIT                               { { BSP_BUTTON0_PORT, BSP_BUTTON0_PIN }, { BSP_BUTTON1_PORT, BSP_BUTTON1_PIN } }
@@ -158,6 +161,7 @@
 // $[LED]
 
 
+
 #define BSP_LED_PRESENT                               (1)
 
 #if (BOARD_ACTION == BOARD_JNC_V10)
@@ -167,6 +171,15 @@
 #define BSP_LED1_PORT                                 (gpioPortD)
 #define BSP_LED2_PIN                                  (11U)
 #define BSP_LED2_PORT                                 (gpioPortB)
+
+#define BSP_LED_POWER_PIN                             (5U)
+#define BSP_LED_POWER_PORT                            (gpioPortA)
+#define BSP_LED_UV_PIN                                (13U)
+#define BSP_LED_UV_PORT                               (gpioPortB)
+#define BSP_FILTER_PIN                                (2U)
+#define BSP_FILTER_PORT                               (gpioPortA)
+
+
 
 #else
 #define BSP_LED0_PIN                                  (6U)

@@ -59,6 +59,8 @@ typedef struct _EventFun_
 #define TIMER_1000MS        (TIMER_100MS*10)
 
 #define TIMER_1SEC          (TIMER_100MS*10)
+#define TIMER_1_5SEC          (TIMER_100MS*15)// 1.5sec
+
 #define TIMER_2SEC          (TIMER_1SEC*2)
 #define TIMER_3SEC          (TIMER_1SEC*3)
 #define TIMER_4SEC          (TIMER_1SEC*4)
@@ -177,6 +179,16 @@ typedef struct _EventFun_
 
 //Timer
 #define TD_STAGE_TIMER       100
+
+#define TD_TIMER_FILTER_CLEAN   110
+#define TD_TIMER_DOOR_OPEN      111
+#define TD_TIMER_DOOR_CLOSE     112
+#define TD_TIMER_KEY_POWER      113
+#define TD_TIMER_CHK_FILTER     114     // 1 minute
+
+
+
+
 
 
 #define TIMER_PROCESS_TASK          TIMER_30MS  // 10ms

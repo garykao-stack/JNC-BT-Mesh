@@ -151,7 +151,6 @@ typedef struct _DAC_REG_
 
 void InitDac7760();
 void DacSetVol(uint16 percent);
-void SetVolDecInc(uint16 status);
 
 
 

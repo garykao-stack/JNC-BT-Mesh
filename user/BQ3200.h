@@ -13,7 +13,7 @@ typedef struct _RtcDate_
     BYTE Sec;
     BYTE Min;
     BYTE Hour;
-    BYTE Day;
+    BYTE Week;
     BYTE Date;
     BYTE Month;
     BYTE Year;
@@ -22,13 +22,19 @@ typedef struct _RtcDate_
 
 typedef struct _DevDate_
 {
-    BYTE Addr;
+    BYTE StartAddr;  // Start address to get info
     _RtcDate Date;
 }_DevDate,*PDevDate;
 
 #pragma pack(pop)
 
-extern PRtcDate pRtcDate;
+//#define ShowRtc(x) Printf("Year=%d Month=%d Date=%d Week=%d \r\nHour=%d Min=%d Sec=%d \r\n", \
+//                   x->Date.Year,x->Date.Month,x->Date.Date,x->Date.Week, x->Date.Hour,x->Date.Min,x->Date.Sec)
+
+#define ShowRtc(x) Printf("Date=%d Week=%d Hour=%d Min=%d Sec=%d \r\n", \
+                   x->Date.Date,x->Date.Week, x->Date.Hour,x->Date.Min,x->Date.Sec)
+
+extern PDevDate    pDevDate;
 
 #define BQ_ADDR     0xD0    //I2C address
 #define BQ_I2C      I2C0

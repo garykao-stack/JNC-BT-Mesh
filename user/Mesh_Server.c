@@ -13,6 +13,8 @@
 #include "ivi_features.h"
 
 #include "people_count_sensor.h"
+
+#include "BQ3200.h"
 #include "mesh_sensor.h"
 #include "Mesh_Node.h"
 #include "Mesh_Client.h"
@@ -114,6 +116,8 @@ const uchar Fun3Addr03[MODBUS_CMD_NUM] ={0x01, 0x03, 0x00, 0x03, 0x00, 0x01, 0x7
 const uchar Fun3Addr0A[MODBUS_CMD_NUM] ={0x01, 0x03, 0x00, 0x0A, 0x00, 0x01, 0xA4, 0x08};
 const uchar CmdPzemValue[MODBUS_CMD_NUM] ={0x01, 0x04, 0x00, 0x00, 0x00, 0x0A, 0x70, 0x0D};
 
+const uchar CmdGetCo2[7] ={0xFE, 0x44, 0x00, 0x08, 0x02, 0x9F, 0x25};
+
 
 //
 //
@@ -153,15 +157,16 @@ void ServerSetupNodeInit()
 //  10ms for one time
 void ServerNodeTask()
 {
-
-  if(GetNodeStatus(NS_SERVER_RS485_ENABLE))
-    {
+  if(GetNodeStatus(NS_SERVER_RS485_ENABLE)){
      ServerSetNodeProc();
     }
-  ServerGetInfoProc();
-  #ifdef  G6_BT_MESH 
-    G6ControlProc(); 
-  #endif
+#ifdef  BT_MESH_G6  
+    if(GetNodeStatus(NS_G6_READY)){
+        G6ScheduleProc();
+        G6CheckStatusProc();
+        }
+#endif    
+    ServerGetInfoProc();
 }
 
 
@@ -180,7 +185,7 @@ Bool AIPSetCtrl(uint16 property_id)
         {
          switch(property_id)
             {
-             case NODE_SET_AIP_POWER_OFF: //Trace("AIP Power 00%");
+             case NODE_SET_AIP_POWER_OFF: 
                 p_modbus_cmd = AIP_POWER_CTRL_CMD(AIP_POWER_CTRL_00);
                 power_status = MODBUS_AIP_POWER_00;
                 break;
@@ -200,12 +205,12 @@ Bool AIPSetCtrl(uint16 property_id)
                 p_modbus_cmd = AIP_POWER_CTRL_CMD(AIP_POWER_CTRL_100);
                 power_status = MODBUS_AIP_POWER_100;
                 break;                
-             default: ret_code=FALSE; TraceErr1("AIPSetCtrl 1 property_id",property_id); 
+             default: ret_code=FALSE; 
                 break;
             };
             
         }
-    else {ret_code=FALSE;TraceErr1("AIPSetCtrl 2 property_id = ",property_id);}
+    else {ret_code=FALSE;}
 
     if(p_modbus_cmd != NULL) 
       {
@@ -249,7 +254,7 @@ Bool AGBSetCtrl(uint16 property_id)
                 p_modbus_cmd = AGB_POWER_CTRL_CMD(AIP_POWER_CTRL_100);
                 power_status = MODBUS_AGB_POWER_100;
                 break;                
-             default: ret_code=FALSE; TraceErr1("AGBSetCtrl 1 property_id",property_id); 
+             default: ret_code=FALSE; 
                 break;
             };
             
@@ -290,7 +295,7 @@ Bool A308MSetCtrl(uint16 property_id)
              case NODE_SET_RESET_BIAS_Z:
                 p_modbus_cmd = A308M_CTRL_CMD(A308M_CMD_RESET_ZBIAS);                
                 break;
-             default: ret_code=FALSE; TraceErr1("A308MSetCtrl 1 property_id",property_id); 
+             default: ret_code=FALSE;
                 break;
             };
         }
@@ -323,6 +328,7 @@ Bool A6D6MSetCtrl(uint16 property_id)
         {
          p_modbus_cmd = (PUCHAR)&A6D6CtrlCmdOff[property_id-NODE_SET_DO1_OFF][0];
         }
+    else {TraceErr1("A6D6MSetCtrl 3 property_id = ",property_id);}
 
     if(p_modbus_cmd != NULL) 
       {
@@ -332,7 +338,6 @@ Bool A6D6MSetCtrl(uint16 property_id)
     else ret_code=FALSE;
     return ret_code;
 }
-
 
 void ServerSetNodeProc()
 {
@@ -344,8 +349,7 @@ void ServerSetNodeProc()
     
     switch(ActiveStage())
         {
-            case SNS_SET_INFO_INIT: //Trace("SNS_SET_INFO_INIT");
-              //  SetLedStatus(LED_STATUS_ON);
+            case SNS_SET_INFO_INIT: 
                 ToNextStage(SNS_SET_WAITING);
                 break;
             case SNS_SET_WAITING:   
@@ -355,8 +359,10 @@ void ServerSetNodeProc()
             case SNS_SET_INFO_PRE:  
                 ret_code=FALSE;
                 property_id = pNodeEventInfo->PropertyID;
-
-                if(pFunSensor == GetAipInfo){
+                if(property_id >=BTM_G6_CMD_START && property_id <=BTM_G6_CMD_END ){
+                    ret_code = BtmG6SetCtrl(property_id);ToWaitingStage(SNS_SET_WAITING_INFO,5);
+                    }
+                else if(pFunSensor == GetAipInfo){
                      ret_code = AIPSetCtrl(property_id); ToWaitingStage(SNS_SET_WAITING_INFO,5);
                     }
                 else  if(pFunSensor == GetA6D6Info){
@@ -366,7 +372,7 @@ void ServerSetNodeProc()
                      ret_code = AGBSetCtrl(property_id); ToWaitingStage(SNS_SET_WAITING_INFO,5);
                     }
                 
-                else{TraceErr("ServerSetNodeProc 1");ToNextStage(SNS_SET_INFO_END);}
+                else{ToNextStage(SNS_SET_INFO_END);}
                 
                 if(ret_code == FALSE) {ToWaitingStage(SNS_SET_WAITING_INFO,1);}
                 break;               
@@ -389,7 +395,7 @@ void ServerSetNodeProc()
                 UsartResetRxTx(USART_ID_TX_RX);   
                 ToNextStage(SNS_SET_WAITING);
                 break;
-            default: TraceErr1("ClientSetNodeInfoProc",ActiveStage()); break;
+            default:  break;
         }
     
 }
@@ -421,13 +427,14 @@ void ServerGetInfoProc()
                 ToWaitingStage(SNS_GET_INFO,GetDeviceInfoDelay); //TraceDec1("GetDeviceInfoDelay",GetDeviceInfoDelay);
                 CountErr = 0;
                 break;
-            case SNS_GET_INFO: 
-                if(CheckWaitTimeOut() == TRUE) 
-                    {
+            case SNS_GET_INFO: //TraceDec1("SNS_GET_INFO",pStageInfo->Timer);
+                //if(CheckWaitTimeOut() == TRUE) 
+                if((GetNodeStatus(NS_SYS_NO_WAITING) == ON) || CheckWaitTimeOut() == TRUE) 
+                    {Trace("SNS_GET_INFO 1");
                     if((pFunSensor!= NULL) && (GetSensorInfo() == TRUE) )
                         {ToNextStage(SNS_EVENT_WAITING);}
                     else 
-                        {Trace1("Get Sensor Stop: 1",pFunSensor);
+                        {//Trace1("Get Sensor Stop: 1",pFunSensor);
                          ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
                         }
                     }
@@ -435,7 +442,7 @@ void ServerGetInfoProc()
                 break;
             case SNS_EVENT_WAITING: //TraceDec1("SNS_EVENT_WAITING",pStageInfo->Timer);
                 if(GetNodeStatus(NS_GET_INFO_ACT))
-                  {
+                  {Trace("BTM Event");
                     SetLedStatus(LED_STATUS_ACTIVE);
                     if(GetNodeStatus(NS_SLEEPING))
                       {ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);} // go to sleeping from host                        
@@ -480,7 +487,7 @@ void ServerGetInfoProc()
             case SNS_WAKE_UP: 
                 ToNextStage(SNS_PRE_WAITING);
                 break;
-            default: TraceErr1("ServerGetInfoProc",ActiveStage()); break;
+            default:  break;
         };
 }
 
@@ -508,6 +515,99 @@ bool GetSensorInfo()
 }
 
 
+uint16 G6StatusTest=0x8003;
+
+Bool BtmG6SetCtrl(uint16 property_id)
+{Trace1("BtmG6SetCtrl",property_id);
+    bool ret_code=TRUE;
+
+   // G6StatusTest++;// Trace16_1(G6StatusTest);
+    G6SetActStatus(G6_STATUS_CHANGE,ON);
+    if(property_id >= AUTO_POWER_0 && property_id <= AUTO_POWER_4 ){
+          G6SetAutoRun(ON); property_id &=0x00FF;
+          if(pMeshNodeData->G6HostPPercent != (uchar)property_id){Trace("Save Data 1");
+            pMeshNodeData->G6HostPPercent = (uchar)property_id;
+            WriteMeshNodeData();
+          }
+        }
+    else if(property_id >= MENU_POWER_0 && property_id <= MENU_POWER_4 ){   
+        G6SetAutoRun(OFF); property_id &=0x00FF;
+        if(pMeshNodeData->G6HostPPercent != (uchar)property_id){Trace("Save Data 2");
+            pMeshNodeData->G6HostPPercent = (uchar)property_id;
+            WriteMeshNodeData();
+          }
+        }
+    else if(property_id == CLEAR_FILTER1){
+            G6SetActStatus(G6S_CLEAR_FILERT1,ON); G6SetActStatus(G6S_CLEAR_ALL_FILTER,OFF);
+        }
+    else if(property_id == CLEAR_ALL_FILTER){
+            G6SetActStatus(G6S_CLEAR_ALL_FILTER,ON); //CLEAR_LED_ALL_FILTER();
+        }
+    else {
+        ret_code=TRUE;}    
+    return ret_code;
+}    
+
+extern uint16   G6ActStatus;
+extern PG6Schedule pActSchedule;
+//uint16 btm_g6_status;
+
+//
+//for BTM G6
+//
+#ifdef BT_MESH_G6
+bool GetBtmG6Info()
+{
+    bool ret_code = TRUE;
+    uint16 properity;
+    uint16 btm_g6_status;
+    PBtmG6 p_sensor = &ServerInfo.SensorInfo.BtmG6;
+    SetNodeInfoSize(_BtmG6);
+    SetNodeClass(SENSOR_BTM_G6);
+    properity = pNodeEventInfo->PropertyID;
+    btm_g6_status = 0;
+    if(properity == NODE_GET_ALL_SENSOR || (properity >= BTM_G6_CMD_START && properity <= BTM_G6_CMD_END)){//Trace1("G6 All Property 1",properity);
+         if(G6GetActStatus(G6S_DOOR_OPEN)== TRUE){btm_g6_status |= G6_FC3_DOOR_OPEN;}
+         if(G6GetActStatus(G6S_WARING_FILTER1)){btm_g6_status |= G6_FC3_WARNING_FILTER1;}
+         if(G6GetActStatus(G6S_WARING_FILTER2)){btm_g6_status |= G6_FC3_WARNING_FILTER2;}
+         if(G6GetActStatus(G6S_AUTO)) {btm_g6_status |= G6_FC6_AUTO_RUN;}
+        Trace16_2(btm_g6_status,G6ActStatus);
+         p_sensor->Status.G6CurrStatus = btm_g6_status;// btm_g6_status;
+
+         if(btm_g6_status & G6_FC6_AUTO_RUN){Trace("G6 Auto Run ON");
+             if(G6GetActStatus(G6S_SCHEDULE_ACTIVE)){ Trace("G6 schedule ON");
+                p_sensor->Status.PPercent = pActSchedule->PowerPercent;
+                }
+             else{Trace("G6 schedule OFF");
+                if(pMeshNodeData->G6HostPPercent == MENUAL_KEY_AUTO)
+                   p_sensor->Status.PPercent = 0;
+                else
+                    p_sensor->Status.PPercent = pMeshNodeData->G6HostPPercent;
+                }
+            }
+         else{//TraceDec1("G6 Auto Run OFF",pMeshNodeData->G6HostPPercent);
+             p_sensor->Status.PPercent = pMeshNodeData->G6HostPPercent;
+            }
+         p_sensor->TimeFilter1 =pMeshNodeData->FilterAllTime1;
+         p_sensor->TimeFilter2 =pMeshNodeData->FilterAllTime2;
+         Trace16Ptr_3(p_sensor,Status.G6CurrStatus,Status.PPercent,Status.G6Status);
+          //p_sensor->G6CurrStatus = G6StatusTest; //Trace1("G6 G6StatusTest 1",G6StatusTest);
+        }
+    else if(properity >= BTM_G6_CMD_START && properity <= BTM_G6_CMD_END){ Trace1("G6 Property 2",properity);
+        pNodeEventInfo->PropertyID = NODE_GET_ALL_SENSOR;
+        SetNodeStatus(NS_GET_INFO_ACT,ON);
+    }
+    return ret_code;
+}
+#else
+bool GetBtmG6Info()
+{
+    bool ret_code = TRUE;
+    return ret_code;
+}
+
+#endif
+
 
 
 
@@ -521,8 +621,6 @@ bool GetBtmMeshInfo()
  PBtMeshInfo p_sensor = &ServerInfo.SensorInfo.BtmMeshInfo;
  SetNodeInfoSize(_BtMeshInfo);
  SetNodeClass(SENSOR_BTM_MESH_INFO);
-
-
  memcpy(p_sensor->ModelName,MODEL_NAME,6);
  p_sensor->Version = FW_VER;
  p_sensor->TempGain = (int16)((pAdjValue->TempGain)*MESH_INFO_SCALING); 
@@ -540,7 +638,6 @@ bool GetBtmMeshInfo()
 
 Bool AdjTempRh(int16* p_temp,uint16 *p_humidity)
 {
-    pAdjValue->TempGain = 1.2; pAdjValue->TempOffset = 0.05;
    *p_temp = (int16)(((float)*p_temp)*(pAdjValue->TempGain) + (pAdjValue->TempOffset)*MESH_INFO_SCALING);
    *p_humidity = (uint16)(((float)*p_humidity)*(pAdjValue->HumGain) + (pAdjValue->HumOffset)*MESH_INFO_SCALING);
   return TRUE;
@@ -566,9 +663,6 @@ bool GetSkynetInfo()
     else {ret_code = FALSE; return ret_code;}
     return ret_code;
 }
-
-
-const uchar CmdGetCo2[7] ={0xFE, 0x44, 0x00, 0x08, 0x02, 0x9F, 0x25};
 
 
 //
@@ -647,15 +741,14 @@ float sensor_info;
 bool GetA308mInfo()
 {
     bool ret_code = TRUE;
-    //float sensor_info;
     PUCHAR p_buff;
     PA308mInfo p_sensor = &ServerInfo.SensorInfo.A308mInfo;
     SetNodeInfoSize(_A308mInfo);
     SetNodeClass(SENSOR_A308M);
     p_buff = UsartGetBuff(USART_ID_RX);
     if(ServerSendModbusCmd((PUCHAR)CmdBtA308M_1X,MODBUS_CMD_NUM) == TRUE)
-        {p_buff +=3;          
-         DWordSwapN(p_buff,6);          
+        {p_buff +=3; 
+         DWordSwapN(p_buff,6); 
          p_buff +=4; // for Mean
          sensor_info = *((float *)p_buff); p_sensor->RmsX = (uint16)sensor_info; p_buff+=4;
          sensor_info = *((float *)p_buff); p_sensor->SkewnessX = (int16)(sensor_info*SCALE_VALUE); p_buff+=4;
@@ -723,6 +816,18 @@ bool GetA308mInfo()
         sensor_info = *((float *)p_buff); p_sensor->Tempature = (int16)(sensor_info*SCALE_VALUE);
         }
     UsartResetRxTx(USART_ID_TX_RX);
+/*
+   Printf("A308M=>X RMS=%ld Skew=%ld Kurt=%ld Freq=%ld Speed=%ld Stength=%ld\r\n",\
+          p_sensor->RmsX,p_sensor->SkewnessX,p_sensor->KurtosisX,p_sensor->FrequencyX,p_sensor->SpeedX,p_sensor->StengthX);
+   
+   Printf("A308M=>Y RMS=%ld Skew=%ld Kurt=%ld Freq=%ld Speed=%ld Stength=%ld\r\n",\
+          p_sensor->RmsY,p_sensor->SkewnessY,p_sensor->KurtosisY,p_sensor->FrequencyY,p_sensor->SpeedY,p_sensor->StengthY);
+    
+   Printf("A308M=>Z RMS=%ld Skew=%ld Kurt=%ld Freq=%ld Speed=%ld Stength=%ld\r\n",\
+          p_sensor->RmsZ,p_sensor->SkewnessZ,p_sensor->KurtosisZ,p_sensor->FrequencyZ,p_sensor->SpeedZ,p_sensor->StengthZ);
+
+    //TraceDec1("A308M => Temp ", p_sensor->Tempature);
+*/
     return ret_code;
 }
 
@@ -775,7 +880,7 @@ bool GetJncSdInfo()
         Humidity  = p_sensor->Humidity = WordSwap(*((PUINT16)&p_buff[9]));
         TraceDec4("JNC-SD ==> ", CO2,PM25,Tempature,Humidity);
       }
-   return ret_code;
+    return ret_code;
 }
 
 
@@ -840,21 +945,18 @@ if(ServerSendModbusCmd((PUCHAR)CmdDoRealOffset,MODBUS_CMD_NUM) == TRUE)
   {
     p_sensor->DoOffsetValue = WordSwap(*((PUINT16)&p_buff[3]));
   }
-else PrintDataByte("GetDo485 Err 2", p_buff, 8);
 UsartResetRxTx(USART_ID_TX_RX);
 
 if(ServerSendModbusCmd((PUCHAR)CmdDoTempValue,MODBUS_CMD_NUM) == TRUE)
   {
     p_sensor->TempRealValue = WordSwap(*((PUINT16)&p_buff[3]));
   }
-else PrintDataByte("GetDo485 Err 3", p_buff, 8);
 UsartResetRxTx(USART_ID_TX_RX);
 
 if(ServerSendModbusCmd((PUCHAR)CmdDoTempOffset,MODBUS_CMD_NUM) == TRUE)
   {
     p_sensor->TempOffsetValue = WordSwap(*((PUINT16)&p_buff[3]));
   }
-else PrintDataByte("GetDo485 Err 4", p_buff, 8);
 UsartResetRxTx(USART_ID_TX_RX);
 return ret_code;
 }
@@ -883,8 +985,6 @@ if(ServerSendModbusCmd((PUCHAR)CmdA6D6_AI,MODBUS_CMD_NUM) == TRUE)
     p_sensor->AiValue3 = WordSwap(*p_value++); p_sensor->AiValue4 = WordSwap(*p_value++);
     p_sensor->AiValue5 = WordSwap(*p_value++); p_sensor->AiValue6 = WordSwap(*p_value++);
     p_sensor->AiValue7 = WordSwap(*p_value++); p_sensor->AiValue8 = WordSwap(*p_value++);
-
-    //memcpy(&(p_sensor->AiValue1),&A6D6_AI_VALUE,16);
   }
 else {ret_code = FALSE;}
 UsartResetRxTx(USART_ID_TX_RX);
@@ -893,7 +993,6 @@ if(ServerSendModbusCmd((PUCHAR)CmdA6D6_DI,MODBUS_CMD_NUM) == TRUE)
   {
     p_sensor->Di_Status = A6D6_DI_VALUE;
   }
-else PrintDataByte("CmdA6D6_DI Err", p_buff, 8);
 UsartResetRxTx(USART_ID_TX_RX);
 
 if(ServerSendModbusCmd((PUCHAR)CmdA6D6_DO,MODBUS_CMD_NUM) == TRUE)
@@ -902,7 +1001,6 @@ if(ServerSendModbusCmd((PUCHAR)CmdA6D6_DO,MODBUS_CMD_NUM) == TRUE)
   }
 else PrintDataByte("CmdA6D6_DO Err", p_buff, 8);
 UsartResetRxTx(USART_ID_TX_RX);
-
 return ret_code;
 }
 
@@ -923,7 +1021,7 @@ p_value = (PUINT16)(&p_buff[3]); p_sensor_value=&p_sensor->Voltage;
 if(ServerSendModbusCmd((PUCHAR)CmdPzemValue,MODBUS_CMD_NUM) == TRUE)
   {//PrintData("GetPzem", p_value, 10);
     for(loop=0; loop<PZEM_ITEM_SIZE; loop++) *p_sensor_value++ = WordSwap(*p_value++);
-  }else {ret_code = FALSE;}//{PrintDataByte("GetPzem Err 1", p_buff, 8);ret_code = FALSE;}
+  }else {ret_code = FALSE;}
 return ret_code;
 }
 
@@ -1028,7 +1126,7 @@ p_value = (PUINT16)(&p_buff[3]); p_sensor_value=(PUINT16)p_sensor;
 if(ServerSendModbusCmd((PUCHAR)CmdGetIaqsCw9Info,MODBUS_CMD_NUM) == TRUE){//PrintData("GetIaqsInfo", p_value, IAQS_DATA_LEN);
     for(loop=0; loop<IAQS_DATA_LEN; loop++) 
         *p_sensor_value++ = WordSwap(*p_value++);
-  }else {ret_code = FALSE;}//{PrintDataByte("GetIaqsInfo Err 1", p_buff, 16);
+  }else {ret_code = FALSE;}
      
 
 return ret_code;
@@ -1059,44 +1157,6 @@ else {ret_code = FALSE;}
 return ret_code;
 }
 
-//
-//for BTM G6
-//
-#ifdef G6_BT_MESH
-bool GeBtmG6Info()
-{
-    bool ret_code = TRUE;
-    uint16 G6Speed;
-    PBtmG6 p_sensor = &ServerInfo.SensorInfo.BtmG6;
-    SetNodeInfoSize(_BtmG6);
-    SetNodeClass(SENSOR_BTM_G6);
-
-    G6Speed = pNodeEventInfo->PropertyID;
-    if(G6Speed < NODE_SENSOR_G6AIP_00 || G6Speed > NODE_SENSOR_G6AIP_100){ TraceErr1("Property",G6Speed);
-            return TRUE;
-    }
-
-    G6Speed = G6Speed - NODE_SENSOR_G6AIP_00;
-    if(G6SetVol(G6Speed) == TRUE){// set output VOL
-        pAdjValue->G6Speed = G6Speed;
-        WriteAdjValue();
-        }
-    else {ret_code = FALSE;TraceErr("Set Vol");}
-    p_sensor->Status = ON;
-    p_sensor->G6Speed = G6Speed; //75%
-    p_sensor->Control = 80;
-    p_sensor->Config = ON;
-    return ret_code;
-}
-#else
-bool GeBtmG6Info()
-{
-    bool ret_code = TRUE;
-    return ret_code;
-}
-
-#endif
-
 
 const uchar RawVelocityCmd01[MODBUS_CMD_NUM] ={0x01,0x03,0x00,0x09,0x00,0x01,0x54,0x08};
 const uchar RawVelocityCmd02[MODBUS_CMD_NUM] ={0x01,0x03,0x00,0x0A,0x00,0x01,0xA4,0x08};
@@ -1112,7 +1172,7 @@ const uchar VelocityTempCmd02[MODBUS_CMD_NUM] ={0x01,0x03,0x04,0x16,0x00,0x01,0x
 //
 //for Velocity
 //
-bool GeVelocityInfo()
+bool GetVelocityInfo()
 {
     bool ret_code = TRUE;
     PUINT16 p_value,p_sensor_value;
@@ -1131,7 +1191,7 @@ bool GeVelocityInfo()
     if(ServerSendModbusCmd((PUCHAR)RawVelocityCmd01,MODBUS_CMD_NUM) == TRUE){
         *p_uint = WordSwap(*((PUINT16)&p_buff[3])); 
       }
-    else{PrintDataByte("GeVelocityInfo Err 1", p_buff, 8);
+    else{PrintDataByte("GetVelocityInfo Err 1", p_buff, 8);
         return FALSE;}
     UsartResetRxTx(USART_ID_TX_RX);
 
@@ -1174,7 +1234,7 @@ bool GeVelocityInfo()
     UsartResetRxTx(USART_ID_TX_RX);
 
     if(p_sensor->RawFlowVelocity < 0) p_sensor->RawFlowVelocity = 0;
-    if(p_sensor->RawFlowVelocity < 0) p_sensor->RawFlowVelocity = 0;    
+    if(p_sensor->RawFlowVelocity < 0) p_sensor->RawFlowVelocity = 0;
     return ret_code;
 }
 
@@ -1200,11 +1260,10 @@ bool SendInfoToClient()
         ServerInfo.ProperityID = pNodeEventInfo->PropertyID;
         result = Cmd_ms_server_send_status(SENSOR_ELEMENT, pNodeEventInfo->ClientAddr,pNodeEventInfo->AppkeyIndex,
                                             NO_FLAGS, send_size, (PUCHAR)&ServerInfo)->result;
-      if(result) {TraceErr1("SendInfoToClient 1", result);
+      if(result) {
         ret_code = FALSE;
       }
       else ret_code=TRUE;
-
       }
     else TraceErr1("SendInfoToClient 2",ServerInfo.NodeInfoSize);
     
@@ -1227,8 +1286,7 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
     pNodeEventInfo->Flags       = pEvent->flags;
     pNodeEventInfo->PropertyID  = pEvent->property_id;
     //Trace16_1(pEvent->property_id);
-    if(pEvent->property_id == NODE_GET_ALL_SENSOR)    
-     {
+    if(pEvent->property_id == NODE_GET_ALL_SENSOR){
          SetNodeStatus(NS_GET_INFO_ACT,ON);  // Mesh get event active
      }
     else if(pEvent->property_id == NODE_GET_INFO_FULL_POWER_ON){
@@ -1251,8 +1309,8 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
     else if(pEvent->property_id == NODE_GET_BTM_INFO){
          SetNodeStatus(NS_GET_INFO_ACT,ON);  // Mesh set event active
     }    
-    else if(pEvent->property_id >= NODE_SENSOR_G6AIP_00 && pEvent->property_id <= NODE_SENSOR_G6AIP_00){
-             SetNodeStatus(NS_GET_INFO_ACT,ON);  // Mesh set event active
+    else if(pEvent->property_id >= BTM_G6_CMD_START && pEvent->property_id <= BTM_G6_CMD_END){Trace("G6-Setup");
+             SetNodeStatus(NS_SET_NODE_ACT,ON);  // Mesh set event active
         }
     else{
         ToClientBuf[0] = pEvent->property_id & 0xFF;
@@ -1262,9 +1320,6 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
     }
         
 }
-
-
-
 
 
 //
@@ -1285,25 +1340,33 @@ bool ServerSendModbusCmd(PUCHAR modbus_cmd,uchar len)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define ALL_SETTING_ID                  0x01
-#define TEMP_GAIN_SETTING_ID            0x02
-#define TEMP_OFFSET_SETTING_ID          0x03
-#define RH_GAIN_SETTING_ID              0x04
-#define RH_OFFSET_SETTING_ID            0x05
-#define WORKING_TIME_SETTING_ID         0x06
-#define SENSOR_CLASS_SETTING_ID         0x07
-
-#define SET_FULL_POWER_ON               0x10
-#define SET_FULL_POWER_OFF              0x11
-
-
-typedef struct _BtAppData_
+//
+//
+//
+uint16  SensorClassChange(uint16 class,uint8 status)
 {
-    int16   TempGain,TempOffset;    // Tempature Gain & Offset  
-    int16   RhGain,RhOffset;        // RH Gain & Offset
-    uint16  WorkingTimer;            // >5 and <3600 sec
-    uint16  BtmClass;               //1 : for JNC Sensor(Auto Scan) 2 : PZEM 3 : Visual Sensor 4 : AGB Motor Control(?†é?) 
-}_BtAppData,*PBtAppData;
+    uint16 ret_code;
+    if(status == CLASS_TO_UTILITY){ // change to Utility or App sensor class
+        
+        if(class == SENSOR_PZEM) ret_code = 2;
+        else if(class == SENSOR_OEM) ret_code = 3;
+        else if(class == SENSOR_AGB_POWER) ret_code = 4;
+        else if(class == SENSOR_VELOCITY) ret_code = 5;
+        else ret_code = 1;
+        //TraceDec1("To Utility",ret_code);
+    }
+    else{// change to BTM Class
+        
+    if(class == 2) ret_code = SENSOR_PZEM;
+    else if(class == 3) ret_code = SENSOR_OEM;
+    else if(class == 4) ret_code = SENSOR_AGB_POWER;
+    else if(class == 5) ret_code = SENSOR_VELOCITY;
+    else ret_code = 1;
+     //TraceDec1("To BTM",ret_code);
+    }
+
+    return ret_code;
+}
 
 
 //
@@ -1316,31 +1379,73 @@ void EvtSetSettingRequestProc(PCmdPacket pCmdEvent)
     uint16 setting_data;
     uint16 setting_id=-1;
     PBtAppData p_bt_app_data;
-    uchar flag_write_data=OFF;
     Trace16_1(pEvent->property_id);
     p_bt_app_data = (PBtAppData)(&pEvent->raw_value.data);
+    Trace16_4(p_bt_app_data->TempGain,p_bt_app_data->TempOffset,p_bt_app_data->RhGain,p_bt_app_data->RhOffset);
     if(pEvent->property_id == NODE_SENSOR_SETUP_SET)
         {
          setting_id = pEvent->setting_id;
          setting_data = *(PUINT16)p_bt_app_data; Trace16_1(setting_data);
         }
-    else {TraceErr1("property_id 1",pEvent->property_id); return;}
+    else { return;}
     
-
     switch(setting_id)
         {
             case ALL_SETTING_ID:
-                flag_write_data = ON;
+              //  flag_write_data = ON;
                 pAdjValue->TempGain = (float)(p_bt_app_data->TempGain)/MESH_INFO_SCALING;
                 pAdjValue->TempOffset = (float)(p_bt_app_data->TempOffset)/MESH_INFO_SCALING;
                 pAdjValue->HumGain = (float)(p_bt_app_data->RhGain)/MESH_INFO_SCALING;
                 pAdjValue->HumOffset = (float)(p_bt_app_data->RhOffset)/MESH_INFO_SCALING;
                 pMeshNodeData->WorkingTimer = p_bt_app_data->WorkingTimer;
-                pMeshNodeData->SensorClass = p_bt_app_data->BtmClass;
+
+                //TraceDec1("p_bt_app_data->BtmClass",p_bt_app_data->BtmClass);
+                pMeshNodeData->SensorClass = SensorClassChange(p_bt_app_data->BtmClass,CLASS_TO_BTM);
                 break;
+                /*
+            case SET_FULL_POWER_ON: Trace("Client Node Only: SET_FULL_POWER_ON 1"); // Client Node Only
+                if(NodeRole == NR_CLIENT)
+                    {
+                      GetPropertyID = NODE_GET_INFO_FULL_POWER_ON;
+                       SetForceFullPowerTime(ON);
+                    }
+                else {ret_ack=ACK_ERROR;TraceErr("SET_FULL_POWER_ON: Must Client Node");}
+            
+                break;
+            case SET_FULL_POWER_OFF: Trace("Client Node Only: SET_FULL_POWER_OFF 1"); // Client Node Only
+                if(NodeRole == NR_CLIENT)
+                    {
+                      GetPropertyID = NODE_GET_INFO_FULL_POWER_OFF;
+                       SetForceFullPowerTime(OFF);
+                    }
+                else {ret_ack=ACK_ERROR;TraceErr("SET_FULL_POWER_OFF: Must Client Node");}
+            
+                break;
+                */
+            /*    
+            case TEMP_GAIN_SETTING_ID:  Trace1("TEMP_GAIN_SETTING_ID 2",setting_data);
+                pAdjValue->TempGain = setting_data; flag_write_data = ON;
+                break;
+            case TEMP_OFFSET_SETTING_ID: Trace1("TEMP_OFFSET_SETTING_ID 3",setting_data);
+                pAdjValue->TempOffset = setting_data; flag_write_data = ON;
+                break;
+            case RH_GAIN_SETTING_ID: Trace1("RH_GAIN_SETTING_ID 4",setting_data);
+                pAdjValue->HumGain = setting_data; flag_write_data = ON;
+                break;
+            case RH_OFFSET_SETTING_ID: Trace1("RH_OFFSET_SETTING_ID 5",setting_data);
+                pAdjValue->HumOffset = setting_data; flag_write_data = ON;
+                break;
+            case WORKING_TIME_SETTING_ID: Trace1("WORKING_TIME_SETTING_ID 6",setting_data);
+                pMeshNodeData->WorkingTimer = setting_data; flag_write_data = ON;
+                break;
+            case SENSOR_CLASS_SETTING_ID: Trace1("SENSOR_CLASS_SETTING_ID 7",setting_data);
+                pMeshNodeData->SensorClass = setting_data; flag_write_data = ON;
+                break;
+             */   
+            default: ret_ack=ACK_ERROR; 
         };
 
-    if(ret_ack == ACK_OK){ PrintDataByte("EvtSetSettingRequestProc 2", pEvent->raw_value.data, pEvent->raw_value.len);
+    if(ret_ack == ACK_OK){ //PrintDataByte("EvtSetSettingRequestProc 2", pEvent->raw_value.data, pEvent->raw_value.len);
         WriteNodeData();         
         } 
     else{ ret_ack = ACK_ERROR; TraceErr("SettingID 2");}
@@ -1362,24 +1467,29 @@ void EvtSetGettingRequestProc(PCmdPacket pCmdEvent)
     if(pEvent->property_id == NODE_SENSOR_SETUP_SET)
         {setting_id = pEvent->setting_id;         
         }
-    else {TraceErr1("property_id 1",pEvent->property_id); return;}
+    else { return;}
 
     memset((PUCHAR)&BtSetupData,0,sizeof(_BtAppData));
     switch(setting_id)
            {
-               case ALL_SETTING_ID:    //Trace("Get ALL_SETTING_ID 1");
+               case ALL_SETTING_ID:    Trace("Get ALL_SETTING_ID 1");
                    flag_write_data = ON;
                    BtSetupData.TempGain = (int16)(pAdjValue->TempGain*MESH_INFO_SCALING);
                    BtSetupData.TempOffset = (int16)(pAdjValue->TempOffset*MESH_INFO_SCALING);
                    BtSetupData.RhGain = (int16)(pAdjValue->HumGain*MESH_INFO_SCALING);
                    BtSetupData.RhOffset = (int16)(pAdjValue->HumOffset*MESH_INFO_SCALING);
                    BtSetupData.WorkingTimer = pMeshNodeData->WorkingTimer;
-                   BtSetupData.BtmClass = pMeshNodeData->SensorClass ;
+                   BtSetupData.BtmClass = SensorClassChange(pMeshNodeData->SensorClass,CLASS_TO_UTILITY);
+                   /*
+                   //TraceDec1("Info: TempGain",(uint16)BtSetupData.TempGain);
+                   //TraceDec1("Info: TempOffset",BtSetupData.TempOffset);
+                   //TraceDec1("Info: RhGain",BtSetupData.RhGain);
+                   //TraceDec1("Info: RhOffset",BtSetupData.RhOffset);
+                   //TraceDec1("Info: WorkingTimer",BtSetupData.WorkingTimer);
+                   //TraceDec1("Info: BtmClass",BtSetupData.BtmClass);
+                   */
                    break;
-               default: TraceErr1("Get BT Setup 1",setting_id);
            };
-    
-    
     Cmd_ms_setup_server_send_setting_status(SENSOR_ELEMENT,pEvent->client_address, pEvent->appkey_index, NO_FLAGS,
                                             pEvent->property_id, pEvent->setting_id,sizeof(_BtAppData), (uchar *)&BtSetupData);
 }
@@ -1392,7 +1502,7 @@ uchar CheckPowerStatus()
 {
     uchar power = POWER_USB;
     
-#ifdef  G6_BT_MESH
+#ifdef  BT_MESH_G6
     return POWER_USB;
 #endif
 
@@ -1448,7 +1558,7 @@ void MeshNodeSetupProc()
     switch(ActiveStage())
         {
             
-            case NSS_NODE_STAGE_INIT: 
+            case NSS_NODE_STAGE_INIT: Trace("NSS_NODE_STAGE_INIT");
                  UsartResetRxTx(USART_ID_RX); SetNodeStatus(NS_USART_RX_EVENT,OFF);
                  pModbusCmd= (_PModbusCmdF4)UsartGetBuff(USART_ID_RX);
                  Rs485Rx();
@@ -1477,23 +1587,23 @@ void MeshNodeSetupProc()
                     else ToNextStage(NSS_SETUP_ERROR);
                 }
                 else if(pModbusCmd->FunCode == 0x06) {
-                    if(MeshNodeSetInfoProc() == TRUE) ToNextStage(NSS_SETUP_ACK);
+                    if(ModbusSetupFC6() == TRUE) ToNextStage(NSS_SETUP_ACK);
                     else ToNextStage(NSS_SETUP_ERROR);
                 }
                 else {ToNextStage(NSS_SETUP_ERROR);}
                 break;
-            case NSS_SEND_INFO: TraceDec1("NSS_SEND_INFO",ModbusToHostCmd.ByteNum+5);
+            case NSS_SEND_INFO: //TraceDec1("NSS_SEND_INFO",ModbusToHostCmd.ByteNum+5);
                 UsartTxSendCmd((PUCHAR)&ModbusToHostCmd,ModbusToHostCmd.ByteNum+5); Delay_ms(10);
                 ToNextStage(NSS_SETUP_OK);
                 
                 break;
                 
-            case NSS_SETUP_ACK: 
+            case NSS_SETUP_ACK:
                 UsartTxSendCmd((PUCHAR)pModbusCmd,8); Delay_ms(10);
                 ToNextStage(NSS_SETUP_OK);
                 break;
                 
-            case NSS_SETUP_OK: 
+            case NSS_SETUP_OK:
                 ToWaitingStage(NSS_SETUP_OK_INIT,WAIT_MS(30));
                 break;
             case NSS_SETUP_OK_INIT:
@@ -1503,22 +1613,313 @@ void MeshNodeSetupProc()
             case NSS_SETUP_ERROR: 
                 ToNextStage(NSS_NODE_STAGE_INIT);
                 break;
-           default: TraceErr1("MeshNodeSetupProc",ActiveStage()); break;
         };
     
     
 }
 
+//
+//
+//
+bool ModbusSetupFC6()
+{   
+   bool ret_code=TRUE;    
+   if(pMeshNodeData->SensorClass == SENSOR_BTM_G6)
+    ret_code = G6SetupInfo();
+   else
+    ret_code = MeshNodeSetInfoProc();
+   return ret_code;
+     
+}
+
+
+
+
+//
+// G6 FC6
+//
+bool G6SetupInfo()
+{
+    bool ret_code=TRUE;    
+    _PModbusCmdF6 p_cmd_fc6;
+    uint16 start_addr, value;
+    p_cmd_fc6 = (_PModbusCmdF6)pModbusCmd;
+    start_addr = WordSwap(p_cmd_fc6->StartAddr);
+    value = WordSwap(p_cmd_fc6->Value);
+    if(start_addr == G6_ADDR_BEHAVIOR){
+       G6SetBehavior(start_addr,value);
+    }
+    else if(start_addr >= POWER_PERCENT_SEG0 && start_addr <= POWER_PERCENT_SEG4 )
+        G6SetSegPowerPercent(start_addr,value);
+    else if(start_addr >= RTC_ADDR_YEAR && start_addr <= RTC_ADDR_WEEK )
+        G6SetInitRtc(start_addr,value);
+    else if(start_addr >= SEG1_ON_OFF && start_addr <= SEG5_ON_OFF )
+        G6SetSegOnOff( start_addr, value);
+    else if(start_addr >= SEG1_POWER && start_addr <= SEG5_POWER )
+        G6SetSegPower( start_addr, value);
+    else if(start_addr >= SEG1_WEEK && start_addr <= SEG5_WEEK )
+        G6SetSegWeek( start_addr, value);
+    else if(start_addr >= SEG1_START_TIME && start_addr <= SEG5_START_TIME )
+        G6SetSegStartTime( start_addr, value);
+    else if(start_addr >= SEG1_END_TIME && start_addr <= SEG5_END_TIME )
+        G6SetSegEndTime( start_addr, value);
+    else if(start_addr >= RUNING_TIME_FILTER1 && start_addr <= RUNING_TIME_FILTER2 )
+        G6SetTimeFilter( start_addr, value);
+    else ret_code = FALSE;
+
+    if(ret_code == TRUE) WriteAdjValue(); // save info
+    
+    return ret_code;
+}
+
+_DevDate    InitDevDate;
+
+
+bool G6SetSegPowerPercent(uint16 addr,uint16 value)
+{TraceDec2("G6SetSegPowerPercent", addr,value);
+    bool ret_code=TRUE;
+    uint16 index;
+    index = addr - POWER_PERCENT_SEG0;
+    if(index < 5){
+        pMeshNodeData->SegPPercent[index] =  value; 
+        WriteMeshNodeData();
+        }
+    return ret_code;
+}
+
+//
+// 1. Set Power Percent
+// 2. Clear Filter Time
+// 3. Set Filter Warning Time
+//
+bool G6SetBehavior(uint16 addr,uint16 value)
+{
+    BYTE speed,status;    
+   speed = pMeshNodeData->G6HostPPercent;
+   status = pMeshNodeData->G6Status;
+
+if(addr == 3){
+  
+   if(value & G6_FC6_AUTO_RUN){
+        G6SetAutoRun(ON);pMeshNodeData->G6HostPPercent = value&0x00FF;
+    }else{
+        G6SetAutoRun(OFF);pMeshNodeData->G6HostPPercent = value&0x00FF;
+    }
+   if((speed != pMeshNodeData->G6HostPPercent) | (status !=  pMeshNodeData->G6Status)){
+        G6SetActStatus(G6_STATUS_CHANGE,ON);    // to triggle task
+        WriteMeshNodeData(); // save change
+       }
+   if(value & G6_FC6_CLS_FILTER1){//Trace1(" G6_FC6_CLS_FILTER1",value);
+        if(pMeshNodeData->FilterAllTime1)
+            {pMeshNodeData->FilterAllTime1 = 0; WriteNodeData();}
+    }
+   if(value & G6_FC6_CLS_ALL_FILTER){//Trace1(" G6_FC6_CLS_ALL_FILTER",value);
+        if(pMeshNodeData->FilterAllTime2)
+            {pMeshNodeData->FilterAllTime2 = 0; WriteNodeData();}  
+     }
+ }
+   
+}
+
+//
+// Setup RTC Initial Data
+//
+bool G6SetInitRtc(uint16 addr,uint16 value)
+{
+    bool ret_code=TRUE;    
+    PDevDate p_init_date=&InitDevDate;
+    //TraceDec2("G6SetupInitDate 1",addr,value);
+    if(addr == RTC_ADDR_YEAR) p_init_date->Date.Year = value;
+    else if(addr == RTC_ADDR_MONTH) p_init_date->Date.Month = value;
+    else if(addr == RTC_ADDR_DATE)  p_init_date->Date.Date = value;
+    else if(addr == RTC_ADDR_HOUR)  p_init_date->Date.Hour = value;
+    else if(addr == RTC_ADDR_MIN)   p_init_date->Date.Min = value;
+    else if(addr == RTC_ADDR_SEC)   p_init_date->Date.Sec = value;
+    else if(addr == RTC_ADDR_WEEK) p_init_date->Date.Week = value;
+    else {ret_code=FALSE;}
+
+    if(p_init_date->Date.Year !=0 && p_init_date->Date.Month !=0 && p_init_date->Date.Date !=0){
+       p_init_date->Date.Week = CalculateWeek(p_init_date->Date.Year,p_init_date->Date.Month,p_init_date->Date.Date);
+       SetSysDate(p_init_date);
+      }
+    return ret_code;    
+}
+
+//
+// 
+//
+bool G6SetSegOnOff(uint16 addr,uint16 value)
+{
+    bool ret_code=TRUE;
+    //TraceDec2("G6SetSegOnOff 1",addr,value);
+    switch(addr)
+        {
+            case SEG1_ON_OFF:
+                if(value == ON) pAdjValue->G6Schedule[0].WeekPower |= G6_SCHEDULE_ON;
+                else pAdjValue->G6Schedule[0].WeekPower &= ~G6_SCHEDULE_ON;
+                break;
+            case SEG2_ON_OFF:
+                if(value == ON) pAdjValue->G6Schedule[1].WeekPower |= G6_SCHEDULE_ON;
+                else pAdjValue->G6Schedule[1].WeekPower &= ~G6_SCHEDULE_ON;
+                break;
+            case SEG3_ON_OFF:
+                if(value == ON) pAdjValue->G6Schedule[2].WeekPower |= G6_SCHEDULE_ON;
+                else pAdjValue->G6Schedule[2].WeekPower &= ~G6_SCHEDULE_ON;
+                break;
+            case SEG4_ON_OFF:
+                if(value == ON) pAdjValue->G6Schedule[3].WeekPower |= G6_SCHEDULE_ON;
+                else pAdjValue->G6Schedule[3].WeekPower &= ~G6_SCHEDULE_ON;
+                break;
+            case SEG5_ON_OFF:
+                if(value == ON) pAdjValue->G6Schedule[4].WeekPower |= G6_SCHEDULE_ON;
+                else pAdjValue->G6Schedule[4].WeekPower &= ~G6_SCHEDULE_ON;
+                break;
+            default:  ret_code=FALSE; break;
+        };
+    
+    return ret_code;    
+}
+
+//
+// 
+//
+bool G6SetSegPower(uint16 addr,uint16 value)
+{
+      bool ret_code=TRUE;
+      //TraceDec2("G6SetSegPower 1",addr,value);
+      switch(addr)
+          {
+              case SEG1_POWER:
+                  pAdjValue->G6Schedule[0].PowerPercent = value;break;
+              case SEG2_POWER:
+                  pAdjValue->G6Schedule[1].PowerPercent = value;break;
+              case SEG3_POWER:
+                  pAdjValue->G6Schedule[2].PowerPercent = value;break;
+              case SEG4_POWER:
+                  pAdjValue->G6Schedule[3].PowerPercent = value;break;
+              case SEG5_POWER:
+                  pAdjValue->G6Schedule[4].PowerPercent = value;break;
+              default:  ret_code=FALSE; break;
+          };
+    return ret_code;          
+}
+
+//
+// 
+//
+bool G6SetSegWeek(uint16 addr,uint16 value)
+{
+      bool ret_code=TRUE;
+      uchar week_mask;
+      week_mask = (uchar)value;
+      switch(addr)
+          {
+              case SEG1_WEEK:
+                  pAdjValue->G6Schedule[0].WeekPower |= week_mask;break;
+              case SEG2_WEEK:
+                  pAdjValue->G6Schedule[1].WeekPower |= week_mask;break;
+              case SEG3_WEEK:
+                  pAdjValue->G6Schedule[2].WeekPower |= week_mask;break;
+              case SEG4_WEEK:
+                  pAdjValue->G6Schedule[3].WeekPower |= week_mask;break;
+              case SEG5_WEEK:
+                  pAdjValue->G6Schedule[4].WeekPower |= week_mask;break;
+              default:  ret_code=FALSE;  break;
+          };
+    return ret_code;          
+}
+
+//
+// 
+//
+bool G6SetSegStartTime(uint16 addr,uint16 value)
+{
+      bool ret_code=TRUE;
+      uchar week_mask;
+      week_mask = (uchar)value;
+      switch(addr)
+          {
+              case SEG1_START_TIME:
+                  pAdjValue->G6Schedule[0].StartTime = value;break;
+              case SEG2_START_TIME:
+                  pAdjValue->G6Schedule[1].StartTime = value;break;
+              case SEG3_START_TIME:
+                  pAdjValue->G6Schedule[2].StartTime = value;break;
+              case SEG4_START_TIME:
+                  pAdjValue->G6Schedule[3].StartTime = value;break;
+              case SEG5_START_TIME:
+                  pAdjValue->G6Schedule[4].StartTime = value;break;
+              default:  ret_code=FALSE;break;
+          };
+    return ret_code;          
+}
+
+//
+// 
+//
+bool G6SetSegEndTime(uint16 addr,uint16 value)
+{
+    bool ret_code=TRUE;
+    uchar week_mask;
+    week_mask = (uchar)value;
+    switch(addr)
+        {
+            case SEG1_END_TIME:
+                pAdjValue->G6Schedule[0].EndTime = value;break;
+            case SEG2_END_TIME:
+                pAdjValue->G6Schedule[1].EndTime = value;break;
+            case SEG3_END_TIME:
+                pAdjValue->G6Schedule[2].EndTime = value;break;
+            case SEG4_END_TIME:
+                pAdjValue->G6Schedule[3].EndTime = value;break;
+            case SEG5_END_TIME:
+                pAdjValue->G6Schedule[4].EndTime = value;break;
+            default:  ret_code=FALSE; break;
+        };
+    return ret_code;    
+}
+
+//
+// 
+//
+bool G6SetTimeFilter(uint16 addr,uint16 value)
+{
+    bool ret_code=TRUE;
+    uchar week_mask;
+    week_mask = (uchar)value;
+    switch(addr)
+        {
+            case RUNING_TIME_FILTER1:
+                pMeshNodeData->FilterTime1 = value;break;
+            case RUNING_TIME_FILTER2:
+                pMeshNodeData->FilterTime2 = value;break;
+            default:  ret_code=FALSE; break;
+        };
+    WriteMeshNodeData();   
+    return ret_code;    
+}
+
+
+//
+// FC3
+//
+bool G6GetInfo()
+{
+    bool ret_code=TRUE;
+    
+
+    return ret_code;
+}
+
+
 
 #define WORKING_TIME_MIN        5
 #define WORKING_TIME_MAX        3600
-
-
 //
 //
 // FC6
 bool MeshNodeSetInfoProc()
-{
+{//
     bool ret_code=TRUE;
     _PModbusCmdF6 p_cmd_fc6;
     uint16 start_addr, value;
@@ -1538,10 +1939,10 @@ bool MeshNodeSetInfoProc()
          pAdjValue->HumOffset = ((float)value)/(float)MESH_INFO_SCALING;
         }
     else if(start_addr == 0x0A ){
-         if(value >= WORKING_TIME_MIN && value <=WORKING_TIME_MAX){TraceDec1("Set Working Time",value);
+         if(value >= WORKING_TIME_MIN && value <=WORKING_TIME_MAX){//TraceDec1("Set Working Time",value);
              pMeshNodeData->WorkingTimer = value;
             }
-         else{ TraceErr1("Set Working Time",value); 
+         else{ 
             ret_code=FALSE;
             }
         }
@@ -1565,7 +1966,7 @@ bool MeshNodeSetInfoProc()
         }
     else ret_code=FALSE;
 
-    if(ret_code == TRUE) WriteNodeData(); else { TraceErr1("MeshNodeSetInfoProc",start_addr);}
+    if(ret_code == TRUE) WriteNodeData(); 
 
     return ret_code;
         
@@ -1576,7 +1977,7 @@ bool MeshNodeSetInfoProc()
 //
 //FC3
 bool MeshNodeGetInfoProc()
-{
+{//
     bool ret_code=TRUE;
     uint16 start_addr, total_reg;
     ModbusToHostCmd.ModbusID = pModbusCmd->ModbusID;
@@ -1610,19 +2011,198 @@ bool MeshNodeGetInfoProc()
         else if(pMeshNodeData->SensorClass == SENSOR_OEM) ModbusToHostCmd.Data[0] = WordSwap(3);
         else if(pMeshNodeData->SensorClass == SENSOR_AGB_POWER) ModbusToHostCmd.Data[0] = WordSwap(4);
         else if(pMeshNodeData->SensorClass == SENSOR_VELOCITY) ModbusToHostCmd.Data[0] = WordSwap(5);
-        else ModbusToHostCmd.Data[0] = WordSwap(1);//default
+        //else if(pMeshNodeData->SensorClass == SENSOR_BTM_G6) ModbusToHostCmd.Data[0] = WordSwap(6);
+        else ModbusToHostCmd.Data[0] = WordSwap(1);
         }
     
     else if(start_addr == 0x11 && total_reg == 1){
          ModbusToHostCmd.Data[0] = WordSwap(pMeshNodeData->BaudRate);
-        }    
+        }
+    else if((start_addr >= 0x38 && start_addr <= 0xDC) || (start_addr >= 0xF0 && start_addr <= 0xFB)){
+
+            ret_code = GetG6InfoFC3(start_addr,total_reg);
+        }
     else ret_code=FALSE;
     
-    if(ret_code == TRUE) ModbusAddCrc(); else { TraceErr1("MeshNodeSetInfoProc",start_addr);}
+    if(ret_code == TRUE) ModbusAddCrc(); 
 
     return ret_code;
         
 }
 
+Bool GetG6InfoFC3(uint16 start_addr,uint16 total_reg)
+{
+    Bool ret_code=TRUE;
+    if(total_reg != 1) return FALSE;
+    else if(start_addr >= RTC_ADDR_YEAR && start_addr <= RTC_ADDR_WEEK )
+        G6FC3GetInitRtc(start_addr);
+    else if(start_addr >= SEG1_ON_OFF && start_addr <= SEG5_ON_OFF )
+        G6FC3GetSegOnOff( start_addr);
+    else if(start_addr >= SEG1_POWER && start_addr <= SEG5_POWER )
+        G6FC3GetSegPower(start_addr);
+    else if(start_addr >= SEG1_WEEK && start_addr <= SEG5_WEEK )
+        G6FC3GetSegWeek( start_addr);
+    else if(start_addr >= SEG1_START_TIME && start_addr <= SEG5_START_TIME )
+        G6FC3GetSegStartTime( start_addr);
+    else if(start_addr >= SEG1_END_TIME && start_addr <= SEG5_END_TIME )
+        G6FC3GetSegEndTime( start_addr);
+    else if(start_addr >= POWER_PERCENT_SEG0 && start_addr <= POWER_PERCENT_SEG4 )
+        G6FC3GetSegPowerPercent(start_addr);
+    else if(start_addr >= RUNING_TIME_FILTER1 && start_addr <= RUNING_TIME_FILTER2 )
+        G6FC3GetTimeFilter( start_addr);
+    else ret_code = FALSE;
+
+    return ret_code;
+}
+
+
+Bool G6FC3GetInitRtc(uint16 start_addr)
+{//
+    Bool ret_code = TRUE;
+    GetSysDate();
+    uchar rtc_data;
+    
+    switch(start_addr)
+        {
+            case RTC_ADDR_YEAR: rtc_data = pDevDate->Date.Year;  break;
+            case RTC_ADDR_MONTH: rtc_data = pDevDate->Date.Month;break;
+            case RTC_ADDR_DATE: rtc_data = pDevDate->Date.Date;  break;
+            case RTC_ADDR_HOUR: rtc_data = pDevDate->Date.Hour;  break;
+            case RTC_ADDR_MIN:  rtc_data = pDevDate->Date.Min;   break;
+            case RTC_ADDR_SEC:  rtc_data = pDevDate->Date.Sec;   break;
+            case RTC_ADDR_WEEK: rtc_data = pDevDate->Date.Week;  break;
+            default:  ret_code=FALSE;  break;
+        }; 
+   if(ret_code) ModbusToHostCmd.Data[0] =  WordSwap(rtc_data);
+   return ret_code;
+            
+   return ret_code;
+}
+
+Bool G6FC3GetSegOnOff(uint16 start_addr)
+{//
+  Bool ret_code=TRUE;
+  uchar WeekPowerOnOff = OFF;
+  switch(start_addr)
+      {
+          case SEG1_ON_OFF: if(pAdjValue->G6Schedule[0].WeekPower & G6_SCHEDULE_ON) WeekPowerOnOff = ON;
+              break;
+          case SEG2_ON_OFF: if(pAdjValue->G6Schedule[1].WeekPower & G6_SCHEDULE_ON) WeekPowerOnOff = ON;
+              break;
+          case SEG3_ON_OFF: if(pAdjValue->G6Schedule[2].WeekPower & G6_SCHEDULE_ON) WeekPowerOnOff = ON;
+              break;
+          case SEG4_ON_OFF: if(pAdjValue->G6Schedule[3].WeekPower & G6_SCHEDULE_ON) WeekPowerOnOff = ON;
+              break;
+          case SEG5_ON_OFF: if(pAdjValue->G6Schedule[4].WeekPower & G6_SCHEDULE_ON) WeekPowerOnOff = ON;
+              break;
+          default:  ret_code=FALSE;  break;
+      };
+  
+  if(ret_code) ModbusToHostCmd.Data[0] = WordSwap(WeekPowerOnOff);
+  return ret_code;
+
+  return ret_code;
+}
+
+Bool G6FC3GetSegPower(uint16 start_addr)
+{//
+  Bool ret_code=TRUE;
+  uchar PowerPercent;
+  switch(start_addr)
+      {
+          case SEG1_POWER: PowerPercent =  pAdjValue->G6Schedule[0].PowerPercent; break;
+          case SEG2_POWER: PowerPercent =  pAdjValue->G6Schedule[1].PowerPercent; break;
+          case SEG3_POWER: PowerPercent =  pAdjValue->G6Schedule[2].PowerPercent; break;
+          case SEG4_POWER: PowerPercent =  pAdjValue->G6Schedule[3].PowerPercent; break;
+          case SEG5_POWER: PowerPercent =  pAdjValue->G6Schedule[4].PowerPercent; break;
+          default:  ret_code=FALSE;  break;
+      };
+  if(ret_code) ModbusToHostCmd.Data[0] = WordSwap(PowerPercent);
+  return ret_code;
+}
+
+Bool G6FC3GetSegWeek(uint16 start_addr)
+{//
+  Bool ret_code=TRUE;
+  uchar WeekPower=0;
+  switch(start_addr)
+      {
+          case SEG1_WEEK: WeekPower = pAdjValue->G6Schedule[0].WeekPower; break;
+          case SEG2_WEEK: WeekPower = pAdjValue->G6Schedule[1].WeekPower; break;
+          case SEG3_WEEK: WeekPower = pAdjValue->G6Schedule[2].WeekPower; break;
+          case SEG4_WEEK: WeekPower = pAdjValue->G6Schedule[3].WeekPower; break;
+          case SEG5_WEEK: WeekPower = pAdjValue->G6Schedule[4].WeekPower; break;
+          default:  ret_code=FALSE;  break;
+      };
+
+  if(ret_code) ModbusToHostCmd.Data[0] = WordSwap(WeekPower);
+  return ret_code;
+}
+
+Bool G6FC3GetSegStartTime(uint16 start_addr)
+{//
+  Bool ret_code=TRUE;  
+  uint16 value;
+  switch(start_addr)
+      {
+          case SEG1_START_TIME: value = pAdjValue->G6Schedule[0].StartTime;break;
+          case SEG2_START_TIME: value = pAdjValue->G6Schedule[1].StartTime;break;
+          case SEG3_START_TIME: value = pAdjValue->G6Schedule[2].StartTime;break;
+          case SEG4_START_TIME: value = pAdjValue->G6Schedule[3].StartTime;break;
+          case SEG5_START_TIME: value = pAdjValue->G6Schedule[4].StartTime;break;
+          default:  ret_code=FALSE; break;
+      };
+
+  if(ret_code) ModbusToHostCmd.Data[0] = WordSwap(value);
+  return ret_code;
+}
+Bool G6FC3GetSegEndTime(uint16 start_addr)
+{//
+  Bool ret_code=TRUE;
+  uint16 value;
+  switch(start_addr)
+      {
+          case SEG1_END_TIME: value = pAdjValue->G6Schedule[0].EndTime; break;
+          case SEG2_END_TIME: value = pAdjValue->G6Schedule[1].EndTime; break;
+          case SEG3_END_TIME: value = pAdjValue->G6Schedule[2].EndTime; break;
+          case SEG4_END_TIME: value = pAdjValue->G6Schedule[3].EndTime; break;
+          case SEG5_END_TIME: value = pAdjValue->G6Schedule[4].EndTime; break;
+          default:  ret_code=FALSE; break;
+      };
+  if(ret_code) ModbusToHostCmd.Data[0] = WordSwap(value);
+  return ret_code;
+}
+Bool G6FC3GetSegPowerPercent(uint16 start_addr)
+{//
+  Bool ret_code=TRUE;
+  uchar value;
+  switch(start_addr)
+      {
+          case POWER_PERCENT_SEG0: value = pMeshNodeData->SegPPercent[0]; break;
+          case POWER_PERCENT_SEG1: value = pMeshNodeData->SegPPercent[1]; break;
+          case POWER_PERCENT_SEG2: value = pMeshNodeData->SegPPercent[2]; break;
+          case POWER_PERCENT_SEG3: value = pMeshNodeData->SegPPercent[3]; break;
+          case POWER_PERCENT_SEG4: value = pMeshNodeData->SegPPercent[4]; break;
+          default:  ret_code=FALSE; break;
+      };
+  if(ret_code) ModbusToHostCmd.Data[0] = WordSwap(value);
+  return ret_code;
+
+}
+
+Bool G6FC3GetTimeFilter(uint16 start_addr)
+{//
+  Bool ret_code=TRUE;
+  uint16 value;
+  switch(start_addr)
+      {
+          case RUNING_TIME_FILTER1: value = pMeshNodeData->FilterTime1; break;
+          case RUNING_TIME_FILTER2: value = pMeshNodeData->FilterTime2; break;
+          default:  ret_code=FALSE; break;
+      };
+
+  if(ret_code) ModbusToHostCmd.Data[0] =  WordSwap(value);
+  return ret_code;
+}
 
 

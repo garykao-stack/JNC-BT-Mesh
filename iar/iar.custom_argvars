@@ -4,7 +4,7 @@
   <group active="true" name="BLE SDK">
     <variable>
       <name>BGBUILD_EXECUTABLE_PATH</name>
-      <value>D:\Compiler\SimplicityStudio\developer\sdks\blemesh\v1.7\protocol\bluetooth\bin\bgbuild.exe</value>
+      <value>D:\Compiler\SimplicityStudio_v4\developer\sdks\blemesh\v1.7\protocol\bluetooth\bin\bgbuild.exe</value>
     </variable>
   </group>
 </iarUserArgVars>
