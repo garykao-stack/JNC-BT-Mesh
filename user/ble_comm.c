@@ -35,15 +35,16 @@ void BleCommInit()
     NodeRole = pMeshNodeData->MeshNodeRole; 
    if(pMeshNodeData->WorkingTimer < 5 || pMeshNodeData->WorkingTimer > (3600) ) 
         {pMeshNodeData->WorkingTimer  = TIMER_DEFAULT_WORKING;  WriteNodeData();}
+   
 
 #if BTM_FOR_DEMO_TEST
-   pMeshNodeData->WorkingTimer  = TIMER_DEMO_WORKING; //for demo only
+   pMeshNodeData->WorkingTimer  = TIMER_DEMO_WORKING; //richard demo only
    TraceDec1("Working Timer ==> Demo", pMeshNodeData->WorkingTimer);
 #else
 //  TraceDec1("Working Timer", pMeshNodeData->WorkingTimer);  
 #endif    
     
-    
+     
     
     if(buttton_status == KEY_NODE_SETUP) {Trace("KEY_NODE_SETUP 1");
         NodeRole = NR_SETUP;
@@ -54,7 +55,9 @@ void BleCommInit()
 #if MESH_COLUME_ENABLE
     SetMeshNodeStatus(STATUS_MODBUS_MESH,ON);   // for modbus to bt mesh    Debug
 #endif 
-    PowerKeyCount=0xFF;
+    //PowerKeyCount=0xFF;
+    PowerKeyCount = pMeshNodeData->G6HostPPercent; TraceDec1("PowerKeyCount",PowerKeyCount);
+
 
 }
 
@@ -202,6 +205,7 @@ uint16  FilterCounter,TimerFilter;
 #define FILTER_TIME_BASE      (6000) //(1000) //(6000)   //60*100
 
 
+const uchar PowerKeyMap[7]={1,3,4,0,MENUAL_KEY_AUTO,1,2};
 
 
 void BtMeshReset();
@@ -222,10 +226,10 @@ uint32 EvtSoftTimerProc(PCmdPacket pEvent)
         case TD_STAGE_TIMER: //Trace("TD_STAGE_TIMER");
             CheckStageTimer();
             break;
-        case TD_NODE_SLEEP: Trace("TD_NODE_SLEEP");
+        case TD_NODE_SLEEP: //Trace("TD_NODE_SLEEP");
             SetNodeSleeping(ON);
             break;
-        case TD_NODE_WAKE_UP: Trace("TD_NODE_WAKE_UP");
+        case TD_NODE_WAKE_UP:// Trace("TD_NODE_WAKE_UP");
             SetNodeSleeping(OFF); 
             break;
 //////////////////////////////////// for Client Timer event ///////////////////////////////////////      
@@ -277,27 +281,25 @@ uint32 EvtSoftTimerProc(PCmdPacket pEvent)
             break;
 #ifdef  BT_MESH_G6
         
-        case TD_TIMER_FILTER_CLEAN: TraceDec1("TD_TIMER_FILTER_CLEAN",FilterCounter);
+        case TD_TIMER_FILTER_CLEAN: //TraceDec1("TD_TIMER_FILTER_CLEAN",FilterCounter);
 
             if(FilterCounter == 3) {
-                if(pMeshNodeData->FilterAllTime1 == pMeshNodeData->FilterAllTime2)
-                    {//Trace("Filter Clean 1");//clear filter 1
+                if(pMeshNodeData->FilterAllTime1 == pMeshNodeData->FilterAllTime2){//Trace("Filter Clean 1");//clear filter 1
                      pMeshNodeData->G6Status |=G6_CLEAR_FILETER1;
                      G6SetActStatus(G6S_CLEAR_FILERT1|G6_STATUS_CHANGE,ON); CLEAR_LED_FILTER1();
                     }
                 else{//Trace("Filter Clean All");//clear filter All
-                     //pMeshNodeData->G6Status |=G6_CLEAR_FILETER_ALL;
                      pMeshNodeData->G6Status &=~G6_CLEAR_FILETER_ALL; 
                      G6SetActStatus(G6S_CLEAR_ALL_FILTER|G6_STATUS_CHANGE,ON); CLEAR_LED_ALL_FILTER();
                     }
                 
               }
-            else{Trace("Filter Error");
+            else{//Trace("Filter Error");
                     FilterCounter = 0; G6SetActStatus(G6_STATUS_CHANGE,OFF);
                 }
             break;
         case TD_TIMER_DOOR_OPEN: FilterCounter = 0;
-            if(!G6GetActStatus(G6S_DOOR_OPEN)){Trace("TD_TIMER_DOOR_OPEN 1");
+            if(!G6GetActStatus(G6S_DOOR_OPEN)){//Trace("TD_TIMER_DOOR_OPEN 1");
                 G6SetActStatus(G6S_DOOR_OPEN,ON);G6SetActStatus(G6_STATUS_CHANGE,ON);
              }
             break;
@@ -306,24 +308,21 @@ uint32 EvtSoftTimerProc(PCmdPacket pEvent)
                     {G6SetActStatus(G6S_DOOR_OPEN,OFF);G6SetActStatus(G6_STATUS_CHANGE,ON);}
             break;
         
-      case TD_TIMER_KEY_POWER:TraceDec1("TD_TIMER_KEY_POWER",PowerKeyCount);
-            pMeshNodeData->G6HostPPercent = PowerKeyCount;
-            if(pMeshNodeData->G6HostPPercent == MENUAL_KEY_AUTO) {G6SetAutoRun(ON);}
+      case TD_TIMER_KEY_POWER://TraceDec1("TD_TIMER_KEY_POWER 1",PowerKeyCount);
+            //pMeshNodeData->G6HostPPercent = PowerKeyCount;
+            pMeshNodeData->G6HostPPercent = PowerKeyMap[PowerKeyCount];
+            //TraceDec1("TD_TIMER_KEY_POWER 2",pMeshNodeData->G6HostPPercent);
+            //if(pMeshNodeData->G6HostPPercent == MENUAL_KEY_AUTO) {G6SetAutoRun(ON);}
+            if(PowerKeyCount == MENUAL_KEY_AUTO) {G6SetAutoRun(ON);pMeshNodeData->G6HostPPercent = 0;}
             else {G6SetAutoRun(OFF);}
             G6SetActStatus(G6_STATUS_CHANGE,ON);
             WriteMeshNodeData();
             loop=0; 
             MENUAL_LED_SPEED();
-            /* 
-            do{
-                 MENUAL_LED_SPEED(); loop++;
-              }while(loop < PowerKeyCount);
-            */
-            PowerKeyCount = 0xFF;
             break;
       case TD_TIMER_CHK_FILTER:
-            TimerFilter += ActMotoSpeed;  TraceDec2("Check Filter",TimerFilter,ActMotoSpeed);
-            if(TimerFilter > FILTER_TIME_BASE){TraceDec1("Filter + 1HR",TimerFilter);
+            TimerFilter += ActMotoSpeed;  //TraceDec2("Check Filter",TimerFilter,ActMotoSpeed);
+            if(TimerFilter > FILTER_TIME_BASE){//TraceDec1("Filter + 1HR",TimerFilter);
                 TimerFilter = ActMotoSpeed;
                 G6FilterTimeInc();
               }
@@ -348,22 +347,22 @@ void TimerLedStatus()
 {
     switch(CurrTimerHandle)
         {
-            case TD_UNPROVISION: Trace("TD_UNPROVISION");
+            case TD_UNPROVISION: 
                 SetLedStatus(LED_STATUS_UNPROV);
                 break;
-            case TD_PROVISIONING: //Trace("TD_PROVISIONING");
+            case TD_PROVISIONING: 
                 if (!init_done) SetLedStatus(LED_STATUS_PROVING);
                 break;
             case TD_NO_EVENT: //TraceDec1("TD_NO_EVENT",CountNodeEvent);
-                if(GetMeshNodeStatus(STATUS_IVI_UPDATE) == ON){Trace("IVI UPDATE ON");
+                if(GetMeshNodeStatus(STATUS_IVI_UPDATE) == ON){//Trace("IVI UPDATE ON");
                      SetLedStatus(LED_STATUS_IVI_UPDATE_ON);
                     }
-                if(++CountNodeEvent > COUNT_NO_EVENT){ Trace("IVI Update reset"); 
+                if(++CountNodeEvent > COUNT_NO_EVENT){ //Trace("IVI Update reset"); 
                     Delay_ms(500);
                 }
                 break;
             
-            default: TraceErr1("SysLedStatus",CurrTimerHandle); break;
+            default:  break;
                 
         };    
     
@@ -560,28 +559,26 @@ void set_device_name(bd_addr *pAddr)
 //
 void SetTxPower(int16 power)
 {
-    //gecko_init_afh();
     gecko_cmd_system_halt(ON);
     result = Cmd_sys_set_tx_power(TX_POWER_HI)->set_power;  
     gecko_cmd_system_halt(OFF);
-    //TraceDec1("Mesh Init Set Tx Power", result); //richard: Check Power
 }
 //
 // sleep: OFF
 // wake up: ON
 void PowerMode(uchar status)
 {
-    if(status == POWER_MODE_WAKEUP){ Trace("Power Mode Wake up");
+    if(status == POWER_MODE_WAKEUP){ //Trace("Power Mode Wake up");
          SetLedStatus(LED_STATUS_ACTIVE); // the can increment power consumption
         }
-    else{ Trace("Power Mode Sleeping"); // sleep mode
+    else{// Trace("Power Mode Sleeping"); // sleep mode
          SetLedStatus(LED_STATUS_OFF); // the can increment power consumption
         
         }
 }
 
 
-void SaveMeshNodeInfo(uchar save_id,void* p_event)
+void SaveMeshNodeInfo(uchar save_id, void* p_event)
 {
     switch(save_id)
         {
@@ -626,6 +623,8 @@ void SetForceFullPowerTime(uchar status)
         }
 }
 
+int16 PowerTest;
+extern uint16 ActMotoSpeed;
 
 // BLE and Mesh common event 
 //**********************************************************************************************
@@ -637,29 +636,43 @@ uint32 EvtSysExternalSignalProc(PCmdPacket pEvent)
     uint32 ret_code=TRUE;
     uint32 ext_signal;
     ext_signal = pEvent->data.evt_system_external_signal.extsignals;
+#ifndef  BT_MESH_G6
 
-    if(ext_signal == PB_SPEED_NORMAL){Trace("PB_SPEED_NORMAL");
+    if(ext_signal == PB_SPEED_NORMAL){//Trace("PB_SPEED_NORMAL");
         GetPropertyID = NODE_GET_INFO_FULL_POWER_OFF;
         SetForceFullPowerTime(OFF);
         //SetVolDecInc(1);
         } 
-    else if(ext_signal == PB_SPEED_5SEC){Trace("PB_SPEED_5SEC");
+    else if(ext_signal == PB_SPEED_5SEC){//Trace("PB_SPEED_5SEC");
         GetPropertyID = NODE_GET_INFO_FULL_POWER_ON;  
         SetForceFullPowerTime(ON);
-        }    
-    else if(ext_signal == PB1_PRESS_ON){Trace("PB1_PRESS_ON");
         }
-    else if(ext_signal == PB1_PRESS_OFF) Trace("PB1_PRESS_OFF");
+    
+    else if(ext_signal == PB1_PRESS_ON){//Trace("PB1_PRESS_ON");
+        }
+#else 
+
+    if(ext_signal == PB_SPEED_NORMAL){
+        } 
+    else if(ext_signal == PB1_PRESS_ON){
+        }
+   
+#endif
+
 #ifdef  BT_MESH_G6
     else if(ext_signal == PB_SPEED_KEY){
          SetEventTaskTimer(TD_TIMER_KEY_POWER, TIMER_1SEC,TIMER_EVENT_ONCE);//clear open
-         if(PowerKeyCount == 0xFF) PowerKeyCount = pMeshNodeData->G6HostPPercent;
+         //if(PowerKeyCount == 0xFF) PowerKeyCount = pMeshNodeData->G6HostPPercent;        
+    
          if(++PowerKeyCount>MENUAL_KEY_AUTO) PowerKeyCount=0;
-         //TraceDec2("PB_SPEED_ON",PowerKeyCount,pMeshNodeData->G6HostPPercent);
+
+         if(G6GetActStatus(G6S_AUTO) ==TRUE) PowerKeyCount = 0; 
+         
+         TraceDec2("PB_SPEED_KEY",PowerKeyCount,pMeshNodeData->G6HostPPercent);
         }
-    else if(ext_signal == PB_CLEAN_FILTER1){Trace("PB_CLEAN_FILTER1 1");
+    else if(ext_signal == PB_CLEAN_FILTER1){//Trace("PB_CLEAN_FILTER1 1");
         }
-    else if(ext_signal == PB_CLEAN_FILTER2){Trace("PB_CLEAN_FILTER2 2");
+    else if(ext_signal == PB_CLEAN_FILTER2){//Trace("PB_CLEAN_FILTER2 2");
         }
      
    else if(ext_signal == PB_DOOR_CLOSE){//Trace("PB_DOOR_CLOSE 3");

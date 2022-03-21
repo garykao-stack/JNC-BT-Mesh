@@ -480,7 +480,6 @@ bool CheckUltraSound()
          }
          else TraceErr("JNC-UltraSound Disconnect 2");
         }
-    UsartPrintBuff(CounterRx);
     UsartResetRxTx(USART_ID_TX_RX);
     return ret_code;
 }
@@ -572,7 +571,7 @@ bool CheckA6D6()
 }
 
 bool CheckBtmG6()
-{TraceProc();
+{//TraceProc();
     bool ret_code=TRUE;
     ret_code = GetSysDate();
 

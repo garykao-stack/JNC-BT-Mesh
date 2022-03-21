@@ -63,11 +63,6 @@ void gecko_bgapi_classes_init(void)
   gecko_bgapi_class_mesh_node_init();
   gecko_bgapi_class_mesh_proxy_init();
   gecko_bgapi_class_mesh_proxy_server_init(); //richard add
- /* 
-        gecko_bgapi_class_mesh_sensor_client_init();
-        gecko_bgapi_class_mesh_sensor_server_init();
-        gecko_bgapi_class_mesh_sensor_setup_server_init();
-*/
   gecko_bgapi_class_mesh_test_init();
   gecko_bgapi_class_mesh_lpn_init(); //richard add 
 #ifdef FRIEND_NODE
@@ -119,19 +114,15 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
         printf("%s: Firmware Version ==> v%1.2f \r\n", MODEL_NAME, FW_VER/100.0);
 #endif
     sensor_index = SensorClassChange(pMeshNodeData->SensorClass,CLASS_TO_UTILITY);
-
-    TraceDec2("Test1",sensor_index,pMeshNodeData->SensorClass);
     
     printf("\r\nSensor Class = %s\r\nWorking Timer = %d sec\r\nTemp-Gain = %0.2f, Temp-Offset = %0.2f\r\nRH-Gain   = %0.2f, RH-Offset   = %0.2f\r\n\r\n",
          SensorClassStr[sensor_index],TIMER_GET_INFO_SLEEPING,pAdjValue->TempGain,pAdjValue->TempOffset,pAdjValue->HumGain,pAdjValue->HumOffset);
 
-    if(NodeRole == NR_CLIENT)
-        {Trace("Client Node Init 1");
+    if(NodeRole == NR_CLIENT){
          gecko_bgapi_class_mesh_sensor_client_init();
         }
         
-    else
-        {Trace("Server Node Init 2");
+    else{
          gecko_bgapi_class_mesh_sensor_server_init();
          gecko_bgapi_class_mesh_sensor_setup_server_init();
         }
@@ -178,7 +169,6 @@ GetMeshEvent:
         }
     if(!CheckRunDevTask()) continue;
         
-   // if(GetMeshNodeStatus(STATUS_CLIENT)) 
    if(NodeRole == NR_CLIENT) 
         ClientNodeTask();
    else if(NodeRole == NR_SERVER || NodeRole == NR_SETUP_SERVER)  
@@ -190,9 +180,6 @@ GetMeshEvent:
 bool CheckRunDevTask()
 {
     bool ret_code=TRUE;
-
-    //if(!GetMeshNodeStatus(STATUS_PROVISIONED) || GetMeshNodeStatus(STATUS_IVI_UPDATE) || GetMeshNodeStatus(STATUS_BLE_CONNECT) )    
-    //if(!GetMeshNodeStatus(STATUS_PROVISIONED) ||  GetMeshNodeStatus(STATUS_BLE_CONNECT) )
     if(!GetMeshNodeStatus(STATUS_PROVISIONED) && (NodeRole != NR_SETUP)) 
         ret_code = FALSE;
 
@@ -212,9 +199,6 @@ bool BleMeshEventProc(PCmdPacket pEvent, PEventFun pEventFun)
     uint32 event_id;
     if(NULL == pEvent) return ret_code;
     event_id = BGLIB_MSG_ID(pEvent->header); //get event ID
-    
-    //if(event_id != 0x000C00A0 && event_id != 0x010300A0 ) EventIDtoStringProc(pEvent);
-    
     while(pEventFun->pEventProc != NULL)
     {
         if(pEventFun->EventID == event_id)   // to process the event

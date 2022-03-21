@@ -94,7 +94,7 @@ static const sensor_descriptor_t descriptors[NUMBER_OF_SENSORS] = // define prop
 
 
 void handle_server_get_series(PCmdPacket pCmdEvent)
-{TraceProc();
+{//TraceProc();
     uchar test[5]={0x12,0x39,0x24,0x19,0x09};
     msg_ms_server_get_series_request_evt *p_data; 
     p_data = (msg_ms_server_get_series_request_evt * )&(pCmdEvent->data.evt_mesh_sensor_server_get_series_request);
@@ -107,7 +107,7 @@ void handle_server_get_series(PCmdPacket pCmdEvent)
 
 
 void handle_server_get_column(PCmdPacket pCmdEvent)
-{TraceProc();
+{//TraceProc();
     uchar test[5]={0x23,0x19,0x23,0x01,0x29};
     msg_ms_server_get_column_request_evt *p_data;
     p_data = (msg_ms_server_get_column_request_evt * )&(pCmdEvent->data.evt_mesh_sensor_server_get_column_request);
@@ -190,7 +190,7 @@ uint16 ModbusReg0=0x1001,ModbusReg1=0x2002,ModbusReg2=0x3003,ModbusReg3=0x4004;
 // Get Modbus information
 //
 uint16 GetDevModbusInfo(uint16 reg)
-{TraceProc() ;
+{//TraceProc() ;
     uint16 ret_code=0;
    if(reg == 0) ret_code = ModbusReg0;
    else if(reg == 1) ret_code = ModbusReg1;
@@ -212,7 +212,7 @@ uint16 GetDevModbusInfo(uint16 reg)
  * gecko_evt_mesh_sensor_server_get_request_id
  ******************************************************************************/
 void EvtServerGetRequestProc(   PCmdPacket pCmdEvent)
-{TraceProc() ;
+{//TraceProc() ;
     //Trace("gecko_evt_mesh_sensor_server_get_request_id");
     msg_ms_server_get_request_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_server_get_request);
     uint8_t sensor_data[10];
@@ -284,7 +284,7 @@ void ModBusCmdToDevice(void);
 uchar DeviceModBusID=1;//1;//2; //1;
 
 void EvtServerGetColumeRequest(PCmdPacket pCmdEvent)
-{ TraceProc() ;
+{// TraceProc() ;
     msg_ms_server_get_column_request_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_server_get_column_request);
     //TraceDec1("DeviceModBusID",DeviceModBusID);    
     Trace16_1(pEvent->elem_index);
@@ -311,11 +311,11 @@ void EvtServerGetColumeRequest(PCmdPacket pCmdEvent)
  ******************************************************************************/
  #define    TO_CLIENT_BUFF_SIZE     9
 void EvtServerGetSeriesReqest(PCmdPacket pCmdEvent)
-{TraceProc() ;
+{//TraceProc() ;
     msg_ms_server_get_series_request_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_server_get_series_request);
     uchar ToClientBuff[TO_CLIENT_BUFF_SIZE]={0x41,0x42,0x43,0x44,0x45,0x46,0x47,0x48,0x49};
 
-    PrintDataByte("EvtServerGetSeriesReqest", pEvent->column_ids.data ,pEvent->column_ids.len);
+    //PrintDataByte("EvtServerGetSeriesReqest", pEvent->column_ids.data ,pEvent->column_ids.len);
 
     Cmd_ms_server_send_series_status(SENSOR_ELEMENT, pEvent->client_address, pEvent->appkey_index, NO_FLAGS,
                                     pEvent->property_id, TO_CLIENT_BUFF_SIZE, ToClientBuff);

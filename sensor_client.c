@@ -122,17 +122,14 @@ uint32 EvtMeshSensorClientProc(PCmdPacket pEvent)
     
     switch(event_id)
         {
-            case Evt_ms_client_descriptor_status:   Trace("Evt_ms_client_descriptor_status");// to scan all server node 
+            case Evt_ms_client_descriptor_status:   //Trace("Evt_ms_client_descriptor_status");// to scan all server node 
                 ClientDescriptorStatus(pDescriptorStatus);
                 break;
-            case Evt_ms_client_status:              //Trace("Evt_ms_client_status");
-                ClientPropertyEvent(pClientStatus); // richard: for new property
+            case Evt_ms_client_status: 
+                ClientPropertyEvent(pClientStatus);
                 break;
-            case Evt_ms_client_setting_status: Trace("Evt_ms_client_setting_status");
+            case Evt_ms_client_setting_status: //Trace("Evt_ms_client_setting_status");
                 pSetting = &(pEvent->data.evt_mesh_sensor_client_setting_status);
-                PrintDataByte("setting_status", pSetting->raw_value.data , pSetting->raw_value.len);               
-                break;
-            default: TraceErr("EvtMeshSensorClientProc");
                 break;
         };
     return ret_code;
@@ -167,8 +164,6 @@ void ClientSetBehavior(uint16 event_class, uint16 param)
             break;
         case TIMER_EVENT_GET_PROPERTY_OFF:
             break;
-            
-        default: TraceErr("ClientSetBehavior");
     };
 }
 

@@ -63,41 +63,34 @@
 //            6. Under Unprovision status, then can enter to setup model
 
 // v1.22      1. Do not delete other setup information from user
+//            2. modify Battry % to down alway
+//            3. Modify for Visual Sensor
 
 // BTM G6
 
 /*
- v0.90
+ v1.00
             1. Add BTM G6
 
 */
 
 ///////////////////////////////////////////////////////////
 //for G6-DAC7760
-// version: 0.9
+// version: 1.00
 
 #define BT_MESH_G6              1   //for BT Mesh Control G6
 //#define JNC_BT_MESH             1   //for JNC BT Mesh
-//#define ULTRA_SOUND_SKYNET      1
+
+//#define ULTRA_SOUND_SKYNET      1 //xxxx
 
 
 #ifdef  BT_MESH_G6
-#define FW_VER              90
-#define HW_VER              100
-#define DEVICE_NAME         "G6-BT-Mesh"
-#define MANUFACTORY_NAME    "JNC"
-#define NODE_DATA_ID        0xA5A5
-#define MODEL_NAME          "BTM-G6"
-#endif
-
-#ifdef  ULTRA_SOUND_SKYNET
 #define FW_VER              100
-#define HW_VER              110
-#define DEVICE_NAME         "UD-BT-Mesh"
+#define HW_VER              100
+#define DEVICE_NAME         "G6S-BT"
 #define MANUFACTORY_NAME    "JNC"
 #define NODE_DATA_ID        0xA5A5
-#define MODEL_NAME          "BTM-UD"
-
+#define MODEL_NAME          "G6S-BT"
 #endif
 
 #ifdef  JNC_BT_MESH
@@ -107,14 +100,23 @@
 #define MANUFACTORY_NAME    "JNC"
 #define NODE_DATA_ID        0xA5A5
 #define MODEL_NAME          "BTM001"
+#endif
 
+
+#ifdef  ULTRA_SOUND_SKYNET
+#define FW_VER              100
+#define HW_VER              110
+#define DEVICE_NAME         "UD-BT-Mesh"
+#define MANUFACTORY_NAME    "JNC"
+#define NODE_DATA_ID        0xA5A5
+#define MODEL_NAME          "BTM-UD"
 #endif
 
 
 #ifndef _GLOBAL_H_
 #define _GLOBAL_H_
 
-#define DEBUG_PRINT
+//#define DEBUG_PRINT
 #define BTM_TEST
 
 

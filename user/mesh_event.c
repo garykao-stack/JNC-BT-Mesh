@@ -213,7 +213,7 @@ void GetLocalCfg()
 //
 //**********************************************************************************************
 uint32 EvtMeshSensorInitProc(PCmdPacket pEvent)
-{TraceProc();
+{
     uint32 ret_code = TRUE;
     msg_mn_initialized_evt *pMeshInit = &(pEvent->data.evt_mesh_node_initialized);
     if(NodeRole == NR_CLIENT)

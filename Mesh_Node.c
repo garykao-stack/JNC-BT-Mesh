@@ -71,7 +71,7 @@ void MeshNodeInit()
     else if(NodeRole == NR_CLIENT) ClientNodeInit();
     else if(NodeRole == NR_SERVER) ServerNodeInit();
     else if(NodeRole == NR_SETUP_SERVER) ServerSetupNodeInit();
-    else {ServerNodeInit();TraceErr1("MeshNodeInit",NodeRole);} //default server node
+    else {ServerNodeInit();} //default server node
 }
 
 
@@ -145,8 +145,7 @@ void SetSleepingTimer(uchar status)
     if(status == ON)
         {// sleeping on
         sleeping_timer = (TIMER_SERVER_SLEEPING*1000 - TIMER_SERVER_SENS_INFO)-(uint32)GetDeviceInfoDelay;;
-        //sleeping_timer -= (uint32)GetDeviceInfoDelay;
-        SetEventTaskTimer(TD_NODE_WAKE_UP, sleeping_timer, TIMER_EVENT_ONCE);
+        SetEventTaskTimer(TD_NODE_WAKE_UP,      sleeping_timer, TIMER_EVENT_ONCE);
         SetEventTaskTimer(TD_NO_EVENT,          TIMER_ENDING, TIMER_EVENT_ONCE); 
         SetEventTaskTimer(TD_GET_SENSOR_INFO,   TIMER_ENDING, TIMER_EVENT_ONCE);
         SetEventTaskTimer(TD_STAGE_TIMER,       TIMER_ENDING, TIMER_EVENT_ONCE);
@@ -169,10 +168,10 @@ bool SetNodeSleeping(uchar status)
 {
     bool ret_code=TRUE;
 
-    if(status == ON){Trace("Set Node Sleeping ON"); //SetNodeStatus(NS_SLEEPING,ON);
+    if(status == ON){//Trace("Set Node Sleeping ON"); //SetNodeStatus(NS_SLEEPING,ON);
          SetSleeping(ON);
         }
-    else{Trace("Set Node Sleeping OFF"); //SetNodeStatus(NS_SLEEPING,OFF);
+    else{//Trace("Set Node Sleeping OFF"); //SetNodeStatus(NS_SLEEPING,OFF);
          SetSleeping(OFF);
         }
     
@@ -194,7 +193,7 @@ void SetSleeping(uchar status)
     SetSleepingTimer(status);
     if(status == ON)
       { //sleeping
-      Trace("SetSleeping ON");
+      //Trace("SetSleeping ON");
         SetMeshNodeStatus(STATUS_SLEEPING,ON);
         SetNodeStatus(NS_SLEEPING,ON);
         SystemPower(OFF); 
@@ -203,7 +202,7 @@ void SetSleeping(uchar status)
       }
     else
       { //wake up
-      Trace("SetSleeping OFF");
+      //Trace("SetSleeping OFF");
         NodeLpn(OFF); NodeProxy(ON); NodeBeacon(ON);
         SetMeshNodeStatus(STATUS_SLEEPING,OFF);
         SetNodeStatus(NS_SLEEPING,OFF);
@@ -226,12 +225,7 @@ void SetNodePublish(uchar status)
     struct gecko_msg_mesh_test_get_local_model_pub_rsp_t* pEvent;
     uint8 public_timer=0;    
     pEvent = Cmd_mt_get_local_model_pub(0,0xFFFF,BTM_MODE_ID);             
-    //printf("1. mesh_test_get_local_model result = 0x%x\r\n",pEvent->result);
-    //printf("appkey_index = 0x%x pub_address=0x%x ttl=%d period=%d retrans=%d credentials=%d \r\n",
-    //pEvent->appkey_index,pEvent->pub_address,pEvent->ttl,pEvent->period,pEvent->retrans,pEvent->credentials);
-    
-    if(status == ON) {public_timer = BTM_PBULIC_TIME_ON;Trace("Publish ON");}
-    else Trace("Publish OFF");
+    if(status == ON) {public_timer = BTM_PBULIC_TIME_ON;}
     Cmd_mt_set_local_model_pub(0,pEvent->appkey_index,0xFFFF,BTM_MODE_ID,pEvent->pub_address,pEvent->ttl,public_timer,    // 200ms
                                pEvent->retrans,pEvent->credentials);
 }

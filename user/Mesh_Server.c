@@ -259,7 +259,7 @@ Bool AGBSetCtrl(uint16 property_id)
             };
             
         }
-    else {ret_code=FALSE;TraceErr1("AGBSetCtrl 2 property_id = ",property_id);}
+    else {ret_code=FALSE;}
 
     if(p_modbus_cmd != NULL) 
       {
@@ -299,7 +299,7 @@ Bool A308MSetCtrl(uint16 property_id)
                 break;
             };
         }
-    else {ret_code=FALSE;TraceErr1("A308MSetCtrl 2 property_id = ",property_id);}
+    else {ret_code=FALSE;}
 
     if(p_modbus_cmd != NULL) 
       {
@@ -424,13 +424,12 @@ void ServerGetInfoProc()
                 ToNextStage(SNS_PRE_WAITING);   //default
                 break;
             case SNS_PRE_WAITING: 
-                ToWaitingStage(SNS_GET_INFO,GetDeviceInfoDelay); //TraceDec1("GetDeviceInfoDelay",GetDeviceInfoDelay);
+                ToWaitingStage(SNS_GET_INFO,GetDeviceInfoDelay); 
                 CountErr = 0;
                 break;
             case SNS_GET_INFO: //TraceDec1("SNS_GET_INFO",pStageInfo->Timer);
-                //if(CheckWaitTimeOut() == TRUE) 
                 if((GetNodeStatus(NS_SYS_NO_WAITING) == ON) || CheckWaitTimeOut() == TRUE) 
-                    {Trace("SNS_GET_INFO 1");
+                    {//Trace("SNS_GET_INFO 1");
                     if((pFunSensor!= NULL) && (GetSensorInfo() == TRUE) )
                         {ToNextStage(SNS_EVENT_WAITING);}
                     else 
@@ -464,7 +463,7 @@ void ServerGetInfoProc()
                      SetNodeStatus(NS_GET_INFO_ACT,OFF);
                      ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
                     }   // waiting to sleeping
-                else{TraceErr("SNS_SEND_INFO 2");
+                else{
                      CountErr++; ToWaitingStage(SNS_PRE_SEND_INFO,WAIT_SEC(2)); // send info again
                     }                    
                 break;
@@ -514,26 +513,35 @@ bool GetSensorInfo()
     return ret_code;
 }
 
-
+extern  uchar PowerKeyCount;
 uint16 G6StatusTest=0x8003;
 
+//const uchar PowerKeyMapSD[7]={1,3,4,0,MENUAL_KEY_AUTO,1,2};
+const uchar PowerKeyMapSD[7]={3,0,1,1,2,1,2};
+
+
+
 Bool BtmG6SetCtrl(uint16 property_id)
-{Trace1("BtmG6SetCtrl",property_id);
+{//Trace1("BtmG6SetCtrl",property_id);
     bool ret_code=TRUE;
 
    // G6StatusTest++;// Trace16_1(G6StatusTest);
     G6SetActStatus(G6_STATUS_CHANGE,ON);
     if(property_id >= AUTO_POWER_0 && property_id <= AUTO_POWER_4 ){
           G6SetAutoRun(ON); property_id &=0x00FF;
-          if(pMeshNodeData->G6HostPPercent != (uchar)property_id){Trace("Save Data 1");
+          if(pMeshNodeData->G6HostPPercent != (uchar)property_id){//Trace("Save Data 1");
             pMeshNodeData->G6HostPPercent = (uchar)property_id;
+            TraceDec1("pMeshNodeData->G6HostPPercent",pMeshNodeData->G6HostPPercent);
+            //PowerKeyCount = PowerKeyMapSD[pMeshNodeData->G6HostPPercent];
             WriteMeshNodeData();
           }
         }
     else if(property_id >= MENU_POWER_0 && property_id <= MENU_POWER_4 ){   
         G6SetAutoRun(OFF); property_id &=0x00FF;
-        if(pMeshNodeData->G6HostPPercent != (uchar)property_id){Trace("Save Data 2");
+        if(pMeshNodeData->G6HostPPercent != (uchar)property_id){//Trace("Save Data 2");
             pMeshNodeData->G6HostPPercent = (uchar)property_id;
+
+            PowerKeyCount = PowerKeyMapSD[pMeshNodeData->G6HostPPercent];
             WriteMeshNodeData();
           }
         }
@@ -544,7 +552,8 @@ Bool BtmG6SetCtrl(uint16 property_id)
             G6SetActStatus(G6S_CLEAR_ALL_FILTER,ON); //CLEAR_LED_ALL_FILTER();
         }
     else {
-        ret_code=TRUE;}    
+        ret_code=TRUE;}
+    //TraceDec1("PowerKeyCount",PowerKeyCount);
     return ret_code;
 }    
 
@@ -574,11 +583,11 @@ bool GetBtmG6Info()
         Trace16_2(btm_g6_status,G6ActStatus);
          p_sensor->Status.G6CurrStatus = btm_g6_status;// btm_g6_status;
 
-         if(btm_g6_status & G6_FC6_AUTO_RUN){Trace("G6 Auto Run ON");
-             if(G6GetActStatus(G6S_SCHEDULE_ACTIVE)){ Trace("G6 schedule ON");
+         if(btm_g6_status & G6_FC6_AUTO_RUN){//Trace("G6 Auto Run ON");
+             if(G6GetActStatus(G6S_SCHEDULE_ACTIVE)){ //Trace("G6 schedule ON");
                 p_sensor->Status.PPercent = pActSchedule->PowerPercent;
                 }
-             else{Trace("G6 schedule OFF");
+             else{//Trace("G6 schedule OFF");
                 if(pMeshNodeData->G6HostPPercent == MENUAL_KEY_AUTO)
                    p_sensor->Status.PPercent = 0;
                 else
@@ -593,10 +602,12 @@ bool GetBtmG6Info()
          Trace16Ptr_3(p_sensor,Status.G6CurrStatus,Status.PPercent,Status.G6Status);
           //p_sensor->G6CurrStatus = G6StatusTest; //Trace1("G6 G6StatusTest 1",G6StatusTest);
         }
-    else if(properity >= BTM_G6_CMD_START && properity <= BTM_G6_CMD_END){ Trace1("G6 Property 2",properity);
+    else if(properity >= BTM_G6_CMD_START && properity <= BTM_G6_CMD_END){ 
+        //Trace1("G6 Property 2",properity);
         pNodeEventInfo->PropertyID = NODE_GET_ALL_SENSOR;
         SetNodeStatus(NS_GET_INFO_ACT,ON);
     }
+    ret_code = TRUE; 
     return ret_code;
 }
 #else
@@ -660,7 +671,8 @@ bool GetSkynetInfo()
          p_sensor->Tempature = temp;
          p_sensor->Humidity  = Humidity;
         }
-    else {ret_code = FALSE; return ret_code;}
+    else {ret_code = FALSE;}
+    ret_code = TRUE; 
     return ret_code;
 }
 
@@ -678,8 +690,9 @@ bool GetSkynetCo2Info()
     PUCHAR p_buff = UsartGetBuff(USART_ID_RX);
     if(ServerSendModbusCmd((PUCHAR)CmdGetCo2,7) == TRUE){
         p_sensor->Co2 = WordSwap(*((PUINT16)&p_buff[3])); 
-      }else{ret_code = FALSE; return ret_code;}
-return ret_code;
+      }else{ret_code = FALSE;}
+    ret_code = TRUE;   
+    return ret_code;
 }
 
 
@@ -719,8 +732,6 @@ bool GetAipInfo()
     UsartResetRxTx(USART_ID_TX_RX);
     ServerSendModbusCmd((PUCHAR)AipPowerStatus,MODBUS_CMD_NUM); 
     p_sensor->AipPowerStatus = WordSwap(*((PUINT16)&p_buff[3]));
-    
-    TraceDec2("AIP ==> ",p_sensor->AipPower,p_sensor->AipPowerStatus);
     return ret_code;
 }
 
@@ -816,18 +827,7 @@ bool GetA308mInfo()
         sensor_info = *((float *)p_buff); p_sensor->Tempature = (int16)(sensor_info*SCALE_VALUE);
         }
     UsartResetRxTx(USART_ID_TX_RX);
-/*
-   Printf("A308M=>X RMS=%ld Skew=%ld Kurt=%ld Freq=%ld Speed=%ld Stength=%ld\r\n",\
-          p_sensor->RmsX,p_sensor->SkewnessX,p_sensor->KurtosisX,p_sensor->FrequencyX,p_sensor->SpeedX,p_sensor->StengthX);
-   
-   Printf("A308M=>Y RMS=%ld Skew=%ld Kurt=%ld Freq=%ld Speed=%ld Stength=%ld\r\n",\
-          p_sensor->RmsY,p_sensor->SkewnessY,p_sensor->KurtosisY,p_sensor->FrequencyY,p_sensor->SpeedY,p_sensor->StengthY);
-    
-   Printf("A308M=>Z RMS=%ld Skew=%ld Kurt=%ld Freq=%ld Speed=%ld Stength=%ld\r\n",\
-          p_sensor->RmsZ,p_sensor->SkewnessZ,p_sensor->KurtosisZ,p_sensor->FrequencyZ,p_sensor->SpeedZ,p_sensor->StengthZ);
-
-    //TraceDec1("A308M => Temp ", p_sensor->Tempature);
-*/
+    ret_code = TRUE; 
     return ret_code;
 }
 
@@ -851,10 +851,7 @@ bool GetWaterLevelInfo()
         p_sensor->OilLevel = WordSwap(*((PUINT16)&p_buff[5]));
       }
     else {ret_code = FALSE;}
-  
-    
-    TraceDec2("Water Level ==> ", p_sensor->WaterLevel,p_sensor->OilLevel);
-    
+    ret_code = TRUE; 
     return ret_code;
 }
 
@@ -878,10 +875,10 @@ bool GetJncSdInfo()
         PM25  = p_sensor->PM25 = WordSwap(*((PUINT16)&p_buff[5]));
         Tempature  = p_sensor->Tempature = WordSwap(*((PUINT16)&p_buff[7]));
         Humidity  = p_sensor->Humidity = WordSwap(*((PUINT16)&p_buff[9]));
-        TraceDec4("JNC-SD ==> ", CO2,PM25,Tempature,Humidity);
       }
     return ret_code;
 }
+
 
 
 //const uchar CmdGetUltraSound[MODBUS_CMD_NUM]={0x01, 0x04, 0x00, 0x00, 0x00, 0x01, 0x31, 0xCA}; //to get value of temperature
@@ -920,6 +917,8 @@ if(GetTempAndRH(&temp,&Humidity) != VALUE_IS_NOT_KNOWN){ //TraceDec2("GetUltraSo
     p_sensor->Tempature = temp;
     p_sensor->Humidity  = Humidity; 
   }
+ret_code = TRUE; 
+
 return ret_code;
 }
 
@@ -958,6 +957,8 @@ if(ServerSendModbusCmd((PUCHAR)CmdDoTempOffset,MODBUS_CMD_NUM) == TRUE)
     p_sensor->TempOffsetValue = WordSwap(*((PUINT16)&p_buff[3]));
   }
 UsartResetRxTx(USART_ID_TX_RX);
+ret_code = TRUE; 
+
 return ret_code;
 }
 
@@ -999,8 +1000,10 @@ if(ServerSendModbusCmd((PUCHAR)CmdA6D6_DO,MODBUS_CMD_NUM) == TRUE)
   {
     p_sensor->DO_Status = A6D6_DO_VALUE;
   }
-else PrintDataByte("CmdA6D6_DO Err", p_buff, 8);
+
 UsartResetRxTx(USART_ID_TX_RX);
+ret_code = TRUE; 
+
 return ret_code;
 }
 
@@ -1019,9 +1022,10 @@ SetNodeClass(SENSOR_PZEM);
 PUCHAR p_buff = UsartGetBuff(USART_ID_RX); 
 p_value = (PUINT16)(&p_buff[3]); p_sensor_value=&p_sensor->Voltage;
 if(ServerSendModbusCmd((PUCHAR)CmdPzemValue,MODBUS_CMD_NUM) == TRUE)
-  {//PrintData("GetPzem", p_value, 10);
+  {
     for(loop=0; loop<PZEM_ITEM_SIZE; loop++) *p_sensor_value++ = WordSwap(*p_value++);
   }else {ret_code = FALSE;}
+  ret_code = TRUE; 
 return ret_code;
 }
 
@@ -1083,6 +1087,8 @@ if(ServerSendModbusCmd((PUCHAR)Fun3Addr0A,MODBUS_CMD_NUM) == TRUE){
 else {ret_code = FALSE;}
 UsartResetRxTx(USART_ID_TX_RX);
 
+ret_code = TRUE; //
+
 return ret_code;
 }
 
@@ -1128,6 +1134,7 @@ if(ServerSendModbusCmd((PUCHAR)CmdGetIaqsCw9Info,MODBUS_CMD_NUM) == TRUE){//Prin
         *p_sensor_value++ = WordSwap(*p_value++);
   }else {ret_code = FALSE;}
      
+ret_code = TRUE; 
 
 return ret_code;
 }
@@ -1154,6 +1161,8 @@ if(ServerSendModbusCmd((PUCHAR)CmdGetIaqsCw9Info,MODBUS_CMD_NUM) == TRUE){//Prin
     }
   }
 else {ret_code = FALSE;}
+ret_code = TRUE; 
+
 return ret_code;
 }
 
@@ -1191,7 +1200,7 @@ bool GetVelocityInfo()
     if(ServerSendModbusCmd((PUCHAR)RawVelocityCmd01,MODBUS_CMD_NUM) == TRUE){
         *p_uint = WordSwap(*((PUINT16)&p_buff[3])); 
       }
-    else{PrintDataByte("GetVelocityInfo Err 1", p_buff, 8);
+    else{
         return FALSE;}
     UsartResetRxTx(USART_ID_TX_RX);
 
@@ -1235,6 +1244,7 @@ bool GetVelocityInfo()
 
     if(p_sensor->RawFlowVelocity < 0) p_sensor->RawFlowVelocity = 0;
     if(p_sensor->RawFlowVelocity < 0) p_sensor->RawFlowVelocity = 0;
+    ret_code = TRUE; 
     return ret_code;
 }
 
@@ -1445,7 +1455,7 @@ void EvtSetSettingRequestProc(PCmdPacket pCmdEvent)
             default: ret_ack=ACK_ERROR; 
         };
 
-    if(ret_ack == ACK_OK){ //PrintDataByte("EvtSetSettingRequestProc 2", pEvent->raw_value.data, pEvent->raw_value.len);
+    if(ret_ack == ACK_OK){ 
         WriteNodeData();         
         } 
     else{ ret_ack = ACK_ERROR; TraceErr("SettingID 2");}
@@ -1489,6 +1499,7 @@ void EvtSetGettingRequestProc(PCmdPacket pCmdEvent)
                    //TraceDec1("Info: BtmClass",BtSetupData.BtmClass);
                    */
                    break;
+               default: TraceErr1("Get BT Setup 1",setting_id);
            };
     Cmd_ms_setup_server_send_setting_status(SENSOR_ELEMENT,pEvent->client_address, pEvent->appkey_index, NO_FLAGS,
                                             pEvent->property_id, pEvent->setting_id,sizeof(_BtAppData), (uchar *)&BtSetupData);

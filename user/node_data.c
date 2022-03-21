@@ -20,19 +20,24 @@ _AdjustValue    AdjustValue;
 _PAdjustValue   pAdjValue;
 
 void NodeDataInit()
-{TraceProc();
+{//TraceProc();
     pMeshNodeData = &MeshNodeData;
     pAdjValue = &AdjustValue;   
     ReadNodeData();
     if(pMeshNodeData->DataInitID != NODE_DATA_ID) MeshNodeDataReset();
     //MeshNodeDataReset(); while(1);
+    pMeshNodeData->SegPPercent[0]=0;   
+    pMeshNodeData->SegPPercent[1]=36;   
+    pMeshNodeData->SegPPercent[2]=45;  
+    pMeshNodeData->SegPPercent[3]=52;
+    pMeshNodeData->SegPPercent[4]=76;
     return;
 }
 
 
 
 void MeshNodeDataReset()
-{TraceProc();
+{//TraceProc();
     float temp_gain,hum_gain,temp_offset,hum_offset;
 
     temp_gain = pAdjValue->TempGain; hum_gain = pAdjValue->HumGain;
@@ -47,12 +52,12 @@ void MeshNodeDataReset()
     pMeshNodeData->MeshNodeID = 0;
     pMeshNodeData->MeshNodeRole = NR_DEFAULT;
     pMeshNodeData->SensorClass = SENSOR_AUTO_SCAN; 
-    pMeshNodeData->BaudRate=USART_BAUDRATE_DEFAULT; //for 9600
-    pMeshNodeData->TxPower=TX_POWER_HI;
+    pMeshNodeData->BaudRate = USART_BAUDRATE_DEFAULT; //for 9600
+    pMeshNodeData->TxPower = TX_POWER_HI;
     pMeshNodeData->SleepingTimer=TIMER_NODE_SLEEPING;
     pMeshNodeData->WorkingTimer = TIMER_DEFAULT_WORKING;
     pAdjValue->TempGain = temp_gain;
-    pAdjValue->HumGain =hum_gain;
+    pAdjValue->HumGain = hum_gain;
     pAdjValue->TempOffset = temp_offset;
     pAdjValue->HumOffset = hum_offset;    
     // Printf("TempGain=%f hum_gain=%f temp_offset=%f hum_offset=%f ",temp_gain,hum_gain,temp_offset,hum_offset);
@@ -170,7 +175,7 @@ Result ReadNodeData()
 
   pRsp = Cmd_flash_ps_load(PS_KEY_ADJUST_VALUE);
   if(pRsp->result == RESULT_OK) {
-     if(pRsp->value.len > sizeof(_AdjustValue) ) {
+     if(pRsp->value.len > sizeof(_AdjustValue) ) { 
      len = sizeof(_AdjustValue);
      }else len = pRsp->value.len;
      

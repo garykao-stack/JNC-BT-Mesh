@@ -22,11 +22,11 @@ uint32 EvtMeshFriendProc(PCmdPacket pEvent)
     {
         case Evt_m_friend_friendship_established:
             lpn_address = pEvent->data.evt_mesh_friend_friendship_established.lpn_address;
-            Trace1("Evt_m_friend_friendship_established lpn_address",lpn_address);
+            //Trace1("Evt_m_friend_friendship_established lpn_address",lpn_address);
             break;
         case Evt_m_friend_friendship_terminated: 
             result = pEvent->data.evt_mesh_friend_friendship_terminated.reason;
-            Trace1("Evt_m_friend_friendship_terminated",result);
+            //Trace1("Evt_m_friend_friendship_terminated",result);
             break;
     };            
 
@@ -44,7 +44,6 @@ Result NodeSleeping()
     result += NodeProxy(OFF);  // App proxy link bug error
     SetMeshNodeStatus(STATUS_SLEEPING,ON);
     PowerMode(POWER_MODE_SLEEP);
-    DI_Print("Sleeping", DI_ROW_LPN);
     if(result) TraceErr1("DeviceSleeping",result);
     return result;    
 }
@@ -57,7 +56,6 @@ Result NodeWakeUp()
     result = NodeLpn(OFF);
     result += NodeProxy(ON);
     SetMeshNodeStatus(STATUS_SLEEPING,OFF);
-    DI_Print("Active", DI_ROW_LPN);
     if(result) TraceErr1("DeviceWakeUp",result);
     return result;    
 }
@@ -110,10 +108,7 @@ Result NodeLpn(uint8 status)
 //*******************************************************************************************
 Result NodeProxy(uint8 status)
 {
-    //return 0; // proxy On have big bug
-   // status = ON;
-    
-    if(status == ON) Trace("Proxy ON"); else Trace("Proxy OFF");    
+    //if(status == ON) Trace("Proxy ON"); else Trace("Proxy OFF");    
     result = gecko_cmd_mesh_test_set_local_config(mesh_node_gatt_proxy, 0, 1, &status)->result;
     if(result) Trace1("NodeProxy Error",result);
 
@@ -126,9 +121,7 @@ Result NodeProxy(uint8 status)
 Result NodeBeacon(uint8 status)
 {
 
-
-
-    if(status == ON) Trace("Beacon ON"); else Trace("Beacon OFF");    
+   // if(status == ON) Trace("Beacon ON"); else Trace("Beacon OFF");    
     result = gecko_cmd_mesh_test_set_local_config(mesh_node_beacon, 0, 1, &status)->result;
     if(result) Trace1("Beacon Error",result);
 
@@ -142,7 +135,7 @@ Result NodeBeacon(uint8 status)
 Result NodeRelay(uint8 status)
 {
     
-    if(status == ON) Trace("Relay ON"); else Trace("Relay OFF");    
+    //if(status == ON) Trace("Relay ON"); else Trace("Relay OFF");    
     result = gecko_cmd_mesh_test_set_local_config(mesh_node_relay, 0, 1, &status)->result;
     if(result) Trace1("Relay Error",result);
 

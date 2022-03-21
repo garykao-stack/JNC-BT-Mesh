@@ -18,14 +18,11 @@ PDevDate    pDevDate=&DevDate;
 //
 // I2C Address 0x68
 void InitBQ3200()
-{TraceProc();
+{
     pDevDate->StartAddr = 0;
     GetSysDate();
-    if(pDevDate->Date.Year  < 21){TraceErr1("RTC must Init",pDevDate->Date.Year);
-         SetSysDate(&DevDateIInit);
-        }
-    //CalculateWeek(21,12,19); //ok
-   // SetSysDate(pDevDate); //ok
+    if(pDevDate->Date.Year  < 21){SetSysDate(&DevDateIInit);}
+
 }
 
 
@@ -34,13 +31,12 @@ void InitBQ3200()
 //
 //
 bool GetSysDate()
-{//TraceProc();
+{
 
     bool ret_code=TRUE;
     pDevDate->StartAddr=0;
     ret_code = GetRtcDate(pDevDate,sizeof(_DevDate));
-    if(ret_code != TRUE) {//TraceErr("GetSysDate 1");
-        return ret_code;}
+    if(ret_code != TRUE) {return ret_code;}
     pDevDate->Date.Sec  = BcdToDec(pDevDate->Date.Sec  &=0x7F);  //get value
     pDevDate->Date.Min  = BcdToDec(pDevDate->Date.Min  &=0x7F);
     pDevDate->Date.Hour = BcdToDec(pDevDate->Date.Hour &=0x3F);
@@ -49,7 +45,6 @@ bool GetSysDate()
     pDevDate->Date.Month= BcdToDec(pDevDate->Date.Month&=0x1F);
     pDevDate->Date.Year = BcdToDec(pDevDate->Date.Year);
     if(pDevDate->Date.Week == 0) pDevDate->Date.Week = 7;
-    //ShowRtc(pDevDate);
     return ret_code;
     
 }
@@ -58,7 +53,7 @@ bool GetSysDate()
 //
 //
 bool SetSysDate(PDevDate p_date)
-{TraceProc();
+{
     bool ret_code=FALSE;
     pDevDate->StartAddr=0;
     pDevDate->Date.Year =DecToBcd(p_date->Date.Year);
@@ -102,7 +97,7 @@ uint16 CalculateWeek( uint16 year , uint16 month, uint16 day )
     while (week < 0)
     week += 7; week %= 7; 
     if(week == 0) week = 7;
-    TraceDec1("week ", week);
+   // TraceDec1("week ", week);
     return week;
 }
 
@@ -124,23 +119,11 @@ uint8 DecToBcd(uint8 dec)
 {
     return ((dec/10)<<4)+(dec%10);
 }
-
-
-/*
-byte bcdToDec(byte val) 
-{ 
-  int msbdec=(val>>4)*10; //gets decimel msb of BCD value(4 bits) 
-  int lsbdec = val%16;//gets decimel lsb of BCD value(4 bits)
-  int total=msbdec+lsbdec; 
-  return (total); //return ((val/16*10) + (val%16)); 
-}
-*/
-
 //
 //set RTC time
 //
 bool SetRtcDate(PDevDate p_dev_date,uint16 data_len)
-{//TraceProc();
+{
     bool ret_code=TRUE;
     I2C_TransferReturn_TypeDef ret;
     I2C_TransferSeq_TypeDef    i2c_seq;
@@ -149,7 +132,7 @@ bool SetRtcDate(PDevDate p_dev_date,uint16 data_len)
     i2c_seq.buf[0].data = (PUCHAR)p_dev_date;//InitRtcTab;
     i2c_seq.buf[0].len = data_len;//sizeof(_DevDate);
     ret = I2CSPM_Transfer(BQ_I2C, &i2c_seq); 
-    if(ret != i2cTransferDone){TraceErr1("SetRtcDate",ret);
+    if(ret != i2cTransferDone){//TraceErr1("SetRtcDate",ret);
         ret_code = FALSE;
     }
     return ret_code;
@@ -159,7 +142,7 @@ bool SetRtcDate(PDevDate p_dev_date,uint16 data_len)
 //get RTC time
 //
 bool GetRtcDate(PDevDate p_dev_date,uint16 data_len)
-{//TraceProc();
+{
     bool ret_code=TRUE;
     I2C_TransferReturn_TypeDef ret;
     I2C_TransferSeq_TypeDef    i2c_seq;

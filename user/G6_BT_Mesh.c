@@ -18,7 +18,7 @@ PG6Schedule pActSchedule;
 uint8   TimerFilterHR;
 
 void G6SpiInit(void) //void initUSART1 (void)
-{TraceProc();
+{
     
     Ecode_t error_code;
     SPIDRV_Init_t SpiMasterInit = SPIDRV_MASTER_USART1;
@@ -35,24 +35,17 @@ void G6SpiInit(void) //void initUSART1 (void)
 
 void G6BtMeshInit()
 {TraceProc();
-    uint8 loop;
     G6SpiInit();
     InitDac7760();
     InitBQ3200();
-    
-//    for(loop=0; loop<G6_SCHEDULE_NUM; loop++)
-  //      pAdjValue->G6Schedule[loop].ScheduleID=loop;
-    //pActSchedule = GetActSchedule();
     pActSchedule = NULL;//&(pAdjValue->G6Schedule[0]);
     SetEventTaskTimer(TD_TIMER_CHK_FILTER, TIMER_1MIN,TIMER_EVENT_REPEAT);
-
-    
     if(pMeshNodeData->G6Status & G6_SET_AUTO_RUN) G6SetActStatus(G6S_AUTO,ON);
     else G6SetActStatus(G6S_AUTO,OFF);
 
     TimerFilterHR=pDevDate->Date.Hour;
- 
-    G6Test();
+    
+   //G6Test();
 }
 
 
@@ -88,7 +81,7 @@ void G6ScheduleProc()
                         ToNextStage(G6S_SCHE_ON);
                     }else {
                         G6SetMotoActSpeed(SET_POWER_MENUAL);
-                        ToWaitingStage(G6S_WAITING,WAIT_SEC(1));
+                        ToWaitingStage(G6S_WAITING,WAIT_MS(500));
                      };
                 break;
             case G6S_SCHE_ON: 
@@ -270,11 +263,10 @@ bool G6ChkDoor()
 }
 
 bool G6ChkAuto()
-{TraceProc();
+{
     bool ret_code=TRUE;
 
     if(G6GetActStatus(G6S_AUTO) == OFF){
-        //PrintDataByte("SegPPercent", (PBYTE)&(pMeshNodeData->SegPPercent), 6);
         G6SetMotoActSpeed(SET_POWER_MENUAL);
       }
     return ret_code;
@@ -282,7 +274,7 @@ bool G6ChkAuto()
 }
 
 bool G6ChkClearStatus()
-{TraceProc();
+{
     bool ret_code=TRUE;
     if(G6GetActStatus(G6S_CLEAR_ALL_FILTER)){
         pMeshNodeData->FilterAllTime1 = 0;
@@ -303,7 +295,7 @@ bool G6ChkClearStatus()
 
 
 bool G6ChkWarningStatus()
-{TraceProc();
+{
     bool ret_code=TRUE;
     /*
     if(G6ActStatus & G6S_WARING_FILTER1){Trace("G6S_WARING_FILTER1 1");
@@ -455,16 +447,12 @@ void SetWeekStatus(uchar schedule,uchar week,uchar status)
 bool G6NextSchedule()
 {
     Bool ret_code=FALSE;
-    uchar loop;
-        
         if(!G6GetActStatus(G6S_AUTO)) return ret_code;
         
         if(pActSchedule == NULL | (pActSchedule == &(pAdjValue->G6Schedule[4])))
             pActSchedule = &(pAdjValue->G6Schedule[0]);
         else 
             pActSchedule++; 
-        
-   
     if(G6isOnSchedule() == TRUE){
           ret_code = TRUE; 
       }
@@ -562,7 +550,6 @@ Bool G6SetMotoSpeed(uint16 moto_speed)
     if(moto_speed != ActMotoSpeed){
         if(moto_speed == 0){G6PowerLed(OFF); }
         else {G6PowerLed(ON);}
-    
         ActMotoSpeed = moto_speed; 
         pMeshNodeData->G6ActPercent = moto_speed;
         DacSetVol(moto_speed);
@@ -576,9 +563,8 @@ Bool G6SetMotoSpeed(uint16 moto_speed)
 // 0% ~ 100%
 //
 uint16 G6GetVol(uint16 value)
-{TraceProc();
+{
     Bool ret_code=TRUE;
-
     return ret_code; 
 }
 //
@@ -596,9 +582,9 @@ void G6PowerDecInc(uint16 status)
     pMeshNodeData->G6ActPercent = g6_power;WriteAdjValue();
 }
 
-#define POWER_LED_ON        GPIO_PinOutSet
-#define POWER_LED_OFF       GPIO_PinOutClear
-#define POWER_LED_Triggle   GPIO_PinOutToggle
+#define POWER_LED_ON    GPIO_PinOutSet
+#define POWER_LED_OFF   GPIO_PinOutClear
+#define POWER_LED_Triggle GPIO_PinOutToggle
 
 void G6PowerLed(uchar status)
 {
@@ -618,7 +604,7 @@ void G6PowerLed(uchar status)
 #define TEST_MIN        55
 #define TEST_WEEK       WEEK_TUEDAY
 void G6Test()
-{TraceProc();
+{//TraceProc();
     uint16 start_time,end_time;
    _DevDate    DevDate={0x00,0,TEST_MIN,TEST_HR,2,1,2,22}; // 2022/02/01 week 2 14:55 0sec
    SetSysDate(&DevDate); //ok

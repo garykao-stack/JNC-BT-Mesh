@@ -135,7 +135,6 @@ uint16 GetProperityID()
     PUCHAR prx_buff = UsartGetBuff(USART_ID_RX);
     uint16 properity=NULL;
     uint16 modbus_reg;
-    //uchar hi_byte,lo_byte;
     uint16 btm_cmd;
     modbus_reg = WordSwap(*((PUINT)&prx_buff[2]));
     Trace16_1(modbus_reg);
@@ -167,10 +166,10 @@ uint16 GetProperityID()
             btm_cmd = WordSwap(*((PUINT16)(&BTM_AIP_AUTO)));  Trace16_1(btm_cmd);
             if(btm_cmd & G6_FC6_CLS_ALL_FILTER) properity = CLEAR_ALL_FILTER;
             else if(btm_cmd & G6_FC6_CLS_FILTER1) properity = CLEAR_FILTER1;
-            else if(btm_cmd & G6_FC6_AUTO_RUN) {Trace("G6-Auto");
+            else if(btm_cmd & G6_FC6_AUTO_RUN) {
                    properity =  AUTO_POWER_0+(btm_cmd&0x00FF); Trace16_1(properity);
             }
-            else {Trace("G6-Menual");
+            else {
                   properity =  MENU_POWER_0+(btm_cmd&0x00FF); Trace16_1(properity);  
             }            
             
@@ -208,7 +207,8 @@ void ClientSetNodeInfoProc()
                 if(GetNodeStatus(NS_SET_NODE_ACT) == TRUE)  ToNextStage(CNS_SET_INFO_PRE);
                 break;
                 
-            case CNS_SET_INFO_PRE: //PrintRx(CNS_SET_INFO_PRE);
+            case CNS_SET_INFO_PRE: 
+                UsartPrintBuff(USART_ID_RX);
                 prx_buff = UsartGetBuff(USART_ID_RX);
                 SetServerFunID = (uint16)prx_buff[0]; // get id number
                 SetProperityID = GetProperityID();
@@ -253,7 +253,7 @@ void ClientSetNodeInfoProc()
                 if(CheckWaitTimeOut())  ToNextStage(CNS_SET_INFO_END);
                 break;
                 
-            case CNS_SET_INFO_END:  Trace1("CNS_SET_INFO_END",SetProperityID); 
+            case CNS_SET_INFO_END:  //Trace1("CNS_SET_INFO_END",SetProperityID); 
                 SetNodeStatus(NS_SET_NODE_ACT,OFF);
                 UsartResetRxTx(USART_ID_RX);
                 ToNextStage(CNS_SET_WAITING); 
@@ -262,7 +262,7 @@ void ClientSetNodeInfoProc()
             case CNS_SET_INFO_ERR:  
                 ToNextStage(CNS_SET_INFO_END);
                 break;
-            default: TraceErr1("ClientSetNodeInfoProc",ActiveStage()); break;
+            default: break;
         }
 }
 
@@ -295,8 +295,8 @@ void ClientGetNodeInfoProc()
                 break;
             
             case CNS_IVI_UPDATE: 
-                if(CheckWaitTimeOut() == TRUE){//TraceErr1("--- IVI time-out 1---",CountErr);
-                    if(CountErr++ > 3){//TraceErr1("--- IVI time-out to Get info 2---",CountErr);
+                if(CheckWaitTimeOut() == TRUE){
+                    if(CountErr++ > 3){
                         ToNextStage(CNS_WAIT_SET_INFO);   
                       }
                     else {// waiting again
@@ -504,7 +504,7 @@ void ClientFromHostProc()
             ToNextStage(CHS_SEND_DATA_END);   //default
             break;
             
-        default: TraceErr1("ClientFromHostProc",ActiveStage()); break;
+        default:  break;
         };
     
 }
@@ -518,7 +518,7 @@ void ClientPropertyEvent(msg_ms_client_status_evt *pEvent)
     mesh_device_properties_t property_id;
     //PClientNodeInfo p_node_info;
     if((pClientInfo = GetServerInfoPos(pEvent->server_address))== NULL) 
-           {TraceErr1("Mesh Node Num Over",pEvent->server_address);return;}
+           {return;}
     TraceDec1("Node ID-2", pEvent->server_address);
 
     //if(pEvent->server_address == 3) TraceDec1(" 3 = ",RTCC_CounterGet());
@@ -566,7 +566,7 @@ void ClientPropertyEvent(msg_ms_client_status_evt *pEvent)
                         memcpy(&(pClientInfo->SensorInfo),property_data,property_len);
                         GetPropertyID = NODE_GET_ALL_SENSOR;  // recover data
                         break;
-                    default: TraceErr1("ClientPropertyEvent 5",property_id);
+                    default: break;
                 };
                pos += PROPERTY_HEADER_SIZE + property_len;
             }
@@ -636,7 +636,7 @@ bool ClientPrepareToHost()
     uint8   sensor_class;
     pModbusCmd = (_PModbusCmdF4)UsartGetBuff(USART_ID_RX);
     if((pClientInfo = GetServerInfoPos((uint16)(pModbusCmd->ModbusID)))== NULL) 
-           {TraceErr("ClientPrepareToHost 1");return ret_code;}
+           {return ret_code;}
 #ifndef OEM_SENSOR
     if(pModbusCmd->FunCode == 0x03 && pModbusCmd->StartAddr == 0x0000 && pModbusCmd->TotalReg == 0x0300)
         sensor_class = OTHER_MODBUS_CMD;
@@ -749,7 +749,7 @@ bool ClientSkynet(PSi7021Info p_info)
     else if(start_addr == BATTERY_POWER ){
         ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
       }
-    else{ TraceErr1("ClientSkynet",total_reg);
+    else{ 
         ret_code=FALSE;
         }
 
@@ -783,7 +783,7 @@ bool ClientSkynetCo2(PSkynetCo2 p_info)
     else if(start_addr == BATTERY_POWER ){
         ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
       }
-    else{TraceErr1("ClientSkynetCo2",total_reg);
+    else{
         ret_code=FALSE;
         }
 
@@ -816,7 +816,7 @@ bool ClientPT485(PPT485Info p_info)
         ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
       }
     
-    else{ TraceErr1("ClientPT485",total_reg);
+    else{ 
         ret_code=FALSE;
         }
 
@@ -838,7 +838,7 @@ bool ClientAIP(PAIPInfo p_info)
     total_reg = WordSwap(pModbusCmd->TotalReg);   
 
     if(start_addr == AIP_POWER)
-      {TraceDec1("AIP Power",p_info->AipPower);
+      {
         ModbusToHostCmd.Data[0] =  WordSwap(p_info->AipPower);
       }
     else if(start_addr == AIP_POWER_STATUS)
@@ -854,14 +854,13 @@ bool ClientAIP(PAIPInfo p_info)
        else if(p_info->AipPowerStatus == 3) ModbusToHostCmd.Data[0] = 0x4B00;   //75%
        else if(p_info->AipPowerStatus == 4) ModbusToHostCmd.Data[0] = 0x6400;   //100%
        else TraceErr("AIP Power Value");
-       //PrintDataByte("AIP Power Value", (PUCHAR)&ModbusToHostCmd, 7);
       }
     
     else if(start_addr == BATTERY_POWER )
       {
         ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
       }
-    else{ TraceErr1("ClientPT485",total_reg);
+    else{ 
         ret_code=FALSE;
         }
 
@@ -886,65 +885,45 @@ bool ClientA308m(PA308mInfo p_info)
     switch(start_addr)
         {
             case BT_RMS_X:
-            case RMS_X:     ModbusToHostCmd.Data[0] = WordSwap(p_info->RmsX);
-                break;
+            case RMS_X:     ModbusToHostCmd.Data[0] = WordSwap(p_info->RmsX);break;
             case BT_SKEWNESS_X:
-            case SKEWNESS_X: ModbusToHostCmd.Data[0] = WordSwap(p_info->SkewnessX);
-                break;
+            case SKEWNESS_X: ModbusToHostCmd.Data[0] = WordSwap(p_info->SkewnessX); break;
             case BT_KURTOSIS_X:
-            case KURTOSIS_X: ModbusToHostCmd.Data[0] = WordSwap(p_info->KurtosisX);
-                break;
+            case KURTOSIS_X: ModbusToHostCmd.Data[0] = WordSwap(p_info->KurtosisX); break;
             case BT_FREQUENCY_X:
-            case FREQUENCY_X: ModbusToHostCmd.Data[0] = WordSwap(p_info->FrequencyX);
-                break;
+            case FREQUENCY_X: ModbusToHostCmd.Data[0] = WordSwap(p_info->FrequencyX); break;
             case BT_SPEED_X:
-            case SPEED_X: ModbusToHostCmd.Data[0] = WordSwap(p_info->SpeedX);
-                break;
+            case SPEED_X: ModbusToHostCmd.Data[0] = WordSwap(p_info->SpeedX); break;
             case BT_STRENGTH_X:
-            case STRENGTH_X: ModbusToHostCmd.Data[0] = WordSwap(p_info->StengthX);
-                break;
+            case STRENGTH_X: ModbusToHostCmd.Data[0] = WordSwap(p_info->StengthX); break;
             case BT_RMS_Y:
-            case RMS_Y:     ModbusToHostCmd.Data[0] = WordSwap(p_info->RmsY);
-                break;
+            case RMS_Y:     ModbusToHostCmd.Data[0] = WordSwap(p_info->RmsY); break;
             case BT_SKEWNESS_Y:
-            case SKEWNESS_Y: ModbusToHostCmd.Data[0] = WordSwap(p_info->SkewnessY);
-                break;
+            case SKEWNESS_Y: ModbusToHostCmd.Data[0] = WordSwap(p_info->SkewnessY); break;
             case BT_KURTOSIS_Y:
-            case KURTOSIS_Y: ModbusToHostCmd.Data[0] = WordSwap(p_info->KurtosisY);
-                break;
+            case KURTOSIS_Y: ModbusToHostCmd.Data[0] = WordSwap(p_info->KurtosisY); break;
             case BT_FREQUENCY_Y:
-            case FREQUENCY_Y: ModbusToHostCmd.Data[0] = WordSwap(p_info->FrequencyY);
-                break;
+            case FREQUENCY_Y: ModbusToHostCmd.Data[0] = WordSwap(p_info->FrequencyY); break;
             case BT_SPEED_Y:
-            case SPEED_Y: ModbusToHostCmd.Data[0] = WordSwap(p_info->SpeedY);
-                break;
+            case SPEED_Y: ModbusToHostCmd.Data[0] = WordSwap(p_info->SpeedY); break;
             case BT_STRENGTH_Y:
-            case STRENGTH_Y: ModbusToHostCmd.Data[0] = WordSwap(p_info->StengthY);
-                break;
+            case STRENGTH_Y: ModbusToHostCmd.Data[0] = WordSwap(p_info->StengthY); break;
             case BT_RMS_Z:
-            case RMS_Z:     ModbusToHostCmd.Data[0] = WordSwap(p_info->RmsZ);
-                break;
+            case RMS_Z:     ModbusToHostCmd.Data[0] = WordSwap(p_info->RmsZ); break;
             case BT_SKEWNESS_Z:
-            case SKEWNESS_Z: ModbusToHostCmd.Data[0] = WordSwap(p_info->SkewnessZ);
-                break;
+            case SKEWNESS_Z: ModbusToHostCmd.Data[0] = WordSwap(p_info->SkewnessZ); break;
             case BT_KURTOSIS_Z:
-            case KURTOSIS_Z: ModbusToHostCmd.Data[0] = WordSwap(p_info->KurtosisZ);
-                break;
+            case KURTOSIS_Z: ModbusToHostCmd.Data[0] = WordSwap(p_info->KurtosisZ); break;
             case BT_FREQUENCY_Z:
-            case FREQUENCY_Z: ModbusToHostCmd.Data[0] = WordSwap(p_info->FrequencyZ);
-                break;
+            case FREQUENCY_Z: ModbusToHostCmd.Data[0] = WordSwap(p_info->FrequencyZ); break;
             case BT_SPEED_Z:
-            case SPEED_Z: ModbusToHostCmd.Data[0] = WordSwap(p_info->SpeedZ);
-                break;
+            case SPEED_Z: ModbusToHostCmd.Data[0] = WordSwap(p_info->SpeedZ);break;
             case BT_STRENGTH_Z:
-            case STRENGTH_Z: ModbusToHostCmd.Data[0] = WordSwap(p_info->StengthZ);
-                break;
+            case STRENGTH_Z: ModbusToHostCmd.Data[0] = WordSwap(p_info->StengthZ);break;
             case BT_A308M_TEMP:
-            case A308M_TEMP:    ModbusToHostCmd.Data[0] = WordSwap(p_info->Tempature);
-                break;
+            case A308M_TEMP:    ModbusToHostCmd.Data[0] = WordSwap(p_info->Tempature);  break;
             case BATTERY_POWER: ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
                 break;
-            default: ret_code=FALSE; Trace1("ClientA308m:start_addr",start_addr);break;
         };
 
     return ret_code;
@@ -977,7 +956,7 @@ bool ClientWaterLevel(PWaterLevelInfo p_info)
         ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
       }
     
-    else{ TraceErr1("ClientWaterLevel 1",total_reg);  UsartPrintBuff(USART_ID_RX);
+    else{ 
         ret_code=FALSE;
         }
 
@@ -1014,7 +993,7 @@ bool ClientJncSd(PSdInfo p_info)
         ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
       }
     
-    else{ TraceErr1("ClientJncSd",total_reg);
+    else{ 
         ret_code=FALSE;
         }
     return ret_code;
@@ -1099,7 +1078,7 @@ bool ClientJncDo485(PJncDo485 p_info)
         ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
       }
     
-    else{ TraceErr1("ClientJncDo485 1",total_reg);  UsartPrintBuff(USART_ID_RX);
+    else{ 
         ret_code=FALSE;
         }
     return ret_code;
@@ -1448,9 +1427,18 @@ void ShowEventInfo(PClientInfo p_info)
             case SENSOR_PT485: 
                 Printf("PT485 Temp= %d\r\n",p_info->SensorInfo.PT485.Tempature);
                 break;
+            case SENSOR_AIP: 
+                Printf("AIP Power= %d Status=%X\r\n",p_info->SensorInfo.AipInfo.AipPower,p_info->SensorInfo.AipInfo.AipPowerStatus);
+                break;
             case SENSOR_RELAY: 
                 Printf("Relay: Power=%x\r\n",p_info->SensorInfo.Header.BatteryPower);
                 break;            
+            case SENSOR_AGB_POWER:
+                Printf("PowerStatus = %d \r\n",p_info->SensorInfo.AgbPower.PowerStatus);
+                break;
+            case SENSOR_CW9:
+                Printf("CW9 Data01 = %d \r\n",p_info->SensorInfo.Cw9Info.Data01);
+                break;
             case SENSOR_BTM_G6:
                 Printf("G6 Status = %04xh Filter1 = %04xh, Filter2 = %04xh, \r\n",
                         p_info->SensorInfo.BtmG6.Status.G6CurrStatus,p_info->SensorInfo.BtmG6.TimeFilter1,

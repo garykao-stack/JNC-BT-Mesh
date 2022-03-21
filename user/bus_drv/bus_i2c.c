@@ -12,17 +12,7 @@
 #define BT_NODE_FUN_SLEEPING        BIT0    //0: Full Power 1:sleeping mode
 #define BT_NODE_FUN_BT_MODBUS       BIT1    //0 disable, 1: enable
 #define BT_NODE_FUN_BT_MESH         BIT2
-
-#define EEPROM_TEST     0
-
-#if EEPROM_TEST //for EEPROM Test
-
-uchar test_buff11[16]={0x12,0x34,0x56,0x78,0x90,0x06,0x07,0x08,0x09,0x10,0x11,0x12,0x13,0x14,0x15,0x16};
-UCHAR WriteEepromTestTbl[16]={0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F};
-UCHAR ReadEepromTestTbl[16];
-
-#endif
-
+uchar BatteryPower=0;
 
 void I2CInit()
 {
@@ -34,23 +24,12 @@ void I2CInit()
     I2CSPM_Init_TypeDef i2cInit = I2CSPM_INIT_DEFAULT;
     I2CSPM_Init(&i2cInit);
     Delay_ms(50);
-
- #if EEPROM_TEST //for EEPROM Test
-    PrintDataByte("EEPROM Test 1", WriteEepromTestTbl,16);
-    EepromWriteBytes(0x10,16,WriteEepromTestTbl); Delay_ms(100);
-    EepromReadBytes(0x10,16,ReadEepromTestTbl); Delay_ms(100);  
-    PrintDataByte("EEPROM Test 2", ReadEepromTestTbl,16);
- #endif
  
 #endif //HAL_I2CSENSOR_ENABLE
     GetTempature();
     GetHumidity();
     
-#if 0
-    int eeprom_num;
-    GetTempHumi(); //while(1);
-    while(1);
-#endif    
+    BatteryPower=100; TraceDec1("BatteryPower",BatteryPower);
 }
  
 
@@ -101,7 +80,7 @@ bool EepromReadByte(uint16 addr,PUCHAR p_value)
 {
     bool ret_code = TRUE;
     if(EEPROM_Read(I2C_EEPROM,I2C_ADDR_EEPROM,addr,(PUCHAR)p_value,1) < 0)  
-        {ret_code = FALSE; TraceErr("EepromReadByte");}
+        {ret_code = FALSE;}
     return ret_code;
 }
 
@@ -109,7 +88,7 @@ bool EepromReadWord(uint16 addr,PUINT16 p_value)
 {
     bool ret_code = TRUE;
     if(EEPROM_Read(I2C_EEPROM,I2C_ADDR_EEPROM,addr,(PUCHAR)p_value,2) < 0)  
-        {ret_code = FALSE; TraceErr("EepromReadWord");}
+        {ret_code = FALSE; }
     return ret_code;
 }
 
@@ -117,7 +96,7 @@ bool EepromReadDword(uint16 addr,PUINT32 p_value)
 {
     bool ret_code = TRUE;
     if(EEPROM_Read(I2C_EEPROM,I2C_ADDR_EEPROM,addr,(PUCHAR)p_value,4) < 0)  
-        {ret_code = FALSE; TraceErr("EepromReadDword");}
+        {ret_code = FALSE; }
     return ret_code;
 
 }
@@ -134,7 +113,7 @@ bool EepromWriteByte(uint16 addr,uchar value)
 {
     bool ret_code = TRUE;
     if(EEPROM_Write(I2C_EEPROM,I2C_ADDR_EEPROM,addr,&value,1) < 0)  
-        {ret_code = FALSE; TraceErr("EepromWriteByte");}
+        {ret_code = FALSE; }
     return ret_code;
 }
 
@@ -142,7 +121,7 @@ bool EepromWriteWord(uint16 addr,word value)
 {
     bool ret_code = TRUE;
     if(EEPROM_Write(I2C_EEPROM,I2C_ADDR_EEPROM,addr,(PUCHAR)&value,2) < 0)  
-        {ret_code = FALSE; TraceErr("EepromWriteWord");}
+        {ret_code = FALSE; }
     return ret_code;
 }
 
@@ -150,7 +129,7 @@ bool EepromWriteDword(uint16 addr,uint32 value)
 {
     bool ret_code = TRUE;
     if(EEPROM_Write(I2C_EEPROM,I2C_ADDR_EEPROM,addr,(PUCHAR)&value,4) < 0)  
-        {ret_code = FALSE; TraceErr("EepromWriteDword");}
+        {ret_code = FALSE; }
     return ret_code;
 
 }
@@ -161,7 +140,7 @@ bool EepromWriteBytes(uint16 addr,uint16 buff_num,PUCHAR p_buff)
     int write_bytes;
     write_bytes = EEPROM_Write(I2C_EEPROM,I2C_ADDR_EEPROM,addr,p_buff,buff_num);
     if(write_bytes < buff_num) 
-        {ret_code = FALSE; TraceDec1("EepromWriteBytes Error",write_bytes);}
+        {ret_code = FALSE; }
     else
         TraceDec1("EEPROM Write Ok ", write_bytes);
     return ret_code;
@@ -237,7 +216,6 @@ int16 GetHumidity()
 #define ADC_VOL_MAX     2670 //2650
 #define ADC_VOL_MIN     2130 //2060 //1800 //1900 // for v3.2 to 5%
 #define ADC_DIFF        (ADC_VOL_MAX - ADC_VOL_MIN)
-uchar BatteryPower=0;
 
 #define BATTERY_POWER_DIFF      3
 
@@ -255,23 +233,16 @@ uchar GetBatteryPower()
     if(adc_value > ADC_VOL_MAX) adc_value = ADC_VOL_MAX;
     if(adc_value <= ADC_VOL_MIN) adc_value = ADC_VOL_MIN;
     power_percent = (adc_value - ADC_VOL_MIN)*100/ADC_DIFF;
-
-    if(power_percent >= BatteryPower)
-        {//power on/ power error
-          //TraceDec2("Test1",power_percent,BatteryPower);
-          if(BatteryPower == 0){//TraceDec2("Test2",power_percent,BatteryPower);
-            BatteryPower = power_percent;
-            }
-            else if((power_percent - BatteryPower) < BATTERY_POWER_DIFF)
-                    {BatteryPower = power_percent;}
+    
+    if(power_percent == 0) return power_percent;
+        
+    if(power_percent < BatteryPower)
+        {
+          //TraceDec2("Battery Test1",power_percent,BatteryPower);
+          BatteryPower = power_percent;
         }
     else 
-        {// normal
-            //TraceDec2("Test3",power_percent,BatteryPower);
-          if((BatteryPower - power_percent) < BATTERY_POWER_DIFF)
-            {//TraceDec2("Test4",power_percent,BatteryPower);
-             BatteryPower = power_percent;
-            }
+        {//TraceDec2("Battery Test2",power_percent,BatteryPower);
         }
     temp_battery_power = BatteryPower;
     if(BatteryPower < 10) temp_battery_power = (float)BatteryPower*0.4;
@@ -407,7 +378,6 @@ int16 GetBuildInTemp()
     int32_t built_in_Temp;
     TempAdcInit();
     built_in_Temp = convert_to_millicelsius(GetAdcTemp());
-    TraceDec1("built_in_Temp ", built_in_Temp);
 
     return (int16)built_in_Temp;
 }
@@ -434,11 +404,11 @@ void measure_temperature()
 
   /* Convert sensor data to correct temperature format */
   temperature = FLT_TO_UINT32(temperature_data, -3);
-  TraceDec1("temperature_data ", temperature_data);
-  Trace1("temperature", temperature);
+ // TraceDec1("temperature_data ", temperature_data);
+ // Trace1("temperature", temperature);
   /* Convert temperature to bitstream and place it in the HTM temperature data buffer (htm_temperature_buffer) */
   //UINT32_TO_BITSTREAM(p, temperature);
-  PrintDataByte("Built-in Temp",htm_temperature_buffer,5);
+ // PrintDataByte("Built-in Temp",htm_temperature_buffer,5);
 }
 
 

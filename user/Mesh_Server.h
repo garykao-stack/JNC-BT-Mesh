@@ -107,7 +107,7 @@
 #define SET_FULL_POWER_ON               0x10
 #define SET_FULL_POWER_OFF              0x11
 
-#define MENUAL_KEY_AUTO                 6 //5
+#define MENUAL_KEY_AUTO                 4 //5 //6 //5
 #define MENUAL_POWER_OFF                5
 
 

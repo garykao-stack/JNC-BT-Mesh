@@ -25,7 +25,7 @@ const uint8 InitDac7[]={0x59,0x00,0x30,0x59,0x00,0x30}; //DAC7_WRITE_ZERO_CALIBR
 
 
 void InitDac7760()
-{Trace("InitDac7760");
+{//Trace("InitDac7760");
   // init DAC A and B
   Ecode_t ret_code=0;  
   ret_code = SPIDRV_MTransmitB(pG6SpiMaster, InitDac1, sizeof(InitDac1));
@@ -49,14 +49,9 @@ void DacSetVol(uint16 percent)
     dac_reg.AddrB = DAC7_WRITE_DATA_REGISTER;
 
     if(percent >VOL_PERCENT_MAX) percent = VOL_PERCENT_MAX; 
-    TraceDec1("percent 1",percent);
     vol_data = (((0xfff*percent)/VOL_PERCENT_MAX))<<4; 
     dac_reg.ValueA=WordSwap(vol_data);
-
-    //if(percent >= AB_DAC_DIFF) percent -= AB_DAC_DIFF;     // A-20% ==B
-    //else percent = VOL_PERCENT_MIN;
     percent = ((float)percent)*0.8;
-    
     TraceDec1("percent 2",percent); 
     vol_data = (((0xfff*percent)/VOL_PERCENT_MAX))<<4;
     dac_reg.ValueB=WordSwap(vol_data);

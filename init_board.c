@@ -110,12 +110,12 @@ void SystemPower(uchar status)
 #endif
 
     if(status == ON) 
-        {Trace("System Power ON");
+        {//Trace("System Power ON");
          GPIO_PinOutSet(SYSTEM_POWER_PORT,SYSTEM_POWER_PIN);
          SetLedStatus(LED_STATUS_ACTIVE);
         }
     else 
-        {Trace("System Power OFF");
+        {//Trace("System Power OFF");
         GPIO_PinOutClear(SYSTEM_POWER_PORT,SYSTEM_POWER_PIN);
         SetLedStatus(LED_STATUS_OFF);
         }
