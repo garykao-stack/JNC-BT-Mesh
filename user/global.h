@@ -59,7 +59,7 @@
 //            2. Modify Power percent display
 //            3. Modify Android App Error:TempGain and TempOffset can not to be change
 //            4. Modify for TempGain and TempOffset can not to be change
-//            5. TempGain,TempOffset, HumGain, HumOffset can to be reset by reset key
+//            5. TempGain,TempOffset, HumGain, HumOffset can not to be reset by reset key
 //            6. Under Unprovision status, then can enter to setup model
 
 // v1.22      1. Do not delete other setup information from user
@@ -78,8 +78,8 @@
 //for G6-DAC7760
 // version: 1.00
 
-#define BT_MESH_G6              1   //for BT Mesh Control G6
-//#define JNC_BT_MESH             1   //for JNC BT Mesh
+//#define BT_MESH_G6              1   //for BT Mesh Control G6
+#define JNC_BT_MESH             1   //for JNC BT Mesh
 
 //#define ULTRA_SOUND_SKYNET      1 //xxxx
 
@@ -94,7 +94,7 @@
 #endif
 
 #ifdef  JNC_BT_MESH
-#define FW_VER              122
+#define FW_VER              123
 #define HW_VER              110
 #define DEVICE_NAME         "JNC-BT-Mesh"
 #define MANUFACTORY_NAME    "JNC"

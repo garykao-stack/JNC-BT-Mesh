@@ -427,7 +427,7 @@ void ServerGetInfoProc()
                 ToWaitingStage(SNS_GET_INFO,GetDeviceInfoDelay); 
                 CountErr = 0;
                 break;
-            case SNS_GET_INFO: //TraceDec1("SNS_GET_INFO",pStageInfo->Timer);
+            case SNS_GET_INFO: 
                 if((GetNodeStatus(NS_SYS_NO_WAITING) == ON) || CheckWaitTimeOut() == TRUE) 
                     {//Trace("SNS_GET_INFO 1");
                     if((pFunSensor!= NULL) && (GetSensorInfo() == TRUE) )
@@ -439,9 +439,9 @@ void ServerGetInfoProc()
                     }
                 
                 break;
-            case SNS_EVENT_WAITING: //TraceDec1("SNS_EVENT_WAITING",pStageInfo->Timer);
+            case SNS_EVENT_WAITING: 
                 if(GetNodeStatus(NS_GET_INFO_ACT))
-                  {Trace("BTM Event");
+                  {
                     SetLedStatus(LED_STATUS_ACTIVE);
                     if(GetNodeStatus(NS_SLEEPING))
                       {ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);} // go to sleeping from host                        
@@ -451,7 +451,7 @@ void ServerGetInfoProc()
                       }
                   }
                 break;
-            case SNS_PRE_SEND_INFO: //TraceDec1("SNS_PRE_SEND_INFO",pStageInfo->Timer); //waiting to send info depend on Node ID
+            case SNS_PRE_SEND_INFO: 
                 //waiting to send info
                 if(CheckWaitTimeOut())  { ToNextStage(SNS_SEND_INFO); }
                 break;                
@@ -467,7 +467,7 @@ void ServerGetInfoProc()
                      CountErr++; ToWaitingStage(SNS_PRE_SEND_INFO,WAIT_SEC(2)); // send info again
                     }                    
                 break;
-            case SNS_PRE_SLEEPING: //TraceDec1("SNS_PRE_SLEEPING",pStageInfo->Timer); //waiting 3sec
+            case SNS_PRE_SLEEPING: 
 
                 if(CheckWaitTimeOut())
                     {
@@ -516,23 +516,19 @@ bool GetSensorInfo()
 extern  uchar PowerKeyCount;
 uint16 G6StatusTest=0x8003;
 
-//const uchar PowerKeyMapSD[7]={1,3,4,0,MENUAL_KEY_AUTO,1,2};
 const uchar PowerKeyMapSD[7]={3,0,1,1,2,1,2};
 
 
 
 Bool BtmG6SetCtrl(uint16 property_id)
-{//Trace1("BtmG6SetCtrl",property_id);
+{
     bool ret_code=TRUE;
 
-   // G6StatusTest++;// Trace16_1(G6StatusTest);
     G6SetActStatus(G6_STATUS_CHANGE,ON);
     if(property_id >= AUTO_POWER_0 && property_id <= AUTO_POWER_4 ){
           G6SetAutoRun(ON); property_id &=0x00FF;
           if(pMeshNodeData->G6HostPPercent != (uchar)property_id){//Trace("Save Data 1");
             pMeshNodeData->G6HostPPercent = (uchar)property_id;
-            TraceDec1("pMeshNodeData->G6HostPPercent",pMeshNodeData->G6HostPPercent);
-            //PowerKeyCount = PowerKeyMapSD[pMeshNodeData->G6HostPPercent];
             WriteMeshNodeData();
           }
         }
@@ -540,7 +536,6 @@ Bool BtmG6SetCtrl(uint16 property_id)
         G6SetAutoRun(OFF); property_id &=0x00FF;
         if(pMeshNodeData->G6HostPPercent != (uchar)property_id){//Trace("Save Data 2");
             pMeshNodeData->G6HostPPercent = (uchar)property_id;
-
             PowerKeyCount = PowerKeyMapSD[pMeshNodeData->G6HostPPercent];
             WriteMeshNodeData();
           }
@@ -553,13 +548,11 @@ Bool BtmG6SetCtrl(uint16 property_id)
         }
     else {
         ret_code=TRUE;}
-    //TraceDec1("PowerKeyCount",PowerKeyCount);
     return ret_code;
 }    
 
 extern uint16   G6ActStatus;
 extern PG6Schedule pActSchedule;
-//uint16 btm_g6_status;
 
 //
 //for BTM G6
@@ -594,16 +587,14 @@ bool GetBtmG6Info()
                     p_sensor->Status.PPercent = pMeshNodeData->G6HostPPercent;
                 }
             }
-         else{//TraceDec1("G6 Auto Run OFF",pMeshNodeData->G6HostPPercent);
+         else{
              p_sensor->Status.PPercent = pMeshNodeData->G6HostPPercent;
             }
          p_sensor->TimeFilter1 =pMeshNodeData->FilterAllTime1;
          p_sensor->TimeFilter2 =pMeshNodeData->FilterAllTime2;
          Trace16Ptr_3(p_sensor,Status.G6CurrStatus,Status.PPercent,Status.G6Status);
-          //p_sensor->G6CurrStatus = G6StatusTest; //Trace1("G6 G6StatusTest 1",G6StatusTest);
         }
     else if(properity >= BTM_G6_CMD_START && properity <= BTM_G6_CMD_END){ 
-        //Trace1("G6 Property 2",properity);
         pNodeEventInfo->PropertyID = NODE_GET_ALL_SENSOR;
         SetNodeStatus(NS_GET_INFO_ACT,ON);
     }
@@ -623,7 +614,7 @@ bool GetBtmG6Info()
 
 
 //
-// for Property ID = NODE_GET_BTM_INFO
+// for Property ID = NODE_GET_BTM_INFO for App
 //
 bool GetBtmMeshInfo()
 {
@@ -649,8 +640,8 @@ bool GetBtmMeshInfo()
 
 Bool AdjTempRh(int16* p_temp,uint16 *p_humidity)
 {
-   *p_temp = (int16)(((float)*p_temp)*(pAdjValue->TempGain) + (pAdjValue->TempOffset)*MESH_INFO_SCALING);
-   *p_humidity = (uint16)(((float)*p_humidity)*(pAdjValue->HumGain) + (pAdjValue->HumOffset)*MESH_INFO_SCALING);
+  *p_temp = (int16)(((float)*p_temp)*(pAdjValue->TempGain) + (pAdjValue->TempOffset)*10);
+  *p_humidity = (uint16)(((float)*p_humidity)*(pAdjValue->HumGain) + (pAdjValue->HumOffset)*10);
   return TRUE;
 }
 
@@ -667,7 +658,7 @@ bool GetSkynetInfo()
     SetNodeInfoSize(_Si7021Info);
     SetNodeClass(SENSOR_SI7021);
     if(GetTempAndRH(&temp,&Humidity) != VALUE_IS_NOT_KNOWN){//TraceDec2("Si7021=> 1", temp,Humidity);
-        AdjTempRh(&temp,&Humidity);
+        AdjTempRh(&temp,&Humidity); 
          p_sensor->Tempature = temp;
          p_sensor->Humidity  = Humidity;
         }
@@ -820,7 +811,7 @@ bool GetA308mInfo()
         };
      UsartResetRxTx(USART_ID_TX_RX); 
 
-    p_buff = UsartGetBuff(USART_ID_RX);
+    p_buff = UsartGetBuff(USART_ID_RX); 
     if(ServerSendModbusCmd((PUCHAR)CmdA308MTemp,MODBUS_CMD_NUM) == TRUE)
         {p_buff +=3;
          DWordSwap(p_buff); 
@@ -881,7 +872,6 @@ bool GetJncSdInfo()
 
 
 
-//const uchar CmdGetUltraSound[MODBUS_CMD_NUM]={0x01, 0x04, 0x00, 0x00, 0x00, 0x01, 0x31, 0xCA}; //to get value of temperature
 const uchar CmdGetUltraSound[MODBUS_CMD_NUM]={0x01, 0x04, 0x00, 0x00, 0x00, 0x02, 0x71, 0xCB};
 const uchar CmdGetUltraSoundOther[MODBUS_CMD_NUM]={0x01, 0x04, 0x00, 0x1D, 0x00, 0x05, 0xA0, 0x0F};
 
@@ -1102,9 +1092,6 @@ bool ret_code = TRUE;
 PAgbPower p_sensor = &ServerInfo.SensorInfo.AgbPower;
 SetNodeInfoSize(_AgbPower);
 SetNodeClass(SENSOR_AGB_POWER);
-
-//p_sensor->PowerStatus = AgbPowerStatus;
-
 return ret_code;
 }
 
@@ -1319,7 +1306,7 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
     else if(pEvent->property_id == NODE_GET_BTM_INFO){
          SetNodeStatus(NS_GET_INFO_ACT,ON);  // Mesh set event active
     }    
-    else if(pEvent->property_id >= BTM_G6_CMD_START && pEvent->property_id <= BTM_G6_CMD_END){Trace("G6-Setup");
+    else if(pEvent->property_id >= BTM_G6_CMD_START && pEvent->property_id <= BTM_G6_CMD_END){//Trace("G6-Setup");
              SetNodeStatus(NS_SET_NODE_ACT,ON);  // Mesh set event active
         }
     else{
@@ -1383,7 +1370,7 @@ uint16  SensorClassChange(uint16 class,uint8 status)
 // for Set setting event
 //
 void EvtSetSettingRequestProc(PCmdPacket pCmdEvent)
-{
+{// for Android App
     msg_ms_setup_server_set_setting_request_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_setup_server_set_setting_request);
     uint16 ret_ack=ACK_OK;
     uint16 setting_data;
@@ -1408,57 +1395,16 @@ void EvtSetSettingRequestProc(PCmdPacket pCmdEvent)
                 pAdjValue->HumGain = (float)(p_bt_app_data->RhGain)/MESH_INFO_SCALING;
                 pAdjValue->HumOffset = (float)(p_bt_app_data->RhOffset)/MESH_INFO_SCALING;
                 pMeshNodeData->WorkingTimer = p_bt_app_data->WorkingTimer;
-
-                //TraceDec1("p_bt_app_data->BtmClass",p_bt_app_data->BtmClass);
                 pMeshNodeData->SensorClass = SensorClassChange(p_bt_app_data->BtmClass,CLASS_TO_BTM);
                 break;
-                /*
-            case SET_FULL_POWER_ON: Trace("Client Node Only: SET_FULL_POWER_ON 1"); // Client Node Only
-                if(NodeRole == NR_CLIENT)
-                    {
-                      GetPropertyID = NODE_GET_INFO_FULL_POWER_ON;
-                       SetForceFullPowerTime(ON);
-                    }
-                else {ret_ack=ACK_ERROR;TraceErr("SET_FULL_POWER_ON: Must Client Node");}
-            
-                break;
-            case SET_FULL_POWER_OFF: Trace("Client Node Only: SET_FULL_POWER_OFF 1"); // Client Node Only
-                if(NodeRole == NR_CLIENT)
-                    {
-                      GetPropertyID = NODE_GET_INFO_FULL_POWER_OFF;
-                       SetForceFullPowerTime(OFF);
-                    }
-                else {ret_ack=ACK_ERROR;TraceErr("SET_FULL_POWER_OFF: Must Client Node");}
-            
-                break;
-                */
-            /*    
-            case TEMP_GAIN_SETTING_ID:  Trace1("TEMP_GAIN_SETTING_ID 2",setting_data);
-                pAdjValue->TempGain = setting_data; flag_write_data = ON;
-                break;
-            case TEMP_OFFSET_SETTING_ID: Trace1("TEMP_OFFSET_SETTING_ID 3",setting_data);
-                pAdjValue->TempOffset = setting_data; flag_write_data = ON;
-                break;
-            case RH_GAIN_SETTING_ID: Trace1("RH_GAIN_SETTING_ID 4",setting_data);
-                pAdjValue->HumGain = setting_data; flag_write_data = ON;
-                break;
-            case RH_OFFSET_SETTING_ID: Trace1("RH_OFFSET_SETTING_ID 5",setting_data);
-                pAdjValue->HumOffset = setting_data; flag_write_data = ON;
-                break;
-            case WORKING_TIME_SETTING_ID: Trace1("WORKING_TIME_SETTING_ID 6",setting_data);
-                pMeshNodeData->WorkingTimer = setting_data; flag_write_data = ON;
-                break;
-            case SENSOR_CLASS_SETTING_ID: Trace1("SENSOR_CLASS_SETTING_ID 7",setting_data);
-                pMeshNodeData->SensorClass = setting_data; flag_write_data = ON;
-                break;
-             */   
+  
             default: ret_ack=ACK_ERROR; 
         };
 
     if(ret_ack == ACK_OK){ 
         WriteNodeData();         
         } 
-    else{ ret_ack = ACK_ERROR; TraceErr("SettingID 2");}
+    else{ ret_ack = ACK_ERROR;}
 
     Cmd_ms_setup_server_send_setting_status(SENSOR_ELEMENT,pEvent->client_address, pEvent->appkey_index, NO_FLAGS,
                                             pEvent->property_id, pEvent->setting_id,sizeof(ret_ack), (uchar *)&ret_ack);
@@ -1469,7 +1415,7 @@ void EvtSetSettingRequestProc(PCmdPacket pCmdEvent)
 // for Get setting event
 //
 void EvtSetGettingRequestProc(PCmdPacket pCmdEvent)
-{
+{//for Android App
     uint16 setting_id=-1;
     _BtAppData BtSetupData;
     uchar flag_write_data=OFF;
@@ -1482,7 +1428,7 @@ void EvtSetGettingRequestProc(PCmdPacket pCmdEvent)
     memset((PUCHAR)&BtSetupData,0,sizeof(_BtAppData));
     switch(setting_id)
            {
-               case ALL_SETTING_ID:    Trace("Get ALL_SETTING_ID 1");
+               case ALL_SETTING_ID: 
                    flag_write_data = ON;
                    BtSetupData.TempGain = (int16)(pAdjValue->TempGain*MESH_INFO_SCALING);
                    BtSetupData.TempOffset = (int16)(pAdjValue->TempOffset*MESH_INFO_SCALING);
@@ -1490,16 +1436,7 @@ void EvtSetGettingRequestProc(PCmdPacket pCmdEvent)
                    BtSetupData.RhOffset = (int16)(pAdjValue->HumOffset*MESH_INFO_SCALING);
                    BtSetupData.WorkingTimer = pMeshNodeData->WorkingTimer;
                    BtSetupData.BtmClass = SensorClassChange(pMeshNodeData->SensorClass,CLASS_TO_UTILITY);
-                   /*
-                   //TraceDec1("Info: TempGain",(uint16)BtSetupData.TempGain);
-                   //TraceDec1("Info: TempOffset",BtSetupData.TempOffset);
-                   //TraceDec1("Info: RhGain",BtSetupData.RhGain);
-                   //TraceDec1("Info: RhOffset",BtSetupData.RhOffset);
-                   //TraceDec1("Info: WorkingTimer",BtSetupData.WorkingTimer);
-                   //TraceDec1("Info: BtmClass",BtSetupData.BtmClass);
-                   */
                    break;
-               default: TraceErr1("Get BT Setup 1",setting_id);
            };
     Cmd_ms_setup_server_send_setting_status(SENSOR_ELEMENT,pEvent->client_address, pEvent->appkey_index, NO_FLAGS,
                                             pEvent->property_id, pEvent->setting_id,sizeof(_BtAppData), (uchar *)&BtSetupData);
@@ -1569,7 +1506,7 @@ void MeshNodeSetupProc()
     switch(ActiveStage())
         {
             
-            case NSS_NODE_STAGE_INIT: Trace("NSS_NODE_STAGE_INIT");
+            case NSS_NODE_STAGE_INIT: 
                  UsartResetRxTx(USART_ID_RX); SetNodeStatus(NS_USART_RX_EVENT,OFF);
                  pModbusCmd= (_PModbusCmdF4)UsartGetBuff(USART_ID_RX);
                  Rs485Rx();
@@ -1603,7 +1540,7 @@ void MeshNodeSetupProc()
                 }
                 else {ToNextStage(NSS_SETUP_ERROR);}
                 break;
-            case NSS_SEND_INFO: //TraceDec1("NSS_SEND_INFO",ModbusToHostCmd.ByteNum+5);
+            case NSS_SEND_INFO: 
                 UsartTxSendCmd((PUCHAR)&ModbusToHostCmd,ModbusToHostCmd.ByteNum+5); Delay_ms(10);
                 ToNextStage(NSS_SETUP_OK);
                 
@@ -1687,7 +1624,7 @@ _DevDate    InitDevDate;
 
 
 bool G6SetSegPowerPercent(uint16 addr,uint16 value)
-{TraceDec2("G6SetSegPowerPercent", addr,value);
+{//TraceDec2("G6SetSegPowerPercent", addr,value);
     bool ret_code=TRUE;
     uint16 index;
     index = addr - POWER_PERCENT_SEG0;

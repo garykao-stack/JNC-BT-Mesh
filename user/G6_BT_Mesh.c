@@ -17,7 +17,7 @@ SPIDRV_Handle_t pG6SpiMaster = &G6SpiMaster;
 PG6Schedule pActSchedule;
 uint8   TimerFilterHR;
 
-void G6SpiInit(void) //void initUSART1 (void)
+void G6SpiInit(void) 
 {
     
     Ecode_t error_code;
@@ -42,10 +42,7 @@ void G6BtMeshInit()
     SetEventTaskTimer(TD_TIMER_CHK_FILTER, TIMER_1MIN,TIMER_EVENT_REPEAT);
     if(pMeshNodeData->G6Status & G6_SET_AUTO_RUN) G6SetActStatus(G6S_AUTO,ON);
     else G6SetActStatus(G6S_AUTO,OFF);
-
     TimerFilterHR=pDevDate->Date.Hour;
-    
-   //G6Test();
 }
 
 

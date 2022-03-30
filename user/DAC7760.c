@@ -25,8 +25,7 @@ const uint8 InitDac7[]={0x59,0x00,0x30,0x59,0x00,0x30}; //DAC7_WRITE_ZERO_CALIBR
 
 
 void InitDac7760()
-{//Trace("InitDac7760");
-  // init DAC A and B
+{
   Ecode_t ret_code=0;  
   ret_code = SPIDRV_MTransmitB(pG6SpiMaster, InitDac1, sizeof(InitDac1));
   if(ret_code != ECODE_OK) {TraceDec1("InitDac7760 - 1",ret_code);}  
@@ -41,7 +40,7 @@ void InitDac7760()
 
 
 void DacSetVol(uint16 percent)
-{//TraceProc();
+{
     uint16 vol_data;
     Ecode_t ret_code;
     DAC_REG dac_reg;

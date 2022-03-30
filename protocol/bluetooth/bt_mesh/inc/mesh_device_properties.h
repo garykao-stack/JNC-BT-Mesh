@@ -1081,7 +1081,7 @@ typedef enum mesh_device_properties_e {
   NODE_GET_AIP_POWER_WATT                       = 0x8035,     // for AIP/Watt
   NODE_GET_INFO_FULL_POWER_ON                   = 0x8036,     // for Full Speed Enable
   NODE_GET_INFO_FULL_POWER_OFF                  = 0x8037,     // for Full Speed Disable
-  NODE_GET_BTM_INFO                             = 0x8038,     // Get Node information
+  NODE_GET_BTM_INFO                             = 0x8038,     // Get Node information for APP
 
   
   NODE_GET_WATER_LEVEL                          = 0x803D,     // get water level info
