@@ -29,7 +29,7 @@ void Rs485Init();
 void Rs485Tx();
 void Rs485Rx();
 void Rs485StandbyMode();
-uchar CheckRs485Device();
+uchar CheckRs485Device(int16 connectTryCount);
 bool CheckPT485();
 bool CheckAIP();
 bool CheckJncSd();
@@ -44,7 +44,7 @@ bool CheckBtmG6();
 
 
 uchar ScanRs485Device();
-bool CheckRs485Connect();
+bool CheckRs485Connect(int16 connectTryCount);
 bool ModbusCmdPT485();
 bool ModbusCmdAIP();
 uint16 Rs485ValuePT485();

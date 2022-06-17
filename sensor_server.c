@@ -175,7 +175,7 @@ uint32 EvtSensorServerEventsProc(PCmdPacket pCmdEvent)
 void SensorServerNodeInit(void)
 {
     NodeWakeUp();
-    uint16_t result = mesh_lib_sensor_server_init(SENSOR_ELEMENT, NUMBER_OF_SENSORS, descriptors);
+  uint16_t result = mesh_lib_sensor_server_init(SENSOR_ELEMENT, NUMBER_OF_SENSORS, descriptors);
     Printf("sensor init result %02x\r\n", result);
     // Initialize the People Count Sensor
     set_people_count(0);

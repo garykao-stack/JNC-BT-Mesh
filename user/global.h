@@ -85,7 +85,7 @@
 
 
 #ifdef  BT_MESH_G6
-#define FW_VER              100
+#define FW_VER              101
 #define HW_VER              100
 #define DEVICE_NAME         "G6S-BT"
 #define MANUFACTORY_NAME    "JNC"
@@ -94,7 +94,7 @@
 #endif
 
 #ifdef  JNC_BT_MESH
-#define FW_VER              123
+#define FW_VER              124
 #define HW_VER              110
 #define DEVICE_NAME         "JNC-BT-Mesh"
 #define MANUFACTORY_NAME    "JNC"
@@ -104,7 +104,7 @@
 
 
 #ifdef  ULTRA_SOUND_SKYNET
-#define FW_VER              100
+#define FW_VER              101
 #define HW_VER              110
 #define DEVICE_NAME         "UD-BT-Mesh"
 #define MANUFACTORY_NAME    "JNC"

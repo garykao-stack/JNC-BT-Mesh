@@ -223,7 +223,7 @@ typedef struct _BtMeshInfo_
     int16   TempGain,TempOffset;    // Tempature Gain & Offset  
     int16   RhGain,RhOffset;        // RH Gain & Offset
     uint16  WorkingTime;            // >5 and <3600 sec
-    uint16  BtmClass;               //1 : for JNC Sensor(Auto Scan) 2 : PZEM 3 : Visual Sensor 4 : AGB Motor Control(恆達) 
+    uint16  BtmClass;               //1 : for JNC Sensor(Auto Scan) 2 : PZEM 3 : Visual Sensor 4 : AGB Motor Control(恆達)
     
 }_BtMeshInfo,*PBtMeshInfo;
 
@@ -474,8 +474,9 @@ typedef struct _NodeEventInfo_
 
 
 #define ActiveStage()               pStageInfo->Stage
-#define ToNextStage(stage)          pStageInfo->Stage = stage 
-#define ToWaitingStage(stage,timer) pStageInfo->Stage = stage; pStageInfo->Timer = timer
+#define ToNextStage(stage)          do{pStageInfo->Stage = stage;Printf("==> To Step %s .\r\n",#stage);}while(0)
+#define ToWaitingStage(stage,timer) do{pStageInfo->Stage = stage;Printf("==> To Step %s . Wait:%d.\r\n",#stage,timer);}while(0); pStageInfo->Timer = timer
+//#define ToWaitingStage(stage,timer) pStageInfo->Stage = stage; pStageInfo->Timer = timer
 
 //#define ToNextSensorStage(stage) SensorStage = stage
 

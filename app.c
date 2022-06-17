@@ -173,7 +173,7 @@ GetMeshEvent:
         ClientNodeTask();
    else if(NodeRole == NR_SERVER || NodeRole == NR_SETUP_SERVER)  
         ServerNodeTask();
-   else BtMeshSetupTask();
+   else BtMeshSetupTask(); //window Utility
     } 
 }
 

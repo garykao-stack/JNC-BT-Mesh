@@ -53,7 +53,7 @@ const uchar PzemClibr[6]={0xF8, 0x41, 0x37, 0x21, 0xB7, 0x78};
 //
 // check RS-485 conect or not
 //
-uchar CheckRs485Device()
+uchar CheckRs485Device(int16 connectTryCount)
 {
     uchar rs485_dev = SENSOR_DISCONNECT;
 
@@ -110,7 +110,7 @@ uchar CheckRs485Device()
         }       
       }
   
-    if(CheckRs485Connect() == FALSE) 
+    if(CheckRs485Connect(connectTryCount) == FALSE)
         {pMeshNodeData->SensorClass = SENSOR_DISCONNECT; goto Assigned;}
     
     if(pMeshNodeData->SensorClass != SENSOR_DISCONNECT)
@@ -179,6 +179,8 @@ Check485_End:
         }
     UsartResetRxTx(USART_ID_TX_RX);
     WriteNodeData();
+    //Printf("CheckRs485Device() dev:%d, func:%d\r\n",rs485_dev,pFunSensor);
+    //Printf("GetVelocityInfo:%d\r\n",GetVelocityInfo);
    return rs485_dev;
 }
 
@@ -242,18 +244,21 @@ void ModbusInitDelay(uint16 timer_ms)
 //
 //
 //
-bool CheckRs485Connect()
+bool CheckRs485Connect(int16 connectTryCount)
 {
     bool ret_code = FALSE;
-    uint16 loop;
+    int16 loop;
+    if (connectTryCount<=0) connectTryCount=15;
    // return TRUE;
     uchar modbus_cmd1[8]={0x01, 0x04, 0x00, 0x00, 0x00, 0x01, 0x31, 0xCA}; //to get device model name
     uchar modbus_cmd[8]={0x01, 0x03, 0x04, 0x0A, 0x00, 0x02, 0xE5, 0x39}; //to get device model name
     SetLed(LED_BLUE,ON); SetLed(LED_RED,OFF);
-    for(loop=0; loop<15; loop++)
+    //for(loop=0; loop<15; loop++) //try 15 time for reading module name
+    for(loop=0; loop<connectTryCount; loop++) //try 15 time for reading module name
         {
-         CHECK_RS485_CMD(modbus_cmd,8); CHECK_RS485_CMD(modbus_cmd1,8);
-        if(UsartGetRxCounter() != 0){
+         CHECK_RS485_CMD(modbus_cmd,8); //command-1 take 200+15ms
+         CHECK_RS485_CMD(modbus_cmd1,8);//command-2 take 200+15ms
+        if(UsartGetRxCounter() != 0){ //leave detecting process if there is data has been received.
              ret_code = TRUE; break;           
             }
          Delay_ms(400); SetLedToggle(LED_BLUE); SetLedToggle(LED_RED);

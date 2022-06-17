@@ -128,7 +128,7 @@ void ServerNodeInit()
     UsartRxCount = 7;   //from RS485 device bytes (default)
     ToNextStage(SNS_WAKE_UP);
     Rs485Tx();
-    CheckRs485Device();
+    CheckRs485Device(15);
     ServerSetPowerStatus();
 }
 
@@ -409,8 +409,6 @@ void ServerGetInfoActionNow()
     p_stage_info->Timer = WAIT_SEC(1);
 }
 
-
-
 //
 // for sensor report
 //
@@ -428,15 +426,23 @@ void ServerGetInfoProc()
                 CountErr = 0;
                 break;
             case SNS_GET_INFO: 
-                if((GetNodeStatus(NS_SYS_NO_WAITING) == ON) || CheckWaitTimeOut() == TRUE) 
-                    {//Trace("SNS_GET_INFO 1");
-                    if((pFunSensor!= NULL) && (GetSensorInfo() == TRUE) )
-                        {ToNextStage(SNS_EVENT_WAITING);}
-                    else 
-                        {//Trace1("Get Sensor Stop: 1",pFunSensor);
-                         ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
-                        }
-                    }
+                if((GetNodeStatus(NS_SYS_NO_WAITING) == ON) || CheckWaitTimeOut() == TRUE){
+                    //Trace("SNS_GET_INFO 1");
+                    Printf("GET_INFO: pFunSensor:%d, NULL:%d\r\n",(int)pFunSensor,(int16)NULL);
+                    if((pFunSensor!= NULL) && (GetSensorInfo() == TRUE) ){
+                	if(pFunSensor==GetRelay){
+                	    CheckRs485Device(3);
+                	    if(pFunSensor!=GetRelay) break;
+                	}
+                	ToNextStage(SNS_EVENT_WAITING);
+                    }/*else if(pFunSensor== NULL||pFunSensor==GetRelay){
+                	CheckRs485Device(3);
+                	//if(!CheckRs485Device(3) || pFunSensor==NULL) ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
+                    }*/else{
+                	//Trace1("Get Sensor Stop: 1",pFunSensor);
+                        ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
+                   }
+                }
                 
                 break;
             case SNS_EVENT_WAITING: 
