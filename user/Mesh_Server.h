@@ -116,7 +116,7 @@ typedef struct _BtAppData_
     int16   TempGain,TempOffset;    // Tempature Gain & Offset  
     int16   RhGain,RhOffset;        // RH Gain & Offset
     uint16  WorkingTimer;            // >5 and <3600 sec
-    uint16  BtmClass;               //1 : for JNC Sensor(Auto Scan) 2 : PZEM 3 : Visual Sensor 4 : AGB Motor Control(?†é?) 
+    uint16  BtmClass;               //1 : for JNC Sensor(Auto Scan) 2 : PZEM 3 : Visual Sensor 4 : AGB Motor Control(? ?)
 }_BtAppData,*PBtAppData;
 
 #define CLASS_TO_UTILITY    0

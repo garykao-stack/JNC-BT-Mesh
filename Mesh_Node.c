@@ -28,7 +28,7 @@ PNodeEventInfo  pNodeEventInfo;
 //uint16  GetInfoCycle=WAIT_SEC(TIMER_GET_INFO_SLEEPING);
 uint16  GetInfoCycle;
 uchar   UsartRxCount;   // Receive data from Rx bytes
-PFunSensor pFunSensor;
+PFunSensor pFunSensor=0;
 
 
 NodeStageInfo NodeStageInfoTbl[NODE_STAGE_INFO_NUM]=
