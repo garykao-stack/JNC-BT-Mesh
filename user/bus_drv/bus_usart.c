@@ -128,7 +128,7 @@ void UsartClientProc()
             {//Trace1("Tx End 1",UsartStatus);
             UsartSetStage(USART_STAGE_TX_END);ToNextStage(UES_STANDBY_MODE);  
             }
-        else if(CheckWaitTimeOut() == TRUE)
+           else if(CheckWaitTimeOut() == TRUE)
             {//Trace1("Tx End 2",UsartStatus);
              if(CounterTx == 0) 
               {Delay_ms(5);

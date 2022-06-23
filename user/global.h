@@ -78,8 +78,8 @@
 //for G6-DAC7760
 // version: 1.00
 
-//#define BT_MESH_G6              1   //for BT Mesh Control G6
-#define JNC_BT_MESH             1   //for JNC BT Mesh
+#define BT_MESH_G6              1   //for BT Mesh Control G6
+//#define JNC_BT_MESH             1   //for JNC BT Mesh
 
 //#define ULTRA_SOUND_SKYNET      1 //xxxx
 

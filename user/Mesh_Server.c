@@ -160,6 +160,7 @@ void ServerNodeTask()
   if(GetNodeStatus(NS_SERVER_RS485_ENABLE)){
      ServerSetNodeProc();
     }
+
 #ifdef  BT_MESH_G6  
     if(GetNodeStatus(NS_G6_READY)){
         G6ScheduleProc();
@@ -587,15 +588,14 @@ bool GetBtmG6Info()
                 p_sensor->Status.PPercent = pActSchedule->PowerPercent;
                 }
              else{//Trace("G6 schedule OFF");
-                if(pMeshNodeData->G6HostPPercent == MENUAL_KEY_AUTO)
+                /*if(pMeshNodeData->G6HostPPercent == MENUAL_KEY_AUTO)
                    p_sensor->Status.PPercent = 0;
-                else
+                else*/
                     p_sensor->Status.PPercent = pMeshNodeData->G6HostPPercent;
                 }
-            }
-         else{
+         }else{
              p_sensor->Status.PPercent = pMeshNodeData->G6HostPPercent;
-            }
+         }
          p_sensor->TimeFilter1 =pMeshNodeData->FilterAllTime1;
          p_sensor->TimeFilter2 =pMeshNodeData->FilterAllTime2;
          Trace16Ptr_3(p_sensor,Status.G6CurrStatus,Status.PPercent,Status.G6Status);
