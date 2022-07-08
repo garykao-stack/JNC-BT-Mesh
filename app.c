@@ -152,28 +152,27 @@ void appMain(gecko_configuration_t *pConfig)
     
     while(1)
     {
-    // Event pointer for handling events
+		// Event pointer for handling events
 
-    // If there are no events pending then the next call to gecko_wait_event()
-    // may cause device go to deep sleep.
-    // Make sure that debug prints are flushed before going to sleep
-GetMeshEvent:    
-    if (gecko_event_pending()) { RETARGET_SerialFlush();  }
-    pEvent = gecko_wait_event(); // Check for stack event
-    bool pass = mesh_bgapi_listener(pEvent);
-    if (pass) 
-        { 
-        if(BleMeshEventProc(pEvent,BleEventFun) == FALSE)
-            if(BleMeshEventProc(pEvent,MeshEventFun) == FALSE)
-                EventIDtoStringProc(pEvent);
-        }
-    if(!CheckRunDevTask()) continue;
-        
-   if(NodeRole == NR_CLIENT) 
-        ClientNodeTask();
-   else if(NodeRole == NR_SERVER || NodeRole == NR_SETUP_SERVER)  
-        ServerNodeTask();
-   else BtMeshSetupTask(); //window Utility
+		// If there are no events pending then the next call to gecko_wait_event()
+		// may cause device go to deep sleep.
+		// Make sure that debug prints are flushed before going to sleep
+	//GetMeshEvent:
+		if (gecko_event_pending()) { RETARGET_SerialFlush();  }
+		pEvent = gecko_wait_event(); // Check for stack event
+		bool pass = mesh_bgapi_listener(pEvent);
+		if (pass) {
+			if(BleMeshEventProc(pEvent,BleEventFun) == FALSE)
+				if(BleMeshEventProc(pEvent,MeshEventFun) == FALSE)
+					EventIDtoStringProc(pEvent);
+		}
+		if(!CheckRunDevTask()) continue;
+
+		if(NodeRole == NR_CLIENT)
+			ClientNodeTask();
+		else if(NodeRole == NR_SERVER || NodeRole == NR_SETUP_SERVER)
+			ServerNodeTask();
+		else BtMeshSetupTask(); //window Utility
     } 
 }
 

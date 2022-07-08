@@ -51,6 +51,9 @@
 
 #define SNS_PRE_GET_INFO        10    // send message to client
 #define SNS_GET_INFO            11    // send message to client
+#define SNS_WAIT_UART_RSP		12
+#define SNS_SEND_UART_RSP		13
+#define SNS_SEND_A308_INFO		14
 
 
 #define SNS_SET_INFO_INIT       0x00
@@ -187,6 +190,7 @@ void ServerGetInfoProc();
 void ServerSetNodeProc();
 
 bool SendInfoToClient();
+bool SendRxToClient(PUCHAR data,uint8_t loc,uint8_t count);
 uchar PreAllSensorInfo();
 uchar CheckPowerStatus();
 void GetRs485InfoProc();

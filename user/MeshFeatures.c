@@ -79,7 +79,8 @@ Result NodeLpn(uint8 status)
         if (result)  return result;
           
         result = Cmd_m_lpn_config(mesh_lpn_poll_timeout,LPN_POLL_TIMEOUT)->result; ShowResult("mesh_lpn_poll_timeout", result);
-         if (result)  return result;
+         //if (result)  return result;
+        return result;
         
          /*
         result = Cmd_m_lpn_config(mesh_lpn_receive_delay,10)->result; ShowResult("mesh_lpn_receive_delay", result);

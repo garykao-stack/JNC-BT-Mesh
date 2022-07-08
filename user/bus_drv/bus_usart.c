@@ -1,16 +1,40 @@
+#define UART_DEBUG 1
+#define STATE_CHANGE_DEBUG 1
+
 #include "global.h"
+
+#if UART_DEBUG
+#undef DEBUG_FUNCTION
+#define DEBUG_FUNCTION dprint
+#else
+#define DEBUG_FUNCTION(...)
+#endif
+#include "debugprint.h"
+
 #include "device_bus.h"
+
+#if STATE_CHANGE_DEBUG
+#define STATE_CHANGE_PRINT DEBUG_FUNCTION
+#else
+#define STATE_CHANGE_PRINT(...)
+#endif
 #include "Mesh_Node.h"
 #include "bus_rs485.h"
 #include "bus_usart.h"
 const uint32 UsartBaudrate[MAX_BAUD_RATE_NUM]=
 {2400, 4800, 9600, 19200, 38400, 57600, 115200, 128000, 256000, 460800, 921600, 1382400,1843200,2764800};
-uchar TxBuff[USART_TX_BUFF_SIZE];
-uchar RxBuff[USART_RX_BUFF_SIZE];
+uchar OrigignalRx[USART_RX_BUFF_SIZE+1];
+uchar OrigignalTx[USART_TX_BUFF_SIZE+1];
+uchar *TxBuff=(uchar*)OrigignalTx+1;//[USART_TX_BUFF_SIZE];
+uchar *RxBuff=(uchar*)OrigignalRx+1;//[USART_RX_BUFF_SIZE];
 PUCHAR  pTxBuff,pRxBuff;
 uint16  UsartStatus;
 uchar   UsartIntervalTimer;         //max interval to receive next byte (XXX ms)
 uchar volatile  CounterRx,CounterTx;
+
+
+
+bool Modbus_IsReceived();
 
 void UsartInit(void)
 {
@@ -97,11 +121,39 @@ uchar UsartCounterTx=0;
 #define UES_CHECH_CMD_OK        4
 #define UES_CHECH_CMD_END       5
 #define UES_CHECK_TX_END        6
+#define UES_WAIT_RX_EVENT_END	7
 
 
 //
 //
 //
+#define UART_NEW_PROC 1
+#if UART_NEW_PROC
+void UsartClientProc()
+{
+	if(!GetNodeStatus(NS_USART_RX_EVENT)){
+		if(Modbus_IsReceived()){
+			/*dprint("Uart Rec:");
+			for(int i=0;i<CounterRx;i++) dprint(" %02X",RxBuff[i]);
+			dprint("\r\n");*/
+			if(CheckUsartRxCmd()){
+				UsartSetStage(USART_STAGE_RX_END);
+			}else{
+				Trace("RX Check Error");// cmd error
+				UsartSetStatus(USART_RX_CRC_ERROR,ON);
+				//UsartSetStage(USART_STAGE_RX_CLEAN);
+				UsartSetStage(USART_STAGE_RX_END);
+			}
+			SetNodeStatus(NS_USART_RX_EVENT,ON);
+		}
+	}
+
+	/*if(UsartGetStatus(USART_TX_ING|USART_TX_END)==(USART_TX_ING|USART_TX_END)){
+
+	}*/
+
+}
+#else
 void UsartClientProc()
 {
     pStageInfo = GetNodeStageInfo(USART_MONITOR_CLIENT_PROC);
@@ -111,14 +163,14 @@ void UsartClientProc()
         case NODE_STAGE_INIT: Trace("UES_STAGE_INIT");
             ToNextStage(UES_STANDBY_MODE);   //default
             break;
-        case UES_STANDBY_MODE: //Trace("UES_STANDBY_MODE");
+        case UES_STANDBY_MODE: //UartTrace("UES_STANDBY_MODE");
             if(UsartGetStatusRxIng() == TRUE)
                 {
                  UsartSetStage(USART_STAGE_RX_ING);
                  ToWaitingStage(UES_CHECK_RX_END,WAIT_MS(30)); 
                 }
             else if(UsartGetStatusTxIng()) 
-                {//Trace("---- To Check Tx Ending ------");// Tx ending
+                {//UartTrace("---- To Check Tx Ending ------");// Tx ending
                  ToWaitingStage(UES_CHECK_TX_END,WAIT_MS(60));            
                 }
             break;
@@ -137,24 +189,38 @@ void UsartClientProc()
             }
             break;
         case UES_CHECK_RX_END: //TraceDec1("UES_CHECK_RX_END 1",CounterRx);
-
-                if(CheckWaitTimeOut() == TRUE)
-                    { ToNextStage(UES_CHECH_CMD);}
-                else if((NodeRole == NR_CLIENT) && (CounterRx >= MODBUS_CMD_NUM))
-                     {ToNextStage(UES_CHECH_CMD);}
-            break;
+            /*if(CheckWaitTimeOut() == TRUE)
+        		ToNextStage(UES_CHECH_CMD);
+			else if((NodeRole == NR_CLIENT) && (CounterRx >= MODBUS_CMD_NUM))
+				ToNextStage(UES_CHECH_CMD);*/
+        	if(Modbus_IsReceived()){
+        		dprint("Uart Rec:");
+        		for(int i=0;i<CounterRx;i++) dprint(" %02X",RxBuff[i]);
+        		dprint("\r\n");
+        		if(CheckUsartRxCmd()){
+        			UsartSetStage(USART_STAGE_RX_END);
+        		}else{
+        			Trace("RX Check Error");// cmd error
+        			UsartSetStage(USART_STAGE_RX_CLEAN);
+        		}
+        		SetNodeStatus(NS_USART_RX_EVENT,ON);
+        		ToNextStage(UES_WAIT_RX_EVENT_END);
+        	}
+        	break;
+        case UES_WAIT_RX_EVENT_END:
+        	if(!GetNodeStatus(NS_USART_RX_EVENT))
+        		ToNextStage(UES_STANDBY_MODE);
+        	break;
+        /* 簡化到步驟UES_CHECK_RX_END中
         case UES_CHECH_CMD: //Trace("UES_CHECH_CMD");
             //SetLed(LED_GREEN,OFF);
-            if(CheckUsartRxCmd())
-              {//Trace("RX Check Ok"); PrintDataByte("RX Data 1",RxBuff , 8);                
+            if(CheckUsartRxCmd()){//Trace("RX Check Ok"); PrintDataByte("RX Data 1",RxBuff , 8);
                 ToNextStage(UES_CHECH_CMD_OK); 
-              }
-            else
-              {Trace("RX Check Error");// cmd error
+            }else{
+            	Trace("RX Check Error");// cmd error
                 UsartSetStage(USART_STAGE_RX_CLEAN);                   
                 ToNextStage(UES_CHECH_CMD_END);
-              }
-
+            }
             break;
         case UES_CHECH_CMD_OK: //TraceDec1("UES_CHECH_CMD_OK",CounterRx);
             UsartSetStage(USART_STAGE_RX_END);            
@@ -163,12 +229,12 @@ void UsartClientProc()
         case UES_CHECH_CMD_END: //Trace("UES_CHECH_CMD_END");
             SetNodeStatus(NS_USART_RX_EVENT,ON); 
             ToNextStage(UES_STANDBY_MODE);   
-            break;
+            break;*/
             
         default: TraceErr1("UsartClientProc",ActiveStage()); break;
         };
-
 }
+#endif
 
 
 
@@ -181,22 +247,34 @@ void UsartClientProc()
  bool CheckUsartRxCmd()
 {
     bool ret_code=TRUE;
-    uint16 crc_value;
+    //uint16 crc_value;
     PUCHAR p_rx_buff;
 
     p_rx_buff = UsartGetBuff(USART_ID_RX);
-    if(CounterRx < UsartRxCount) 
-      {PrintDataByte("RX: Host Len Error 1",UsartGetBuff(USART_ID_RX),CounterRx);TraceErr1("RX: Host CMD",CounterRx);
+    /*if(CounterRx < UsartRxCount) {
+    	PrintDataByte("RX: Host Len Error 1",UsartGetBuff(USART_ID_RX),CounterRx);TraceErr1("RX: Host CMD",CounterRx);
         ret_code = FALSE;
-      }
-    else
-      { //PrintDataByte("Host Cmd oK",UsartGetBuff(USART_ID_RX),CounterRx);
-        if(CheckModbusCrc(p_rx_buff,CounterRx) == FALSE)
-            { PrintDataByte("xxx Host CRC Error 2 xxx",UsartGetBuff(USART_ID_RX),CounterRx);
-             ret_code = FALSE;
-            }
-      }
+    }else{ */
+    	//PrintDataByte("Host Cmd oK",UsartGetBuff(USART_ID_RX),CounterRx);
+        if(CheckModbusCrc(p_rx_buff,CounterRx) == FALSE){
+        	PrintDataByte("xxx Host CRC Error 2 xxx",UsartGetBuff(USART_ID_RX),CounterRx);
+            ret_code = FALSE;
+        }
+    //}
     return ret_code;
+}
+
+int MbsRxTimeout=0;
+#define MBS_REC_TIME_OUT_MS 50
+#define MBS_TIMER_MS 10
+#define MBS_TIMEOUT_COUNT (MBS_REC_TIME_OUT_MS/MBS_TIMER_MS)
+void Modbus_Timer()
+{
+	if (CounterRx && MbsRxTimeout<MBS_TIMEOUT_COUNT) MbsRxTimeout++;
+}
+bool Modbus_IsReceived()
+{
+	return CounterRx && (MbsRxTimeout>=MBS_TIMEOUT_COUNT);
 }
 
 
@@ -208,15 +286,13 @@ void USART2_RX_IRQHandler(void)
   uint32_t flags;
   flags = USART_IntGet(USART);
   USART_IntClear(USART, flags);
-   if((CounterRx < USART_RX_BUFF_SIZE))
-    {
+   if((CounterRx < USART_RX_BUFF_SIZE)){
+	   MbsRxTimeout=0;
         *pRxBuff++ = USART_RxDataGet(USART);//USART_Rx(USART);
         CounterRx++; UsartSetStatus(USART_RX_ING,ON);
-        
-    } else 
-    {USART_Rx(USART);   // clean RX buffer Rx
+    } else {
+    	USART_Rx(USART);   // clean RX buffer Rx
     }
-  
 }
 
 //*************************************************************************
@@ -249,6 +325,7 @@ void UsartSetStage(uchar stage)
     switch(stage)
         {
             case USART_STAGE_RX_ING: //Trace("USART_STAGE_RX_ING");
+            	MbsRxTimeout=0;
                 UsartSetStatus(USART_RX_ING,ON);
                 UsartSetStatus(USART_RX_END,OFF);
                 UsartSetStatus(USART_RX_WAITING,ON);
@@ -303,7 +380,7 @@ void UsartResetRxTx(uchar tx_rx)
     else if(tx_rx == USART_ID_RX)
         {
             pRxBuff = RxBuff; CounterRx = 0; TCounterRx = 0;
-            UsartSetStatus(USART_RX_ING|USART_RX_END,OFF);
+            UsartSetStatus(USART_RX_ING|USART_RX_END|USART_RX_CRC_ERROR,OFF);
             UsartSetStatus(USART_RX_WAITING,ON);
             memset(pRxBuff,0,USART_RX_BUFF_SIZE);
         }
@@ -313,6 +390,7 @@ void UsartResetRxTx(uchar tx_rx)
             TCounterTx=TCounterRx=0;
             UsartStatus = USART_FREE;
             UsartSetStatus(USART_RX_WAITING,ON);
+            UsartSetStatus(USART_RX_CRC_ERROR,OFF);
             memset(pTxBuff,0,USART_TX_BUFF_SIZE);   //reset buffer
             memset(pRxBuff,0,USART_RX_BUFF_SIZE);
         }
@@ -380,15 +458,16 @@ bool UsartSendCmd(uchar size)
     CounterTx = size;    
     UsartResetRxTx(USART_ID_RX);
     UsartSetStage(USART_STAGE_TX_ING);
-
     return TRUE;
 }
 
-bool UsartTxSendCmd(PUCHAR pBuff,uchar size)
+bool UsartTxSendCmd(PUCHAR pBuff,uint16 size)
 {
     bool ret_code=FALSE;
     PUCHAR p_tx_buff = UsartGetBuff(USART_ID_TX);
-    memcpy(p_tx_buff,pBuff,size);
+    if (size>USART_TX_BUFF_SIZE) return FALSE; //check array length
+
+    if(p_tx_buff!=pBuff)memcpy(p_tx_buff,pBuff,size);
    
    if(UsartGetStatusTxIng() == OFF || CounterTx == 0)
     {
@@ -398,7 +477,7 @@ bool UsartTxSendCmd(PUCHAR pBuff,uchar size)
         UsartSetStage(USART_STAGE_TX_END); 
     }
     
-     return ret_code;
+    return ret_code;
 }
 
 void UsartShowDataRx()
@@ -500,6 +579,11 @@ bool UsartGetStatusTxIng()
 {
     if(UsartStatus & USART_TX_ING) return TRUE;
     else return FALSE;
+}
+
+bool UsartIsBusy()
+{
+	return UsartStatus&(USART_TX_ING|USART_TX_END);
 }
 
 void UsartPrintBuff(uchar rx_tx)

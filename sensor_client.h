@@ -26,6 +26,7 @@
  ******************************************************************************/
 
 #define SENSOR_ELEMENT        0 ///< Sensor client model located in primary element
+#define SENSOR_ELEMENT_2      1
 #define PUBLISH_ADDRESS       0 ///< The unused 0 address is used for publishing
 #define IGNORED               0 ///< Parameter ignored for publishing
 #define NO_FLAGS              0 ///< No flags used for message

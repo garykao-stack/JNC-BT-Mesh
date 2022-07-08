@@ -1,6 +1,17 @@
 
 #include "global.h"
 
+#define CLIENT_NODE_DEBUG 1
+#define STATE_CHANGE_DEBUG 0
+
+#if CLIENT_NODE_DEBUG
+#undef DEBUG_FUNCTION
+#define DEBUG_FUNCTION dprint
+#else
+#define DEBUG_FUNCTION(...)
+#endif
+#include "debugprint.h"
+
 //richard Add
 /* BG stack headers */
 #include "sensor_client.h"
@@ -14,6 +25,10 @@
 #include "mesh_sensor.h"
 #include "Mesh_Node.h"
 #include "Mesh_Client.h"
+
+#ifdef BTM_A308
+#include "A308_Server.h"
+#endif
 
 uint32  ClientStatus;
 uchar   RespServerNode;
@@ -35,25 +50,32 @@ void ClientNodeInit()
     UsartRxCount = 8;   //from Host cmd bytes
     Rs485Rx();
     ToNextStage(NODE_STAGE_INIT);
-    UsartClientProc(); ClientFromHostProc();
+    UsartClientProc();
+    ClientFromHostProc();
 
 }
 
 uint16 test1;
 
 uint16 rx_ccount;
-
 void ClientNodeTask()
 {
-    uchar rx_count = UsartGetRxCounter();
+    /*uchar rx_count = UsartGetRxCounter();
     if(rx_count >= 7 && GetNodeStatus(NS_USART_RX_EVENT) != TRUE)
         {Delay_ms(3);
          UsartClientProc(); UsartClientProc();
         }
     else if(GetNodeStatus(NS_USART_RX_EVENT) == TRUE) 
-        {UsartClientProc();ClientFromHostProc();UsartClientProc();ClientFromHostProc(); }
-    
-    ClientGetNodeInfoProc(); UsartClientProc(); ClientFromHostProc(); ClientSetNodeInfoProc(); NodeIviUpdateProc();
+        {UsartClientProc();ClientFromHostProc();UsartClientProc();ClientFromHostProc(); }*/
+
+    ClientGetNodeInfoProc();
+    UsartClientProc();
+
+    ClientFromHostProc();
+#ifndef BTM_TRANSMITTER
+    ClientSetNodeInfoProc();
+#endif
+    NodeIviUpdateProc();
 }
 //
 //
@@ -85,6 +107,28 @@ PClientInfo GetServerInfoPos(uint16 node_addr)
             p_client_info++;
         }
     return ret_code;
+}
+
+PClientInfo FindNextServerInfo(uint8 class, PClientInfo pClient){
+	if (pClient==0){
+		//dprint("FindNextServerInfo.. Get Init Client\r\n");
+		pClient=ClientInfo;
+	}
+	else{
+		//dprint("FindNextServerInfo.. Args Client Index:%d\r\n",((uint8*)pClient-(uint8*)ClientInfo)/sizeof(_ClientInfo));
+		pClient++;
+	}
+	int16 idx=((uint8*)pClient-(uint8*)ClientInfo)/sizeof(_ClientInfo);
+	int16 end=sizeof(ClientInfo)/sizeof(_ClientInfo);
+	dprint("FindNextServerInfo start:%d, end:%d, loc:0x%x, size:%d\r\n",idx,end,(uint8*)pClient-(uint8*)ClientInfo,sizeof(_ClientInfo));
+	while(idx>=0 && idx<end){
+		if (ClientInfo[idx].SensorInfo.Header.SensorClass==class){
+			dprint(" Next ServerInfo index:%d\r\n",idx);
+			return &ClientInfo[idx];
+		}
+		idx++;
+	}
+	return 0;
 }
 
 
@@ -276,6 +320,8 @@ void ClientGetInfoActionNow()
 //
 // handle node response
 //
+//uchar tstmsg_data[]={9,4,0,8,6};
+//int tstmsg_len=sizeof(tstmsg_data)/sizeof(uchar);
 void ClientGetNodeInfoProc()
 {
     pStageInfo = GetNodeStageInfo(CLIENT_GET_NODE_INFO_PROC);
@@ -325,39 +371,61 @@ void ClientGetNodeInfoProc()
                 
                 if(CountErr > 3) ToNextStage(CNS_GET_INFO_ERR); // err: go to sleeping
 
-                if(CheckWaitTimeOut()) 
-                  {//to get info from all server node
+
+                if(CheckWaitTimeOut()){
+                    //to get info from all server node
                     GetEventCount++;
                     SetLed(LED_SERVER,ON);
+                    dprint("STEP: CNS_GET_SERVER_INFO\r\n");
                     result = Cmd_ms_client_get(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, GetPropertyID)->result;
-                    if(result){TraceErr1("CNS_GET_SEVER_INFO 1",result);
-                          CountErr++;
-                          ToWaitingStage(CNS_GET_SEVER_INFO,WAIT_SEC(2));  
-                        }
-                    else{//TraceOk("Get Info");
-                          CountErr = 0; RespServerNode = 0;
-                          ToWaitingStage(CNS_WAIT_INFO,TIMER_CLI_WAIT_INFO);
-                        }
-                  }
-                 else
-                 {
-                    if(GetNodeStatus(NS_GET_INFO_ACT)){ 
-                          ToWaitingStage(CNS_WAIT_INFO,TIMER_CLI_WAIT_INFO);
-                        }
-                 }
+                    //result = Cmd_ms_client_get_column(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, GetPropertyID,tstmsg_len,tstmsg_data)->result;
+
+                    if(result){ //error
+						TraceErr1("CNS_GET_SEVER_INFO 1",result);
+						CountErr++;
+						ToWaitingStage(CNS_GET_SEVER_INFO,WAIT_SEC(2));
+                    }else{ //successed
+                    	//TraceOk("Get Info");
+						CountErr = 0; RespServerNode = 0;
+						ToWaitingStage(CNS_WAIT_INFO,TIMER_CLI_WAIT_INFO);
+                    }
+                }else{
+                    if(GetNodeStatus(NS_GET_INFO_ACT)){
+                    	ToWaitingStage(CNS_WAIT_INFO,TIMER_CLI_WAIT_INFO);
+                    }
+                }
                     
                 break;
             case CNS_WAIT_INFO:
-                if(CheckWaitTimeOut()) ToNextStage(CNS_WAIT_INFO_OK); 
+                if(CheckWaitTimeOut()){
+                	ClientCheckNodeStatus();
+#ifdef BTM_A308
+                	ToNextStage(CNS_GET_A308_INFO);
+#else
+                	ToNextStage(CNS_WAIT_INFO_OK);
+#endif
+                }
                 break;
+            case CNS_GET_A308_INFO:
+            	if(!A308_Client_GetInfo()) {
+            		dprint(" CNS_GET_A308_INFO > FINISHED\r\n");
+            		ToNextStage(CNS_WAIT_INFO_OK);
+            	}
+            	break;
             case CNS_WAIT_INFO_OK:
-                ClientCheckNodeStatus();
                 
-                if(GetNodeStatus(NS_FULL_POWER)) GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_FULL_POWER);
-                else GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_SLEEPING);
+                if(GetNodeStatus(NS_FULL_POWER))
+#ifdef BTM_TRANSMITTER
+                	GetInfoCycle=WAIT_SEC(10);
+#else
+                	GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_FULL_POWER);
+#endif
+                else
+                	GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_SLEEPING);
                     
                 ToNextStage(CNS_GET_INFO_END); 
                 break;
+
             case CNS_GET_INFO_ERR:
                 CountErr = 0;
                 ToNextStage(CNS_PRE_SEVER_INFO); 
@@ -381,35 +449,30 @@ void ClientCheckNodeStatus()
     uchar power_flag=ON;
     uchar loop;
 
-    for(loop=0; loop < SERVER_NODE_MAX; loop++)
-       {
-        if(pNodeInfo->ServerID != 0)
-          {
-            if(pNodeInfo->Count == 0){TraceErr1("Node No Response",pNodeInfo->ServerID);
-             memset(pNodeInfo,0,sizeof(_ClientInfo));
-             pNodeInfo->Status |= SERVER_NO_RESPONSE;
-            } 
-            else 
-            {
-              if(pNodeInfo->Count) pNodeInfo->Count--;
-              if((pNodeInfo->SensorInfo.Header.Status & SERVER_FULL_POWER) == 0){
-                 power_flag = OFF;
-                }
-            }
-                
-          }  
+    for(loop=0; loop < SERVER_NODE_MAX; loop++){
+		if(pNodeInfo->ServerID != 0){
+			if(pNodeInfo->Count == 0){
+				TraceErr1("Node No Response",pNodeInfo->ServerID);
+				memset(pNodeInfo,0,sizeof(_ClientInfo));
+				pNodeInfo->Status |= SERVER_NO_RESPONSE;
+			}else{
+				if(pNodeInfo->Count) pNodeInfo->Count--;
+				if((pNodeInfo->SensorInfo.Header.Status & SERVER_FULL_POWER) == 0)
+				  power_flag = OFF;
+			}
+		}
         pNodeInfo++;
-       }
+    }
     
-
     if(GetNodeStatus(NS_FORCE_FULL_POWER) == ON) {
         SetNodeStatus(NS_FULL_POWER,ON);SetLed(LED_GREEN,ON);
-    } else{
+    }else{
         if(power_flag == OFF){
-            SetNodeStatus(NS_FULL_POWER,OFF);SetLed(LED_GREEN,OFF);}
-        else {
-            SetNodeStatus(NS_FULL_POWER,ON);SetLed(LED_GREEN,ON);}
+            SetNodeStatus(NS_FULL_POWER,OFF);SetLed(LED_GREEN,OFF);
+        }else{
+            SetNodeStatus(NS_FULL_POWER,ON);SetLed(LED_GREEN,ON);
         }
+    }
     
 }
 
@@ -451,6 +514,26 @@ uint16 CheckModbusCmd()
     return ret_code;
 }
 
+
+uint16_t trans_wait_ms=0;
+int8_t trans_retry=0;
+uint8 trans_seq=0;
+uint8 rec_flag=0;
+#define TIMER_REDUCE_BY_10MS(t) do{if(t>0)t=t-((t>=10)?10:t);}while(0)
+#define TIMER_IS_TIMEROUT(t) (t==0)
+/*uint16_t cntTick=0;
+uint32_t cntSecond=0;*/
+void ClientTimer_10ms(){
+	TIMER_REDUCE_BY_10MS(trans_wait_ms);
+	/*if(++cntTick>100){
+		cntTick=0;
+		cntSecond++;
+		dprint("Time Second:%d\r\n",cntSecond);
+	}*/
+
+}
+
+
 uchar SendDataDelay;
 //
 // Handle Client, Host message
@@ -458,23 +541,62 @@ uchar SendDataDelay;
 void ClientFromHostProc()
 {
     pStageInfo = GetNodeStageInfo(CLIENT_TO_HOST_STAGE_PROC);
-    
     switch(ActiveStage())
         {
         case CHS_STAGE_INIT: 
             ToNextStage(CHS_CHECK_RX_EVENT);
             break;
         case CHS_CHECK_RX_EVENT: 
-            if(GetNodeStatus(NS_USART_RX_EVENT) == TRUE) 
-                ToNextStage(CHS_CHECK_MODBUS); //ToNextStage(CHS_PREPARE_DATA);   //default
+        	if(GetNodeStatus(NS_USART_RX_EVENT) == TRUE)
+#ifdef BTM_TRANSMITTER
+        	{
+        		ToNextStage(CHS_SEND_TO_CLIENT);
+        		trans_seq++;
+        		rec_flag=0;
+        		trans_retry=0;
+        	}
+#elif defined(BTM_A308)
+			{
+				if(A308_Client_Modbus_Response())
+					ToNextStage(CHS_WAIT_TX_FINISHED);
+				else
+					ToNextStage(CHS_MODBUS_ERROR);
+			}
+#else
+            	ToNextStage(CHS_CHECK_MODBUS); //ToNextStage(CHS_PREPARE_DATA);   //default
+#endif
             break;
-        
+
+        case CHS_WAIT_TX_FINISHED:
+
+        	if(UsartGetStatus(USART_TX_END)){
+        		UsartResetRxTx(USART_ID_RX);
+				SetNodeStatus(NS_USART_RX_EVENT,OFF);
+				ToNextStage(CHS_CHECK_RX_EVENT);
+        	}
+
+        	break;
         case CHS_CHECK_MODBUS: 
             if(CheckModbusCmd() == MODBUS_GET_INFO) ToNextStage(CHS_PREPARE_DATA);
             else if(CheckModbusCmd() == MODBUS_SET_INFO) ToNextStage(CHS_SERVER_SET);
             else ToNextStage(CHS_MODBUS_ERROR);
+
             break;
-        
+        case CHS_SEND_TO_CLIENT:
+
+        	if(TIMER_IS_TIMEROUT(trans_wait_ms)){
+        		*(UsartGetBuff(USART_ID_RX)-1)=trans_seq;
+				result = Cmd_ms_client_get_column(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, CUSTOM_SERIAL_DATA,UsartGetRxCounter()+1,UsartGetBuff(USART_ID_RX)-1)->result;
+				if (!result || ++trans_retry>=5){ /*發送完成 or 重試超過n次*/
+					UsartResetRxTx(USART_ID_RX);
+					SetNodeStatus(NS_USART_RX_EVENT,OFF);
+					ToNextStage(CHS_CHECK_RX_EVENT);
+				}else {
+					trans_wait_ms=100; /*100ms後重試*/
+					dprint("command transfer error! try:%d\r\n",trans_retry);
+				}
+			}
+        	break;
         case CHS_PREPARE_DATA: 
             if(ClientPrepareToHost() == TRUE)
                 {SendDataDelay = 1;ToNextStage(CHS_SEND_DATA_DELAY);}
@@ -510,6 +632,87 @@ void ClientFromHostProc()
 }
 
 
+
+void ClientSeriesEvent(msg_ms_client_series_status_evt *pEvent){
+	uint8_t *property_data = NULL;
+	uint8_t property_len=0;
+	PUCHAR p_tx_buff = UsartGetBuff(USART_ID_TX);
+	uint8 seq;
+	uint8 size;
+	uint8 flag;
+	uint8 loc=0;
+	uint8 part=0;
+	uint8 part_len=0;
+	PUCHAR data;
+	//dprint("Event Client(0x%02x), elem:%d, flag:%d, len:%d\r\n",pEvent->client_address,pEvent->elem_index,pEvent->flags,pEvent->sensor_data.len);
+	//dprint("*** Client Series Event> property:0x%04X\r\n",pEvent->property_id);
+	switch(pEvent->property_id){
+#if BTM_A308
+	case NODE_GET_A308_TABLE:
+		A308ClientSeriesEvent(pEvent);
+		break;
+#endif
+	case CUSTOM_SERIAL_DATA:
+		property_len=pEvent->sensor_data.len;
+		property_data=pEvent->sensor_data.data;
+		seq=property_data[0];
+		size=property_data[1];
+		flag=property_data[2];
+		data=property_data+3;
+		if(trans_seq!=seq) return;
+
+
+		if(rec_flag==0){
+			part=0;
+			loc=0;
+			while(loc<size){
+				rec_flag|=0x1<<part;
+				part++;
+				loc+=50;
+			}
+			dprint("initial rec_flag:0x%x\r\n",rec_flag);
+		}
+
+		part=0;
+		loc=0;
+		while(loc<size){
+			if((1<<part)==flag) break;
+			part++;
+			loc+=50;
+		}
+
+		part_len=size-loc;
+		if (part_len>50) part_len=50;
+		memcpy(p_tx_buff+loc,data,part_len);
+		rec_flag&= ~flag;
+		dprint("receive msg. rec_flag:0x%x, flag:0x%x, loc:%d, part_len:%d\r\n",rec_flag,flag, loc, part_len);
+		if(!rec_flag){
+			IFDPRINT(
+				dprint("req_seq:%d, rsp_seq:%d, size:%d>",trans_seq,property_data[0],size);
+				for(uint8_t _idx=0;_idx<size;_idx++)dprint(" %02X",p_tx_buff[_idx]);
+				dprint("\r\n");
+			)
+			UsartTxSendCmd(p_tx_buff,size);
+			return;
+		}
+
+		/*IFDPRINT(
+			dprint("req_seq:%d, rsp_seq:%d, len:%d(0x%x)>",trans_seq,property_data[0],property_len,property_len);
+			for(uint8_t _idx=0;_idx<(property_len-1);_idx++)dprint(" %02X",property_data[_idx+1]);
+			dprint("\r\n");
+		)
+		if (trans_seq==property_data[0])
+			UsartTxSendCmd(property_data+1,property_len-1);*/
+		break;
+	}
+}
+
+void ClientColumnEvent(msg_ms_client_column_status_evt *pEvent){
+
+
+}
+
+
 void ClientPropertyEvent(msg_ms_client_status_evt *pEvent)
 {
     uint8_t *p_sensor_data = pEvent->sensor_data.data;
@@ -520,6 +723,7 @@ void ClientPropertyEvent(msg_ms_client_status_evt *pEvent)
     if((pClientInfo = GetServerInfoPos(pEvent->server_address))== NULL) 
            {return;}
     TraceDec1("Node ID-2", pEvent->server_address);
+    dprint("Event Client(0x%02x) from:%d, elem:%d, flag:%d, len:%d\r\n",pEvent->client_address,pEvent->server_address,pEvent->elem_index,pEvent->flags,data_len);
 
     //if(pEvent->server_address == 3) TraceDec1(" 3 = ",RTCC_CounterGet());
     //else if(pEvent->server_address == 51) TraceDec1(" 4 = ",RTCC_CounterGet());
@@ -540,12 +744,15 @@ void ClientPropertyEvent(msg_ms_client_status_evt *pEvent)
            //TraceDec2("data_len" , data_len, pos);
            if(data_len - pos > PROPERTY_ID_SIZE)
             {
+        	   //dprint("first 3 bytes: %02X %02X %02X\r\n",p_sensor_data[pos],p_sensor_data[pos+1],p_sensor_data[pos+2]);
                property_id = (mesh_device_properties_t)(p_sensor_data[pos] + (p_sensor_data[pos + 1] << 8));
                //Trace16_1(property_id);
                uint8_t property_len = p_sensor_data[pos + PROPERTY_ID_SIZE];
                uint8_t *property_data = NULL;
                if(property_len && (data_len - pos > PROPERTY_HEADER_SIZE))
                    {property_data = &p_sensor_data[pos + PROPERTY_HEADER_SIZE];}
+               dprint("> property id: %d\r\n",property_id);
+
                switch(property_id)
                 {
                     case AUTO_POWER_0:
@@ -566,6 +773,15 @@ void ClientPropertyEvent(msg_ms_client_status_evt *pEvent)
                         memcpy(&(pClientInfo->SensorInfo),property_data,property_len);
                         GetPropertyID = NODE_GET_ALL_SENSOR;  // recover data
                         break;
+                    case CUSTOM_SERIAL_DATA:
+                    	IFDPRINT(
+							dprint("req_flag:%d, rsp_flag:%d, len:%d(0x%x)>",trans_seq,property_data[0],property_len,property_len);
+							for(uint8_t _idx=0;_idx<(property_len-1);_idx++)dprint(" %02X",property_data[_idx+1]);
+							dprint("\r\n");
+						)
+						if (trans_seq==property_data[0])
+							UsartTxSendCmd(property_data+1,property_len-1);
+                      break;
                     default: break;
                 };
                pos += PROPERTY_HEADER_SIZE + property_len;

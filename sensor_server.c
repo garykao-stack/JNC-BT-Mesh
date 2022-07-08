@@ -140,7 +140,8 @@ uint32 EvtSensorServerEventsProc(PCmdPacket pCmdEvent)
     event_id = BGLIB_MSG_ID(pCmdEvent->header);
     switch(event_id)
     {
-        case Evt_ms_server_get_req: 
+        case Evt_ms_server_get_req:
+        case Evt_ms_server_get_column_req:
             EvtGetRequestProc(pCmdEvent);
             break;
         case Evt_ms_setup_server_get_setting_req: Trace("Evt_ms_setup_server_get_setting_req");
@@ -197,6 +198,7 @@ uint16 GetDevModbusInfo(uint16 reg)
    else if(reg == 2) ret_code = ModbusReg2;
    else if(reg == 3) ret_code = ModbusReg3;
    else TraceErr("Modbus Reg");
+   return ret_code;
 }
 
 

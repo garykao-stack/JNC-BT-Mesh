@@ -78,38 +78,59 @@
 //for G6-DAC7760
 // version: 1.00
 
-#define BT_MESH_G6              1   //for BT Mesh Control G6
-//#define JNC_BT_MESH             1   //for JNC BT Mesh
 
+//#define BT_MESH_G6              1   //for BT Mesh Control G6
+#define JNC_BT_MESH             1   //for JNC BT Mesh
 //#define ULTRA_SOUND_SKYNET      1 //xxxx
+//#define BTM_TRANSMITTER		1 //BTM / RS485 transmitter
+#define BTM_A308				1
 
+
+#ifdef BTM_A308
+  #define FW_VER              100
+  #define HW_VER              100
+  #define DEVICE_NAME         "A308 BT Transmitter"
+  #define MANUFACTORY_NAME    "JNC"
+  #define NODE_DATA_ID        0xA5A5
+  #define MODEL_NAME          "BTA308"
+
+#endif
+
+#ifdef BTM_TRANSMITTER
+  #define FW_VER              100
+  #define HW_VER              100
+  #define DEVICE_NAME         "BT-Mesh/RS485 Transmitter"
+  #define MANUFACTORY_NAME    "JNC"
+  #define NODE_DATA_ID        0xA5A5
+  #define MODEL_NAME          "BTM485"
+#endif
 
 #ifdef  BT_MESH_G6
-#define FW_VER              101
-#define HW_VER              100
-#define DEVICE_NAME         "G6S-BT"
-#define MANUFACTORY_NAME    "JNC"
-#define NODE_DATA_ID        0xA5A5
-#define MODEL_NAME          "G6S-BT"
+  #define FW_VER              101
+  #define HW_VER              100
+  #define DEVICE_NAME         "G6S-BT"
+  #define MANUFACTORY_NAME    "JNC"
+  #define NODE_DATA_ID        0xA5A5
+  #define MODEL_NAME          "G6S-BT"
 #endif
 
 #ifdef  JNC_BT_MESH
-#define FW_VER              124
-#define HW_VER              110
-#define DEVICE_NAME         "JNC-BT-Mesh"
-#define MANUFACTORY_NAME    "JNC"
-#define NODE_DATA_ID        0xA5A5
-#define MODEL_NAME          "BTM001"
+  #define FW_VER              124
+  #define HW_VER              110
+  #define DEVICE_NAME         "JNC-BT-Mesh"
+  #define MANUFACTORY_NAME    "JNC"
+  #define NODE_DATA_ID        0xA5A5
+  #define MODEL_NAME          "BTM001"
 #endif
 
 
 #ifdef  ULTRA_SOUND_SKYNET
-#define FW_VER              101
-#define HW_VER              110
-#define DEVICE_NAME         "UD-BT-Mesh"
-#define MANUFACTORY_NAME    "JNC"
-#define NODE_DATA_ID        0xA5A5
-#define MODEL_NAME          "BTM-UD"
+  #define FW_VER              101
+  #define HW_VER              110
+  #define DEVICE_NAME         "UD-BT-Mesh"
+  #define MANUFACTORY_NAME    "JNC"
+  #define NODE_DATA_ID        0xA5A5
+  #define MODEL_NAME          "BTM-UD"
 #endif
 
 
@@ -117,6 +138,7 @@
 #define _GLOBAL_H_
 
 //#define DEBUG_PRINT
+#define DPRINT 1			// dprint, 0:disabled, 1:enabled
 #define BTM_TEST
 
 
@@ -126,7 +148,13 @@
 #define Printf(fmt,...) //(0)
 #endif
 
-
+#if DPRINT
+  #define dprint printf
+  #define IFDPRINT(a) a
+#else
+  #define dprint(...)
+  #define IFDPRINT(...)
+#endif
 
 
 #include "base_def.h"
@@ -215,94 +243,7 @@ typedef struct _EventIDToString_
 }EventIDToString,*PEventIDToString;
 
 // Debug Message
-#define TraceNum(str,num) Printf("%s => %d\r\n",str,num)
-
-#define GetMacroValue(var)  \
-        Printf("#define %s_Hex 0x%08lX\r\n",#var,(uint32)var)
-#define TraceProc() \
-        Printf("\r\n //***   %s %ld   ***//\r\n",__func__,TraceProcCount++)
-#define TraceStep(str) \
-        Printf("-- %s\r\n",str)
-
-#define Trace(str) \
-        Printf("%s\r\n",str)
-#define TraceStr(str1,str2) \
-        Printf("%s = %s\r\n",str1,str2)
-#define TraceOk(str)    Printf("\r\nOK! ** %s **\r\n",str)
-#define TraceOk1(str,v1)    Printf("\r\nOK!** %s Vaule=%Xh **\r\n",str,v1)
-
-
-#define TraceErr(str) \
-        Printf("\r\n\r\nError! ==**** %s ****==\r\n\r\n",str)
-#define TraceErr1(str,v1) \
-        Printf("\r\n\r\nError! ==**** %s Code= %Xh ****==\r\n\r\n",str,v1)
-#define TraceErr2(str,v1,v2) \
-        Printf("\r\n\r\nError! ==**** %s Code1=%Xh Code2=%Xh ****==\r\n\r\n",str,v1,v2)
-
-#define Trace1(str,v1) \
-        Printf("%s = 0x%08lX\r\n",str,(uint32)v1)
-#define Trace2(str,v1,v2) \
-        Printf("%s = 0x%08lX %s=0x%08lX\r\n",str,(uint32)v1,#v2,(uint32)v2)
-#define Trace3(str,v1,v2,v3) \
-        Printf("%s: %s = 0x%08lX %s=0x%08lX %s=0x%08lX\r\n",str,#v1,(uint32)v1,#v2,(uint32)v2,#v3,(uint32)v3)
-
-#define TraceDec1(str,v1) \
-        Printf("%s = %ld\r\n",str,(uint32)v1)
-#define TraceDec2(str,v1,v2) \
-        Printf("%s %s= %ld %s=%ld\r\n",str,#v1,(uint32)v1,#v2,(uint32)v2)
-#define TraceDec3(str,v1,v2,v3) \
-        Printf("%s: %s = %ld %s=%ld %s=%ld\r\n",str,#v1,(uint32)v1,#v2,(uint32)v2,#v3,(uint32)v3)
-#define TraceDec4(str,v1,v2,v3,v4) \
-        Printf("%s: %s = %ld %s=%ld %s=%ld %s=%ld\r\n",str,#v1,(uint32)v1,#v2,(uint32)v2,#v3,(uint32)v3,#v4,(uint32)v4)
-
-
-#define Trace32_1(v1) \
-        Printf("=> %s = 0x%08lX \r\n",#v1,(uint32)v1);
-#define Trace32_2(v1,v2) \
-        Printf("=> %s = 0x%08lX %s=0x%08lX\r\n",#v1,(uint32)v1,#v2,(uint32)v2)
-#define Trace32_3(v1,v2,v3) \
-        Printf("=> %s = 0x%08lX %s=0x%08lX %s=0x%08lX\r\n",#v1,(uint32)v1,#v2,(uint32)v2,#v3,(uint32)v3)
-#define Trace32_4(v1,v2,v3,v4) \
-        Printf("=> %s = 0x%04X %s=0x%04X \r\n%s=0x%04X %s=0x%04X\r\n",#v1,(uint16)v1,#v2,(uint16)v2,#v3,(uint16)v3,#v4,(uint16)v4)
-
-
-#define Trace16_1(v1) \
-        Printf("=> %s = 0x%04X \r\n",#v1,(uint16)v1);
-#define Trace16_2(v1,v2) \
-        Printf("=> %s = 0x%04X %s=0x%04X\r\n",#v1,(uint16)v1,#v2,(uint16)v2)
-#define Trace16_3(v1,v2,v3) \
-        Printf("=> %s = 0x%04X %s=0x%04X %s=0x%04X\r\n",#v1,(uint16)v1,#v2,(uint16)v2,#v3,(uint16)v3)
-#define Trace16_4(v1,v2,v3,v4) \
-        Printf("=> %s = 0x%04X %s=0x%04X \r\n %s=0x%04X %s=0x%04X\r\n",#v1,(uint16)v1,#v2,(uint16)v2,#v3,(uint16)v3,#v4,(uint16)v4)
-
-
- 
-#define Trace8_1(v1) \
-        Printf("=> %s = 0x%02X \r\n",#v1,(uint8)v1);
-#define Trace8_2(v1,v2) \
-        Printf("=> %s = 0x%02X %s=0x%02X\r\n",#v1,(uint8)v1,#v2,(uint8)v2)
-#define Trace8_3(v1,v2,v3) \
-        Printf("=> %s = 0x%02X %s=0x%02X %s=0x%02X\r\n",#v1,(uint8)v1,#v2,(uint8)v2,#v3,(uint8)v3)
-#define Trace8_4(v1,v2,v3,v4) \
-        Printf("=> %s = 0x%02X %s=0x%02X \r\n%s=0x%02X %s=0x%02X\r\n",#v1,(uint8)v1,#v2,(uint8)v2,#v3,(uint8)v3,#v4,(uint8)v4)
-
-#define Trace16Ptr_1(ptr,v1) \
-        Printf("%s=%04Xh \r\n",#v1,ptr->v1)
-#define Trace16Ptr_2(ptr,v1,v2) \
-        Printf("%s=%04Xh %s=%04Xh \r\n",#v1,ptr->v1,#v2,ptr->v2)
-#define Trace16Ptr_3(ptr,v1,v2,v3) \
-        Printf("%s=%04Xh %s=%04Xh %s=%04Xh \r\n",#v1,ptr->v1,#v2,ptr->v2,#v3,ptr->v3)
-#define Trace16Ptr_4(ptr,v1,v2,v3,v4) \
-                Printf("%s=%04Xh %s=%04Xh \r\n %s=%04Xh %s=%04Xh \r\n",#v1,ptr->v1,#v2,ptr->v2,#v3,ptr->v3,#v4,ptr->v4)
-
-#define Trace32Ptr_1(ptr,v1) \
-        Printf("%s=%08lXh \r\n",#v1,(uint32)ptr->v1)
-#define Trace32Ptr_2(ptr,v1,v2) \
-        Printf("%s=%08lXh %s=%08lXh \r\n",#v1,(uint32)ptr->v1,#v2,(uint32)ptr->v2)
-#define Trace32Ptr_3(ptr,v1,v2,v3) \
-        Printf("%s=%08lXh %s=%08lXh %s=%08lXh \r\n",#v1,(uint32)ptr->v1,#v2,(uint32)ptr->v2,#v3,(uint32)ptr->v3)
-#define Trace32Ptr_4(ptr,v1,v2,v3,v4) \
-        Printf("%s=%08lXh %s=%08lXh \r\n %s=%08lXh %s=%08lXh \r\n",#v1,(uint32)ptr->v1,#v2,(uint32)ptr->v2,#v3,(uint32)ptr->v3,#v4,(uint32)ptr->v4)
+#include "debugprint.h"
 
 extern uint32  MeshNodeStatus;
 extern uint32  TraceProcCount;

@@ -20,10 +20,11 @@
 #define CHS_PREPARE_DATA        3
 #define CHS_SEND_DATA           4
 #define CHS_SERVER_SET          5
-
 #define CHS_SEND_DATA_END       6
+#define CHS_SEND_TO_CLIENT		7
 #define CHS_MODBUS_ERROR        10
 #define CHS_SEND_DATA_DELAY     20
+#define CHS_WAIT_TX_FINISHED	21
 
 
 #define MODBUS_TO_HOST_BUFF_NUM      30
@@ -96,6 +97,7 @@ typedef struct
 #define CNS_GET_INFO_END        0x10    // 
 
 #define CNS_WAIT_SET_INFO       0x11    // 
+#define CNS_GET_A308_INFO		0x12
 
 
 
@@ -285,7 +287,9 @@ void ClientSetNodeInfoProc();
 
 void ClientFromHostProc();
 
-void ClientPropertyEvent();
+void ClientSeriesEvent(msg_ms_client_series_status_evt *pEvent);
+void ClientColumnEvent(msg_ms_client_column_status_evt *pEvent);
+void ClientPropertyEvent(msg_ms_client_status_evt *pEvent);
 void PropertyLcd();
 bool PrepareModbusCmd();
 bool SendModbusToHost();

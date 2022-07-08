@@ -41,6 +41,7 @@ bool CheckUltraSound();
 bool CheckA6D6();
 bool CheckCDMCo2();
 bool CheckBtmG6();
+bool GetCustomSerial();
 
 
 uchar ScanRs485Device();

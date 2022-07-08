@@ -31,8 +31,8 @@
 #define BAUDRATE_CLOSE              0xFF
 
 #define MAX_BAUD_RATE_NUM           14
-#define USART_TX_BUFF_SIZE          50
-#define USART_RX_BUFF_SIZE          50 //Bug
+#define USART_TX_BUFF_SIZE          (255+5+2)//50
+#define USART_RX_BUFF_SIZE          (255+5+2)//50 //Bug
 
 
 
@@ -88,6 +88,7 @@
 #define USART_RX_WAITING            BIT4
 #define USART_RX_ING                BIT5
 #define USART_RX_END                BIT6
+#define USART_RX_CRC_ERROR			BIT7
 
 #define USART_FREE                  0x00
 
@@ -117,7 +118,7 @@
 
 
 extern uchar volatile CounterRx,CounterTx;
-extern uchar RxBuff[];
+extern uchar *RxBuff;//[];
 extern uchar UsartCounterTx,UsartCounterRx;
 
 void UsartInit(void);
@@ -152,7 +153,7 @@ bool UsartGetStatusRxIng();
 void UsartMonitor();
 void UsartMonitor1ms();
 
-bool UsartTxSendCmd(PUCHAR pBuff,uchar size);
+bool UsartTxSendCmd(PUCHAR pBuff,uint16 size);
 void UsartShowDataRx();
 void UsartIrq(uchar    dir,uchar status);
 bool CheckModbusCrc(PUCHAR pbuff, uchar len);

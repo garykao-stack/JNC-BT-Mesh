@@ -114,9 +114,12 @@ uint32 EvtMeshSensorClientProc(PCmdPacket pEvent)
     msg_ms_client_descriptor_status_evt *pDescriptorStatus;
     msg_ms_client_status_evt *pClientStatus;
     msg_ms_client_setting_status_evt *pSetting;
+    msg_ms_client_column_status_evt *pColumnStatus;
+    msg_ms_client_series_status_evt *pSeriesStatus;
     pDescriptorStatus = &(pEvent->data.evt_mesh_sensor_client_descriptor_status);
     pClientStatus = &(pEvent->data.evt_mesh_sensor_client_status);
-    
+    pColumnStatus= &(pEvent->data.evt_mesh_sensor_client_column_status);
+    pSeriesStatus=&(pEvent->data.evt_mesh_sensor_client_series_status);
     uint32    event_id;
     event_id = BGLIB_MSG_ID(pEvent->header);
     
@@ -125,9 +128,15 @@ uint32 EvtMeshSensorClientProc(PCmdPacket pEvent)
             case Evt_ms_client_descriptor_status:   //Trace("Evt_ms_client_descriptor_status");// to scan all server node 
                 ClientDescriptorStatus(pDescriptorStatus);
                 break;
-            case Evt_ms_client_status: 
+            case Evt_ms_client_status:
                 ClientPropertyEvent(pClientStatus);
                 break;
+            case Evt_ms_client_column_status:
+            	ClientColumnEvent(pColumnStatus);
+            	break;
+            case Evt_ms_client_series_status:
+            	ClientSeriesEvent(pSeriesStatus);
+            	break;
             case Evt_ms_client_setting_status: //Trace("Evt_ms_client_setting_status");
                 pSetting = &(pEvent->data.evt_mesh_sensor_client_setting_status);
                 break;

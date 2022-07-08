@@ -318,6 +318,8 @@ typedef struct _NodeEventInfo_
 }_NodeEventInfo, *PNodeEventInfo;
 
 
+
+
 #pragma pack(pop)
 
 
@@ -350,6 +352,7 @@ typedef struct _NodeEventInfo_
 #define SENSOR_BTM_MESH_INFO 18     // return BTM Mesh Infomation
 #define SENSOR_BTM_G6        19     // for G6 Control
 #define SENSOR_VELOCITY      20     // for G6 Control
+#define SENSOR_CUSTOM_SERIAL 0xff
 
 
 
@@ -400,7 +403,7 @@ typedef struct _NodeEventInfo_
 #define TIMER_GET_INFO_FULL_POWER   2 //5 // xxx Sec
 #define TIMER_GET_INFO_SLEEPING     (pMeshNodeData->WorkingTimer)//18 //62 //18 // xxx sec
 #define TIMER_SERVER_SLEEPING       (TIMER_GET_INFO_SLEEPING - 2)    
-#define TIMER_CLI_WAIT_INFO         WAIT_SEC(2)//WAIT_SEC(4) //WAIT_SEC(3)
+#define TIMER_CLI_WAIT_INFO         WAIT_SEC(4)  //2 //WAIT_SEC(4) //WAIT_SEC(3)
 #define TIMER_SERVER_DELAY          40  //ms
 #define TIMER_SERVER_SENS_INFO      (pMeshNodeData->MeshNodeID*TIMER_SERVER_DELAY)
 
@@ -439,19 +442,23 @@ typedef struct _NodeEventInfo_
 
 
 ///Client node
-#define NS_USART_RX_EVENT       BIT10    //
+//#define NS_USART_RX_EVENT       BIT10    //
 #define NS_CLIENT_GET_INFO      BIT11    //
 #define NS_CLIENT_SET_INFO      BIT12    //
 #define NS_CLIENT_CHANGE_POWER  BIT13    // Change System Power Status
+#define NS_USART_RX_ERROR		BIT14
+#define NS_USART_RX_EVENT       BIT15    //
 
 
 
 //Server node
-#define NS_GET_SENSOR_INFO      BIT16    // star to get sensor information
+//#define NS_GET_SENSOR_INFO      BIT16    // star to get sensor information
+#define NS_TRANS_SERIAL_DATA    BIT16
 #define NS_GET_SENSOR_ERR       BIT17    // 
 #define NS_GET_SENSOR_OK        BIT18    // get sensor info ending
 #define NS_SERVER_RS485_ENABLE  BIT19    // RS-485 Enable: Get info from RS-485 sensor
 #define NS_G6_READY             BIT20    // sensor ready to get information
+#define NS_A308_GET_INFO		BIT21
 
 
 
@@ -471,11 +478,13 @@ typedef struct _NodeEventInfo_
 
 
 
-
+#ifndef STATE_CHANGE_PRINT
+#define STATE_CHANGE_PRINT Printf
+#endif
 
 #define ActiveStage()               pStageInfo->Stage
-#define ToNextStage(stage)          do{pStageInfo->Stage = stage;Printf("==> To Step %s .\r\n",#stage);}while(0)
-#define ToWaitingStage(stage,timer) do{pStageInfo->Stage = stage;Printf("==> To Step %s . Wait:%d.\r\n",#stage,timer);}while(0); pStageInfo->Timer = timer
+#define ToNextStage(stage)          do{pStageInfo->Stage = stage;STATE_CHANGE_PRINT("==> To Step %s .\r\n",#stage);}while(0)
+#define ToWaitingStage(stage,timer) do{pStageInfo->Stage = stage;STATE_CHANGE_PRINT("==> To Step %s . Wait:%d.\r\n",#stage,timer);}while(0); pStageInfo->Timer = timer
 //#define ToWaitingStage(stage,timer) pStageInfo->Stage = stage; pStageInfo->Timer = timer
 
 //#define ToNextSensorStage(stage) SensorStage = stage

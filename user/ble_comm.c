@@ -16,13 +16,20 @@
 #include "bus_rs485.h"
 #include "ble_comm.h"
 
+#ifdef BTM_A308
+#include "A308_Server.h"
+#endif
 
 //PRspResult  pResult;
 Result result;
 _MeshNodeInfo MeshNodeInfo;
 _PTimerEventTask pDeviceTask;
 extern _TimerEventTask DeviceTaskTbl[];
+extern void ClientTimer_10ms();
+extern void Modbus_Timer();
+
 uchar PowerKeyCount;
+
 
 void BleCommInit()
 {
@@ -194,6 +201,11 @@ void SetTaskWork(PTimerTask p_task,uint16 status)
 void CheckStageTimer()
 {
     CheckNodeTimerCount();
+    ClientTimer_10ms();
+    Modbus_Timer();
+#ifdef BTM_A308
+    A308_TimeEvent();
+#endif
 }
 
 extern uint16 ActMotoSpeed;

@@ -209,7 +209,7 @@ typedef struct electric_current_statistics {
  * The Energy characteristic is used to represent a measure of energy in units of kilowatt hours.
  * Unit is kilowatt-hour with a resolution of 1.
  * Format UINT24, ranging from 0 to 16777214.
- * A value of 0xFFFFFF represents ?˜value is not known??
+ * A value of 0xFFFFFF represents ?ï¿½value is not known??
  */
 typedef uint32_t energy_t;
 
@@ -1082,6 +1082,7 @@ typedef enum mesh_device_properties_e {
   NODE_GET_INFO_FULL_POWER_ON                   = 0x8036,     // for Full Speed Enable
   NODE_GET_INFO_FULL_POWER_OFF                  = 0x8037,     // for Full Speed Disable
   NODE_GET_BTM_INFO                             = 0x8038,     // Get Node information for APP
+  NODE_GET_A308_TABLE							= 0x8039,	  // Gget A308 Table
 
   
   NODE_GET_WATER_LEVEL                          = 0x803D,     // get water level info
@@ -1139,7 +1140,9 @@ typedef enum mesh_device_properties_e {
   MENU_POWER_4           = 0x8204, 
   CLEAR_FILTER1          = 0x8301,
   CLEAR_ALL_FILTER       = 0x8302,
-  JNC_DEF_ENDING                                = 0xF000          // 
+  JNC_DEF_ENDING                                = 0xF000,          //
+  CUSTOM_SERIAL_DATA	=0xFFFF
+
 } mesh_device_properties_t;
 
 #define BTM_G6_CMD_START       AUTO_POWER_0

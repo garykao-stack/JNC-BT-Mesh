@@ -64,7 +64,10 @@ uchar CheckRs485Device(int16 connectTryCount)
 
 #ifdef BT_MESH_G6
        pMeshNodeData->SensorClass = SENSOR_BTM_G6;
+#elif defined(BTM_TRANSMITTER)
+       pMeshNodeData->SensorClass = SENSOR_CUSTOM_SERIAL;
 #endif
+
     TraceDec1("BTM Sensor", pMeshNodeData->SensorClass);
     if(pMeshNodeData->SensorClass == SENSOR_PZEM){
         CHECK_RS485_CMD((PUCHAR)&PzemClean[0],sizeof_array(PzemClean)); UsartResetRxTx(USART_ID_TX_RX);
@@ -94,7 +97,13 @@ uchar CheckRs485Device(int16 connectTryCount)
         SetNodeStatus(NS_SERVER_RS485_ENABLE,ON);
         rs485_dev = SENSOR_VELOCITY; goto Check485_End;
         }
-    
+#ifdef BTM_TRANSMITTER
+    else if(pMeshNodeData->SensorClass == SENSOR_CUSTOM_SERIAL){
+    	pFunSensor = GetCustomSerial;GetDeviceInfoDelay = 5;
+        SetNodeStatus(NS_SERVER_RS485_ENABLE,OFF);
+        rs485_dev = SENSOR_CUSTOM_SERIAL; goto Check485_End;
+    }
+#endif
 
     if(Si7013_Detect(I2C0, SI7021_ADDR, NULL) == TRUE)
       {
@@ -122,8 +131,6 @@ uchar CheckRs485Device(int16 connectTryCount)
                 if(CheckPT485() != TRUE)    rs485_dev  = SENSOR_DISCONNECT;  break;
             case SENSOR_AIP:
                 if(CheckAIP() != TRUE)      rs485_dev  = SENSOR_DISCONNECT; break;
-            case SENSOR_A308M:
-                if(CheckA308M() != TRUE)    rs485_dev  = SENSOR_DISCONNECT; break;
             case SENSOR_WATER_LEVEL:
                 if(CheckWaterLevel() != TRUE) rs485_dev  = SENSOR_DISCONNECT;  break;
             case SENSOR_JNC_SD:
@@ -136,6 +143,8 @@ uchar CheckRs485Device(int16 connectTryCount)
                 if(CheckIaqs() != TRUE)     rs485_dev  = SENSOR_DISCONNECT;  break;
             case SENSOR_CW9:
                 if(CheckCw9() != TRUE)      rs485_dev  = SENSOR_DISCONNECT; break;
+            case SENSOR_A308M:
+                if(CheckA308M() != TRUE)    rs485_dev  = SENSOR_DISCONNECT; break;
 #ifdef  BT_MESH_G6
                 
             case SENSOR_BTM_G6:
@@ -169,6 +178,8 @@ Assigned:
 
 
 Check485_End:    
+
+	dprint("*** CheckRs485Device: %d\r\n", rs485_dev);
     if(rs485_dev == SENSOR_SI7021 || rs485_dev == SENSOR_RELAY){
          SetNodeStatus(NS_SERVER_RS485_ENABLE,OFF);
         }
@@ -408,7 +419,6 @@ bool CheckAIP()
     return ret_code;
 }
 
-
 const uchar A308MResetCmd[4][8]=
 {
     {0x01, 0x06, 0x00, 0x0C, 0x00, 0x00, 0x49, 0xC9, }, //Reset X Bias
@@ -418,6 +428,7 @@ const uchar A308MResetCmd[4][8]=
 };
 void ResetA308M()
 {
+	dprint("*** RestA308M ***\r\n");
  CHECK_RS485_CMD((PUCHAR)&A308MResetCmd[0],8); UsartResetRxTx(USART_ID_TX_RX);Delay_ms(1000); SetLedToggle(LED_GREEN);
  CHECK_RS485_CMD((PUCHAR)&A308MResetCmd[1],8); UsartResetRxTx(USART_ID_TX_RX);Delay_ms(1000); SetLedToggle(LED_GREEN);
  CHECK_RS485_CMD((PUCHAR)&A308MResetCmd[2],8); UsartResetRxTx(USART_ID_TX_RX);Delay_ms(1000); SetLedToggle(LED_GREEN);

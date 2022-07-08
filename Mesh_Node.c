@@ -18,6 +18,10 @@
 #include "mesh_sensor.h"
 #include "Mesh_Node.h"
 
+#ifdef BTM_A308
+#include "A308_Server.h"
+#endif
+
 
 uchar   CountErr;
 uint16  NodeStage;
@@ -59,18 +63,20 @@ uint16  NodeWaitingTimer,GetSensorTimer;
 PNodeStageInfo pStageInfo;
 
 
-
-
 void MeshNodeInit()
 {
     SetWaitTimer(0);
     NodeStatus = 0;
     pNodeEventInfo = &NodeEventInfo;
     SetEventTaskTimer(TD_STAGE_TIMER,  TIMER_STAGE_WAITING,TIMER_EVENT_REPEAT);
+#ifdef BTM_A308
+    A308_Initialize();
+#endif
+
     if(NodeRole == NR_SETUP)BtMeshSetupInit();
-    else if(NodeRole == NR_CLIENT) ClientNodeInit();
-    else if(NodeRole == NR_SERVER) ServerNodeInit();
-    else if(NodeRole == NR_SETUP_SERVER) ServerSetupNodeInit();
+    else if(NodeRole == NR_CLIENT) {printf("Node Role: Client\r\n");ClientNodeInit();}
+    else if(NodeRole == NR_SERVER) {printf("Node Role: Server\r\n");ServerNodeInit();}
+    else if(NodeRole == NR_SETUP_SERVER) {printf("Node Role: Setup Server\r\n");ServerSetupNodeInit();}
     else {ServerNodeInit();} //default server node
 }
 
