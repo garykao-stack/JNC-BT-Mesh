@@ -166,7 +166,9 @@ void UsartPrintBuff(uchar rx_tx);
 void UsartClientProc();
 bool CheckUsartRxCmd();
 
-
+uint16 MbsSend(uint8 *data,uint16 len);
+uint16 MbsResponseError(uint8 id, uint8 fun, uint8 err);
+void MbsSetReadRegCmd(uint8 id, uint8 func, uint16 loc, uint16 len);
 
 
 

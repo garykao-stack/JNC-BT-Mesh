@@ -676,3 +676,37 @@ uint16   ModbusRtu_CRC16(uchar *updata,uint16 len)
 }
 
 
+
+uint16 MbsSend(uint8 *data,uint16 len){
+	uint16 crc;
+	PUCHAR tx = UsartGetBuff(USART_ID_TX);
+	if (tx!=data) memcpy(tx,data,len);
+	crc=ModbusRtu_CRC16(data, len);
+	tx[len]=crc&0xff;
+	tx[len+1]=crc>>8;
+	return UsartTxSendCmd(tx,len+2);
+}
+
+uint16 MbsResponseError(uint8 id, uint8 fun, uint8 err){
+	PUCHAR tx = UsartGetBuff(USART_ID_TX);
+	tx[0]=id;
+	tx[1]=0x80|fun;
+	tx[2]=err; /* function error */
+	return MbsSend(tx,3);
+}
+
+void MbsSetReadRegCmd(uint8 id, uint8 func, uint16 loc, uint16 len){
+	uint16 crc;
+	PUCHAR data = UsartGetBuff(USART_ID_TX);
+	data[0]=id;
+	data[1]=func;
+	data[2]=loc>>8;
+	data[3]=loc&0xff;
+	data[4]=len>>8;
+	data[5]=len&0xff;
+	crc=ModbusRtu_CRC16(data, 6);
+	data[6]=crc&0xff;
+	data[7]=crc>>8;
+	UsartTxSendCmd(data,8);
+}
+

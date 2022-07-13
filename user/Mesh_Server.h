@@ -54,6 +54,8 @@
 #define SNS_WAIT_UART_RSP		12
 #define SNS_SEND_UART_RSP		13
 #define SNS_SEND_A308_INFO		14
+#define SNS_A308_FETCH_INFO		15
+#define SNS_WAIT_A308_CMD		16
 
 
 #define SNS_SET_INFO_INIT       0x00

@@ -357,7 +357,10 @@ void ClientGetNodeInfoProc()
                 SetLed(LED_SERVER,OFF); 
                 SetNodeStatus(NS_GET_INFO_ACT,OFF);
                 if(RespServerNode == 0) {ToWaitingStage(CNS_WAIT_SET_INFO,100);}
-                else {ToWaitingStage(CNS_WAIT_SET_INFO,GetInfoCycle);}
+                else {
+                	dprint("*** Wait %d(ms) for next time.\r\n",GetInfoCycle*10);
+                	ToWaitingStage(CNS_WAIT_SET_INFO,GetInfoCycle);
+                }
                 break;
             case CNS_WAIT_SET_INFO: 
                 if(GetNodeStatus(NS_LINKING) ==ON) break;
@@ -421,8 +424,11 @@ void ClientGetNodeInfoProc()
                 	GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_FULL_POWER);
 #endif
                 else
+#ifdef BTM_A308
+                	GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_SLEEPING+10);
+#else
                 	GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_SLEEPING);
-                    
+#endif
                 ToNextStage(CNS_GET_INFO_END); 
                 break;
 
@@ -533,6 +539,7 @@ void ClientTimer_10ms(){
 
 }
 
+bool ClientModbusResponse();
 
 uchar SendDataDelay;
 //
@@ -557,7 +564,7 @@ void ClientFromHostProc()
         	}
 #elif defined(BTM_A308)
 			{
-				if(A308_Client_Modbus_Response())
+				if(ClientModbusResponse())
 					ToNextStage(CHS_WAIT_TX_FINISHED);
 				else
 					ToNextStage(CHS_MODBUS_ERROR);
@@ -771,6 +778,8 @@ void ClientPropertyEvent(msg_ms_client_status_evt *pEvent)
                     case NODE_GET_INFO_FULL_POWER_ON: 
                     case NODE_GET_INFO_FULL_POWER_OFF:
                         memcpy(&(pClientInfo->SensorInfo),property_data,property_len);
+                        dprint("** Received Info Class:%d, Battery Power:%d\r\n",pClientInfo->SensorInfo.Header.SensorClass,pClientInfo->SensorInfo.Header.BatteryPower);
+
                         GetPropertyID = NODE_GET_ALL_SENSOR;  // recover data
                         break;
                     case CUSTOM_SERIAL_DATA:
@@ -859,7 +868,7 @@ bool ClientPrepareToHost()
     else
 #endif        
         sensor_class = pClientInfo->SensorInfo.Header.SensorClass;
-    
+
     switch(sensor_class)
         {
             case SENSOR_SI7021:     ret_code = ClientSkynet(&pClientInfo->SensorInfo.Si7021Info);
@@ -1477,6 +1486,7 @@ bool ClientPzem(PPzem p_info)
     return ret_code;
 }
 
+
 //
 //
 //
@@ -1495,6 +1505,11 @@ bool ClientRelay(PRelayNode p_info)
       }
     else{ret_code=FALSE;}
     return ret_code;
+}
+
+uint16 ClientGetRelayRegister(uint16 loc){
+	if (loc==BATTERY_POWER) return (uint16)(pClientInfo->SensorInfo.Header.BatteryPower);
+	return 0;
 }
 
 
@@ -1603,6 +1618,35 @@ bool ClientVelocity(PVelocity p_info)
 
 
 
+bool ClientModbusResponse(){
+	uint16 (*getValueFunc)(uint16 loc);
+	UCHAR *rx=UsartGetBuff(USART_ID_RX);
+	UCHAR *tx=UsartGetBuff(USART_ID_TX);
+	uint16 start=(((uint16)rx[2])<<8) | rx[3];
+	uint16 len=(((uint16)rx[4])<<8) | rx[5];
+	uint16 *values=(void*)&tx[3];
+	if(len>127 )return MbsResponseError(rx[0],rx[1],0x02); /* location error*/
+
+
+	if((pClientInfo = GetServerInfoPos(rx[0]))== NULL) return FALSE;
+	switch(pClientInfo->SensorInfo.Header.SensorClass){
+#ifdef BTM_A308
+	case SENSOR_A308M:
+		return A308_Client_Modbus_Response();
+#endif
+	case SENSOR_RELAY: getValueFunc=ClientGetRelayRegister; break;
+	default:
+		return FALSE;
+	}
+
+	tx[0]=rx[0];
+	tx[1]=rx[1];
+	tx[2]=len*2;
+
+	for(uint16 i=0; i<len;i++)	values[i]=WordSwap(getValueFunc(start+i));
+
+	return MbsSend(tx,len*2+3);
+}
 
 
 void ShowAllNodeInfo(void)

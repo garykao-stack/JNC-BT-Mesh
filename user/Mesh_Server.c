@@ -3,7 +3,7 @@
 #include "global.h"
 
 #define SERVER_NODE_DEBUG 1
-#define STATE_CHANGE_DEBUG 0
+#define STATE_CHANGE_DEBUG 1
 
 #if SERVER_NODE_DEBUG
 #undef DEBUG_FUNCTION
@@ -169,8 +169,8 @@ void ServerSetPowerStatus()
     else{
        SetNodeStatus(NS_FULL_POWER,OFF);   // start to get sensor info
       }
-    if(GetNodeStatus(NS_FULL_POWER) == ON) Trace("Full Power");
-    else Trace("Battery Power");
+    if(GetNodeStatus(NS_FULL_POWER) == ON) dprint("\r\nFull Power\r\n");
+    else dprint("\r\nBattery Power\r\n");
     
 }
 
@@ -459,16 +459,33 @@ void ServerGetInfoProc()
                 ToNextStage(SNS_PRE_WAITING);   //default
                 break;
             case SNS_PRE_WAITING: 
-                ToWaitingStage(SNS_GET_INFO,GetDeviceInfoDelay); 
-                CountErr = 0;
+            	CountErr = 0;
+#if BTM_A308
+            	A308_ResetModbusCmd();
+            	ToWaitingStage(SNS_A308_FETCH_INFO,WAIT_MS(A308_Fetch_Timeout_Ms()+100));
+            	break;
+            case SNS_A308_FETCH_INFO:
+            	if(CheckWaitTimeOut()||A308_Connected()){
+            		dprint("A308 Connect:%d\r\n",A308_Connected());
+            		//A308_ResetModbusCmd();
+            		//A308_StopModbusAction();
+            		ToWaitingStage(SNS_GET_INFO,0);
+            	}
+#else
+            	ToWaitingStage(SNS_GET_INFO,GetDeviceInfoDelay);
+#endif
                 break;
+
             case SNS_GET_INFO: 
             	CHECK_FORWARD_DATA;
 
                 if((GetNodeStatus(NS_SYS_NO_WAITING) == ON) || CheckWaitTimeOut() == TRUE){
                     //Trace("SNS_GET_INFO 1");
-                	if(UsartIsBusy()) return;
-                    Printf("GET_INFO: pFunSensor:%d, NULL:%d\r\n",(int)pFunSensor,(int16)NULL);
+                	if(UsartIsBusy()) {
+                		dprint("uart is busy\r\n");
+                		return;
+                	}
+                    dprint("GET_INFO: pFunSensor:%d, NULL:%d\r\n",(int)pFunSensor,(int16)NULL);
                     if((pFunSensor!= NULL) && (GetSensorInfo() == TRUE) ){
 						if(pFunSensor==GetRelay){
 							CheckRs485Device(3);
@@ -506,7 +523,9 @@ void ServerGetInfoProc()
 
             	}//response Client Mesh message
             	else if(GetNodeStatus(NS_GET_INFO_ACT)){
+            		SetNodeStatus(NS_A308_GET_FINISHED,OFF);
                     SetLedStatus(LED_STATUS_ACTIVE);
+                    dprint("Step: NS_GET_INFO_ACT, Sleep:%d\r\n",GetNodeStatus(NS_SLEEPING));
                     if(GetNodeStatus(NS_SLEEPING))
                       {ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);} // go to sleeping from host                        
                     else{
@@ -585,9 +604,9 @@ void ServerGetInfoProc()
                 	dprint("SNS_SEND_INFO Error!. go to Sleep\r\n");
                 } // err: go to sleeping
             
+                dprint("SNS_SEND_INFO ServerInfo.NodeInfoSize:%d\r\n",ServerInfo.NodeInfoSize);
                 if(ServerInfo.NodeInfoSize>0) result=SendInfoToClient();
                 else{
-                	dprint("SNS_SEND_INFO ServerInfo.NodeInfoSize:%d\r\n",ServerInfo.NodeInfoSize);
                 	result=TRUE;
                 }
 
@@ -595,10 +614,13 @@ void ServerGetInfoProc()
                     {
                      SetNodeStatus(NS_GET_INFO_ACT,OFF);
 
-                     if(GetNodeStatus(NS_A308_GET_INFO))
-                    	 ToNextStage(SNS_SEND_A308_INFO);
-                     else
-                    	 ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
+                     if(GetNodeStatus(NS_A308_GET_INFO))	ToNextStage(SNS_SEND_A308_INFO);
+#ifdef BTM_A308
+                     //else if(pMeshNodeData->SensorClass==SENSOR_A308M)	ToWaitingStage(SNS_WAIT_A308_CMD,WAIT_SEC(30*15));
+                     else ToWaitingStage(SNS_WAIT_A308_CMD,WAIT_SEC(30*15));
+#else
+                     else ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
+#endif
 
                     }   // waiting to sleeping
                 else{
@@ -608,14 +630,26 @@ void ServerGetInfoProc()
                     }
 
                 break;
-#if BTM_A308
+#ifdef BTM_A308
             case SNS_SEND_A308_INFO:
-
+            	CHECK_FORWARD_DATA;
             	result=A308_SendToClient();
             	if(result==0){ //proccess has been finished. move to next step.
             		SetNodeStatus(NS_A308_GET_INFO,OFF);
-            		ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
+            		ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING+WAIT_SEC(10)); /*多預留一點時間，提供Client接收不完整時重試*/
             	}
+            	break;
+            case SNS_WAIT_A308_CMD:
+            	CHECK_FORWARD_DATA;
+            	if(GetNodeStatus(NS_GET_INFO_ACT)){
+            		ToNextStage(SNS_EVENT_WAITING);
+            	}else if(GetNodeStatus(NS_A308_GET_INFO)){
+					ToNextStage(SNS_SEND_A308_INFO);
+				}else if(CheckWaitTimeOut()||GetNodeStatus(NS_A308_GET_FINISHED)){
+					SetNodeStatus(NS_A308_GET_FINISHED,OFF);
+					ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
+				}
+
             	break;
 #endif
 
@@ -625,14 +659,15 @@ void ServerGetInfoProc()
 					ToNextStage(SNS_SEND_A308_INFO);
 					break;
 				}
-                if(CheckWaitTimeOut())
-                    {
-                     //if(GetNodeStatus(NS_FULL_POWER) == ON)
-                     if(GetNodeStatus(NS_FULL_POWER) == ON || GetNodeStatus(NS_FORCE_FULL_POWER) == ON)
-                        {SetLedStatus(LED_STATUS_SLEEP); ToNextStage(SNS_WAKE_UP);}
-                     else
-                        {SetNodeSleeping(ON);  ToNextStage(SNS_SLEEPING);}
-                    }
+                if(CheckWaitTimeOut()){
+                     if(GetNodeStatus(NS_FULL_POWER) == ON || GetNodeStatus(NS_FORCE_FULL_POWER) == ON){
+                    	 dprint("*** Full Power Mode ***\r\n");
+                    	 SetLedStatus(LED_STATUS_SLEEP); ToNextStage(SNS_WAKE_UP);
+                     }else{
+                    	 dprint("*** Lowe Power Mode ***\r\n");
+                    	 SetNodeSleeping(ON);  ToNextStage(SNS_SLEEPING);
+                     }
+                }
                     
                 break;
             case SNS_SLEEPING: 
@@ -1514,6 +1549,9 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
 			}else{
 				dprint("request uart data len is over(%d/%d)\r\n",ext->len,USART_TX_BUFF_SIZE);
 			}
+		}else if(pEvent->property_id==NODE_GET_A308_TABLE){
+			dprint("request A308 Table flag:0x%08X\r\n",*(uint32*)ext->data);
+			A308_GetInfo_Set_Flag(*(uint32*)ext->data);
 		}
 
     }
@@ -1548,6 +1586,10 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
     else if(pEvent->property_id >= BTM_G6_CMD_START && pEvent->property_id <= BTM_G6_CMD_END){//Trace("G6-Setup");
              SetNodeStatus(NS_SET_NODE_ACT,ON);  // Mesh set event active
         }
+    else if(pEvent->property_id==NODE_A308_GET_FINISHED){
+    	SetNodeStatus(NS_A308_GET_FINISHED,ON);
+    	dprint("\r\nA308 Receive Get info fhinised notify.\r\n");
+    }
     else{
         ToClientBuf[0] = pEvent->property_id & 0xFF;
         ToClientBuf[1] = ((pEvent->property_id) >> 8) & 0xFF;

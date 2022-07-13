@@ -91,7 +91,7 @@ typedef struct _EventFun_
 
 #define STAGE_TIMER_COUNT       10 //10ms every time
 #define WAIT_MS(x)              ((x)/STAGE_TIMER_COUNT) // x must > 10ms
-#define WAIT_SEC(x)             ((1000*x)/STAGE_TIMER_COUNT)
+#define WAIT_SEC(x)             ((1000*(x))/STAGE_TIMER_COUNT)
 
 #define TIMER_STAGE_WAITING     (TIMER_1MS*STAGE_TIMER_COUNT)
 #define TIMER_MAX_WAKE_UP       TIMER_10SEC    // max wake up time 0: do not to sleeping

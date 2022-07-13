@@ -1141,7 +1141,9 @@ typedef enum mesh_device_properties_e {
   CLEAR_FILTER1          = 0x8301,
   CLEAR_ALL_FILTER       = 0x8302,
   JNC_DEF_ENDING                                = 0xF000,          //
-  CUSTOM_SERIAL_DATA	=0xFFFF
+
+  NODE_A308_GET_FINISHED = 0xFFFE,
+  CUSTOM_SERIAL_DATA	=	0xFFFF
 
 } mesh_device_properties_t;
 

@@ -243,6 +243,7 @@ uint32 EvtSoftTimerProc(PCmdPacket pEvent)
             break;
         case TD_NODE_WAKE_UP:// Trace("TD_NODE_WAKE_UP");
             SetNodeSleeping(OFF); 
+            dprint("\r\n***** Wake UP by Timer *****\r\n");
             break;
 //////////////////////////////////// for Client Timer event ///////////////////////////////////////      
         case TD_TASK_CLIENT_SCAN_SERVER: //Trace("TD_TASK_CLIENT_SCAN_SERVER");
@@ -615,7 +616,10 @@ void SetForceFullPowerTime(uchar status)
         {//ON
          
          if(NodeRole == NR_CLIENT)  ClientGetInfoActionNow();
-         else {ServerGetInfoActionNow(); SetNodeSleeping(OFF);}
+         else {
+        	 ServerGetInfoActionNow(); SetNodeSleeping(OFF);
+        	 dprint("\r\n***** Wake Up by SetForceFullPowerTime\r\n");
+         }
 
          SetNodeStatus(NS_FORCE_FULL_POWER,ON);
          ForcePowerCounter = 60*60; //60 Min to close

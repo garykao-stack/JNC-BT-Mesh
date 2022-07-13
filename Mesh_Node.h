@@ -459,6 +459,7 @@ typedef struct _NodeEventInfo_
 #define NS_SERVER_RS485_ENABLE  BIT19    // RS-485 Enable: Get info from RS-485 sensor
 #define NS_G6_READY             BIT20    // sensor ready to get information
 #define NS_A308_GET_INFO		BIT21
+#define NS_A308_GET_FINISHED	BIT22
 
 
 
@@ -484,7 +485,7 @@ typedef struct _NodeEventInfo_
 
 #define ActiveStage()               pStageInfo->Stage
 #define ToNextStage(stage)          do{pStageInfo->Stage = stage;STATE_CHANGE_PRINT("==> To Step %s .\r\n",#stage);}while(0)
-#define ToWaitingStage(stage,timer) do{pStageInfo->Stage = stage;STATE_CHANGE_PRINT("==> To Step %s . Wait:%d.\r\n",#stage,timer);}while(0); pStageInfo->Timer = timer
+#define ToWaitingStage(stage,timer) do{pStageInfo->Stage = stage;STATE_CHANGE_PRINT("==> To Step %s . Wait:%d.\r\n",#stage,timer);pStageInfo->Timer = timer;}while(0)
 //#define ToWaitingStage(stage,timer) pStageInfo->Stage = stage; pStageInfo->Timer = timer
 
 //#define ToNextSensorStage(stage) SensorStage = stage

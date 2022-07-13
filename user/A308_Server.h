@@ -17,6 +17,9 @@ uint16 A308_SendToClient();
 bool A308_Client_Modbus_Response();
 bool A308_Connected();
 bool A308_Client_GetInfo();
-
+void A308_ResetModbusCmd();
+uint16 A308_Fetch_Timeout_Ms();
+void A308_StopModbusAction();
+void A308_GetInfo_Set_Flag(uint32 status);
 
 #endif /* USER_A308_SERVER_H_ */

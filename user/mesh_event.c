@@ -237,11 +237,12 @@ uint32 EvtMeshSensorInitProc(PCmdPacket pEvent)
 #endif  
         DI_Print("provisioned", DI_ROW_STATUS);
         SetNodePublish(OFF); SetNodeSleeping(OFF);
+        dprint("\r\n***** Wake UP by Provisioned\r\n");
         
-    if(NodeRole == NR_SETUP) {Trace("BT Mesh Setup ON 1");
-        SetEventTaskTimer(TD_PROVISIONING,TIMER_UNPROVISION,TIMER_EVENT_REPEAT);
-        SetLed(LED_RED,OFF);SetLed(LED_BLUE,ON);
-    }
+		if(NodeRole == NR_SETUP) {Trace("BT Mesh Setup ON 1");
+			SetEventTaskTimer(TD_PROVISIONING,TIMER_UNPROVISION,TIMER_EVENT_REPEAT);
+			SetLed(LED_RED,OFF);SetLed(LED_BLUE,ON);
+		}
     
     }
     else

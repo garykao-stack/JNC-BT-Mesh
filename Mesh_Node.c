@@ -151,6 +151,7 @@ void SetSleepingTimer(uchar status)
     if(status == ON)
         {// sleeping on
         sleeping_timer = (TIMER_SERVER_SLEEPING*1000 - TIMER_SERVER_SENS_INFO)-(uint32)GetDeviceInfoDelay;;
+        dprint("sleep for sleeping_timer %d(ms)\r\n",sleeping_timer);
         SetEventTaskTimer(TD_NODE_WAKE_UP,      sleeping_timer, TIMER_EVENT_ONCE);
         SetEventTaskTimer(TD_NO_EVENT,          TIMER_ENDING, TIMER_EVENT_ONCE); 
         SetEventTaskTimer(TD_GET_SENSOR_INFO,   TIMER_ENDING, TIMER_EVENT_ONCE);
@@ -200,6 +201,7 @@ void SetSleeping(uchar status)
     if(status == ON)
       { //sleeping
       //Trace("SetSleeping ON");
+    	dprint("************ Enter Sleep Mode ************\r\n");
         SetMeshNodeStatus(STATUS_SLEEPING,ON);
         SetNodeStatus(NS_SLEEPING,ON);
         SystemPower(OFF); 
@@ -215,6 +217,7 @@ void SetSleeping(uchar status)
         SystemPower(ON);
         SetLedStatus(LED_STATUS_ACTIVE);
         if(GetNodeStatus(NS_SERVER_RS485_ENABLE) == ON)  SetLedStatus(LED_STATUS_SERVER_TO_RS485);
+        UsartResetRxTx(USART_ID_TX_RX);
       }
     
 }
