@@ -526,16 +526,22 @@ void ServerGetInfoProc()
             		SetNodeStatus(NS_A308_GET_FINISHED,OFF);
                     SetLedStatus(LED_STATUS_ACTIVE);
                     dprint("Step: NS_GET_INFO_ACT, Sleep:%d\r\n",GetNodeStatus(NS_SLEEPING));
+
+
                     if(GetNodeStatus(NS_SLEEPING))
                       {ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);} // go to sleeping from host                        
                     else{
+                    	if(pFunSensor==GetRelay )GetSensorInfo(); /*發送資訊前先讀取電池電量*/
                     	ToWaitingStage(SNS_PRE_SEND_INFO,TIMER_WAIT_SEND_INFO);
                     	CountErr = 0;
                         //TraceDec1("TIMER_WAIT_SEND_INFO",TIMER_WAIT_SEND_INFO);
                       }
-                }else if(GetNodeStatus(NS_A308_GET_INFO)){
+                }
+#ifdef BTM_A308
+            	else if(GetNodeStatus(NS_A308_GET_INFO)){
                 	ToNextStage(SNS_SEND_A308_INFO);
                 }
+#endif
                 break;
 
             case SNS_WAIT_UART_RSP: //等待Uart回應
@@ -1549,10 +1555,13 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
 			}else{
 				dprint("request uart data len is over(%d/%d)\r\n",ext->len,USART_TX_BUFF_SIZE);
 			}
-		}else if(pEvent->property_id==NODE_GET_A308_TABLE){
+		}
+#ifdef BTM_A308
+		else if(pEvent->property_id==NODE_GET_A308_TABLE){
 			dprint("request A308 Table flag:0x%08X\r\n",*(uint32*)ext->data);
 			A308_GetInfo_Set_Flag(*(uint32*)ext->data);
 		}
+#endif
 
     }
 

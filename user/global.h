@@ -80,7 +80,7 @@
 
 
 //#define BT_MESH_G6              1   //for BT Mesh Control G6
-#define JNC_BT_MESH             1   //for JNC BT Mesh
+//#define JNC_BT_MESH             1   //for JNC BT Mesh
 //#define ULTRA_SOUND_SKYNET      1 //xxxx
 //#define BTM_TRANSMITTER		1 //BTM / RS485 transmitter
 #define BTM_A308				1
@@ -94,37 +94,28 @@
   #define NODE_DATA_ID        0xA5A5
   #define MODEL_NAME          "BTA308"
 
-#endif
-
-#ifdef BTM_TRANSMITTER
+#elif defined(BTM_TRANSMITTER)
   #define FW_VER              100
   #define HW_VER              100
   #define DEVICE_NAME         "BT-Mesh/RS485 Transmitter"
   #define MANUFACTORY_NAME    "JNC"
   #define NODE_DATA_ID        0xA5A5
   #define MODEL_NAME          "BTM485"
-#endif
-
-#ifdef  BT_MESH_G6
+#elif defined(BT_MESH_G6)
   #define FW_VER              101
   #define HW_VER              100
   #define DEVICE_NAME         "G6S-BT"
   #define MANUFACTORY_NAME    "JNC"
   #define NODE_DATA_ID        0xA5A5
   #define MODEL_NAME          "G6S-BT"
-#endif
-
-#ifdef  JNC_BT_MESH
+#elif defined(JNC_BT_MESH)
   #define FW_VER              124
   #define HW_VER              110
   #define DEVICE_NAME         "JNC-BT-Mesh"
   #define MANUFACTORY_NAME    "JNC"
   #define NODE_DATA_ID        0xA5A5
   #define MODEL_NAME          "BTM001"
-#endif
-
-
-#ifdef  ULTRA_SOUND_SKYNET
+#elif defined(ULTRA_SOUND_SKYNET)
   #define FW_VER              101
   #define HW_VER              110
   #define DEVICE_NAME         "UD-BT-Mesh"
@@ -254,7 +245,6 @@ void Delay_ms(int ms);
 void EventIDtoString(uint32 header);
 
 
-
 void PrintData(PCHAR pTitle,PUINT16 pbuff, UINT len);
 void PrintDataByte(char *pTitle,BYTE* pbuff, UINT len);
 void PrintDataDec(char *pTitle,WORD* pbuff, UINT len);
@@ -265,21 +255,19 @@ void PrintArray8(uint8array *pArrayBuff,int type);
 uint16 ShowResult(char* pString, uint16 result );
 
 
-#ifndef DEBUG_PRINT 
+#ifndef DEBUG_PRINT
 
-#define PrintData(a,b,c) 
-#define PrintDataByte(a,b,c) 
-#define PrintDataDec(a,b,c) 
-#define PrintDataType(a,b,c,d) 
-#define PrintDataLen(a,b,c,d) 
-#define PrintDataLenDec(a,b,c,d) 
-#define PrintArray8(a,b) 
-#define ShowResult(a,b) 
+#define PrintData(a,b,c)
+#define PrintDataByte(a,b,c)
+#define PrintDataDec(a,b,c)
+#define PrintDataType(a,b,c,d)
+#define PrintDataLen(a,b,c,d)
+#define PrintDataLenDec(a,b,c,d)
+#define PrintArray8(a,b)
+#define ShowResult(a,b)
 
 
 #endif
-
-
 
 void SetStatusOn(uint32 status);
 void SetStatusOff(uint32 status);

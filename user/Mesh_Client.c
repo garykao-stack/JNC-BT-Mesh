@@ -409,12 +409,14 @@ void ClientGetNodeInfoProc()
 #endif
                 }
                 break;
+#ifdef BTM_A308
             case CNS_GET_A308_INFO:
             	if(!A308_Client_GetInfo()) {
             		dprint(" CNS_GET_A308_INFO > FINISHED\r\n");
             		ToNextStage(CNS_WAIT_INFO_OK);
             	}
             	break;
+#endif
             case CNS_WAIT_INFO_OK:
                 
                 if(GetNodeStatus(NS_FULL_POWER))
