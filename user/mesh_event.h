@@ -151,6 +151,8 @@ uint32 EvtMeshSystemBootProc(PCmdPacket pEvent);
 uint32 EvtMeshSoftTimerProc(PCmdPacket pEvent);
 
 uint32 EvtMeshSensorInitProc(PCmdPacket pEvent);
+uint32 EvtMeshConfigClientRelayStatus(PCmdPacket pEvent);
+
 uint32 EvtMeshNodeProvProc(PCmdPacket pEvent);
 
 uint32 EvtMeshNodeKeyAddedProc(PCmdPacket pEvent);

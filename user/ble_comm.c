@@ -26,6 +26,7 @@ _MeshNodeInfo MeshNodeInfo;
 _PTimerEventTask pDeviceTask;
 extern _TimerEventTask DeviceTaskTbl[];
 extern void ClientTimer_10ms();
+extern void ServerTimer_10ms();
 extern void Modbus_Timer();
 
 uchar PowerKeyCount;
@@ -202,6 +203,7 @@ void CheckStageTimer()
 {
     CheckNodeTimerCount();
     ClientTimer_10ms();
+    ServerTimer_10ms();
     Modbus_Timer();
 #ifdef BTM_A308
     A308_TimeEvent();

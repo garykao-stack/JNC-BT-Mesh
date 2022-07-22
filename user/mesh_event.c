@@ -93,7 +93,7 @@ EventFun    MeshEventFun[] =
 // for IVI
     {Evt_mn_changed_ivupdate_state,     EvtMeshIviProc},    
     {Evt_mn_ivrecovery_needed,          EvtMeshIviProc},
-
+	{Evt_mc_client_relay_status,		EvtMeshConfigClientRelayStatus},
     {0, NULL},  // End
 };
 
@@ -215,6 +215,7 @@ void GetLocalCfg()
 uint32 EvtMeshSensorInitProc(PCmdPacket pEvent)
 {
     uint32 ret_code = TRUE;
+    msg_mt_get_relay_rsp rsp_get_relay;
     msg_mn_initialized_evt *pMeshInit = &(pEvent->data.evt_mesh_node_initialized);
     if(NodeRole == NR_CLIENT)
         iv_config(IV_TEST_MODE, IV_RECOVERY_MODE, SNB_STATE);
@@ -243,7 +244,15 @@ uint32 EvtMeshSensorInitProc(PCmdPacket pEvent)
 			SetEventTaskTimer(TD_PROVISIONING,TIMER_UNPROVISION,TIMER_EVENT_REPEAT);
 			SetLed(LED_RED,OFF);SetLed(LED_BLUE,ON);
 		}
-    
+
+
+		rsp_get_relay=*Cmd_mt_get_relay();
+		if (rsp_get_relay.result){
+			dprint("\r\n Get Relay State Fail. err:0x%x\r\n",rsp_get_relay.result);
+		}else{
+			pMeshNodeData->RelayEnabled=(rsp_get_relay.enabled==1);
+			dprint("\r\n***\r\nGet Relay State enabled:%d\r\ncount:%d\r\ninterval:%d\r\n***\r\n",rsp_get_relay.enabled,rsp_get_relay.count,rsp_get_relay.interval);
+		}
     }
     else
     {
@@ -264,6 +273,13 @@ uint32 EvtMeshSensorInitProc(PCmdPacket pEvent)
 
 
     return ret_code;
+}
+
+uint32  EvtMeshConfigClientRelayStatus(PCmdPacket pEvent){
+	msg_mc_client_relay_status_evt *pRelayState = &(pEvent->data.evt_mesh_config_client_relay_status);
+	pMeshNodeData->RelayEnabled=(pRelayState->relay==1); //0:disabled, 1:enabled, 2:not supported
+	dprint("\r\n***\r\nRelayEnabled:%d\r\n***\r\n",pMeshNodeData->RelayEnabled);
+	return TRUE;
 }
 
 
@@ -426,6 +442,9 @@ uint32 EvtMeshNodeModelConfigChangedProc(PCmdPacket pCmdEvent)
         pMeshNodeData->MeshNodeRole = NR_SETUP_SERVER;    
     else if(pEvent->model_id == MODEL_ID_CLIENT)
         pMeshNodeData->MeshNodeRole = NR_CLIENT;
+    //pMeshNodeData->RelayEnabled=(pEvent->mesh_node_config_state==mesh_node_relay);
+    pMeshNodeData->ElementAddr=pEvent->element_address;
+    //dprint("\r\n***\r\n ElementAddr:%d\r\nmesh_node_config_state:0x%x\r\n***\r\n",pMeshNodeData->ElementAddr,pEvent->mesh_node_config_state);
     SetLedToggle(LED_SERVER);
     WriteNodeData();
     Trace16Ptr_4(pEvent, mesh_node_config_state, element_address, vendor_id, model_id);

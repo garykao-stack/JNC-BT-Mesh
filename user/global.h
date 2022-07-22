@@ -84,6 +84,7 @@
 //#define ULTRA_SOUND_SKYNET      1 //xxxx
 //#define BTM_TRANSMITTER		1 //BTM / RS485 transmitter
 #define BTM_A308				1
+#define A308_SIMULATION 			0 /*A308訊號模擬。不從485讀取A308數值，直接以ID填滿所有暫存器*/
 
 
 #ifdef BTM_A308

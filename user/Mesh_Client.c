@@ -460,7 +460,7 @@ void ClientCheckNodeStatus()
     for(loop=0; loop < SERVER_NODE_MAX; loop++){
 		if(pNodeInfo->ServerID != 0){
 			if(pNodeInfo->Count == 0){
-				TraceErr1("Node No Response",pNodeInfo->ServerID);
+				dprint("\r\n***** Node No Response *****ID:%d\r\n",pNodeInfo->ServerID);
 				memset(pNodeInfo,0,sizeof(_ClientInfo));
 				pNodeInfo->Status |= SERVER_NO_RESPONSE;
 			}else{

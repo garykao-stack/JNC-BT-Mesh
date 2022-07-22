@@ -202,7 +202,12 @@ void ServerNodeTask()
     ServerGetInfoProc();
 }
 
-
+uint32_t cd_sleep_ms=0;
+#define TIMER_REDUCE_BY_10MS(t) do{if(t>0)t=t-((t>=10)?10:t);}while(0)
+#define TIMER_IS_TIMEROUT(t) (t==0)
+void ServerTimer_10ms(){
+	TIMER_REDUCE_BY_10MS(cd_sleep_ms);
+}
 
 
 void SystemPower(uchar status);
@@ -617,10 +622,14 @@ void ServerGetInfoProc()
                 }
 
                 if(result) // to send sensor info
-                    {
+                {
+                     cd_sleep_ms=30*15*1000;
                      SetNodeStatus(NS_GET_INFO_ACT,OFF);
 
-                     if(GetNodeStatus(NS_A308_GET_INFO))	ToNextStage(SNS_SEND_A308_INFO);
+                     if(GetNodeStatus(NS_A308_GET_INFO)){
+
+                    	 ToNextStage(SNS_SEND_A308_INFO);
+                     }
 #ifdef BTM_A308
                      //else if(pMeshNodeData->SensorClass==SENSOR_A308M)	ToWaitingStage(SNS_WAIT_A308_CMD,WAIT_SEC(30*15));
                      else ToWaitingStage(SNS_WAIT_A308_CMD,WAIT_SEC(30*15));
@@ -628,7 +637,7 @@ void ServerGetInfoProc()
                      else ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
 #endif
 
-                    }   // waiting to sleeping
+                }   // waiting to sleeping
                 else{
                 	dprint("SNS_SEND_INFO failed. send again(try:%d)\r\n",CountErr);
                      CountErr++;
@@ -642,7 +651,9 @@ void ServerGetInfoProc()
             	result=A308_SendToClient();
             	if(result==0){ //proccess has been finished. move to next step.
             		SetNodeStatus(NS_A308_GET_INFO,OFF);
-            		ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING+WAIT_SEC(10)); /*多預留一點時間，提供Client接收不完整時重試*/
+            		//ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING+WAIT_SEC(10)); /*多預留一點時間，提供Client接收不完整時重試*/
+            		dprint("relay mode:%d, cd_sleep_ms:%d\r\n",pMeshNodeData->RelayEnabled,cd_sleep_ms); /*啟用Relay功能時，發送完訊息不要直接進入休眠，保持一段時間保持Relay作用*/
+            		ToWaitingStage(SNS_WAIT_A308_CMD,TIMER_WAIT_SLEEPING+(pMeshNodeData->RelayEnabled?cd_sleep_ms/10:WAIT_SEC(20))); /*多預留一點時間，提供Client接收不完整時重試*/
             	}
             	break;
             case SNS_WAIT_A308_CMD:
@@ -857,6 +868,7 @@ bool GetSkynetInfo()
         AdjTempRh(&temp,&Humidity); 
          p_sensor->Tempature = temp;
          p_sensor->Humidity  = Humidity;
+         dprint("temp: %d, hum:%d\r\n",p_sensor->Tempature,p_sensor->Humidity);
         }
     else {ret_code = FALSE;}
     ret_code = TRUE; 

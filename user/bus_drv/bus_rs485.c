@@ -68,6 +68,10 @@ uchar CheckRs485Device(int16 connectTryCount)
        pMeshNodeData->SensorClass = SENSOR_CUSTOM_SERIAL;
 #endif
 
+#if defined(BTM_A308) && A308_SIMULATION
+       pMeshNodeData->SensorClass = SENSOR_A308M;
+#endif
+
     TraceDec1("BTM Sensor", pMeshNodeData->SensorClass);
     if(pMeshNodeData->SensorClass == SENSOR_PZEM){
         CHECK_RS485_CMD((PUCHAR)&PzemClean[0],sizeof_array(PzemClean)); UsartResetRxTx(USART_ID_TX_RX);
@@ -102,6 +106,12 @@ uchar CheckRs485Device(int16 connectTryCount)
     	pFunSensor = GetCustomSerial;GetDeviceInfoDelay = 5;
         SetNodeStatus(NS_SERVER_RS485_ENABLE,OFF);
         rs485_dev = SENSOR_CUSTOM_SERIAL; goto Check485_End;
+    }
+#elif defined(BTM_A308) && A308_SIMULATION
+    else if(pMeshNodeData->SensorClass == SENSOR_A308M){
+    	pFunSensor = GetA308mInfo;GetDeviceInfoDelay = 80;
+		SetNodeStatus(NS_SERVER_RS485_ENABLE,OFF);
+		rs485_dev = SENSOR_A308M; goto Check485_End;
     }
 #endif
 

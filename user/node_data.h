@@ -25,7 +25,7 @@ typedef struct
   uint16    IvIndex,AppkeyIndex,NetkeyIndex;
   uint16    NetKey,AppKey,DeviceKey;
   uchar     TxPower;            // for BLE power
-  uchar     Reserver1;              // for BLE RF sensivity
+  uchar		RelayEnabled;//uchar     Reserver1;              // for BLE RF sensivity
   uint16    WorkingTimer;
   uchar     G6HostPPercent;      // from host setup power percent 0,1,2,3,4
   ////// to add other Items
