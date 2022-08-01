@@ -1,5 +1,18 @@
 ## v1.24 #
 ---
+### 220801 : A308M v1.01 (成) #
+1. 修改A308讀取機制
+    - Client:
+        - 在接收Server狀態回應後，發出NS_SEND_INFO_ACK訊號讓Server端知道Client已收到回應
+        - 修改讀取機制，未即時回應讀取設備狀態指令的Server如在讀取其他裝置的流程中有回應狀態，會將該Server加入此次讀取流程中
+    - Server
+        - 在發送完設備訊息後，若未接收到Client發出的NS_SEND_INFO_ACK訊號，每2秒會再發送一次設備訊息給Client，避免訊號丟失
+        - 從休眠狀態喚醒後，多等待2秒再讀取A308數值(設定義A308_SLEEP_MODE=1)。
+2. A308來源表減少讀取內容，以減少傳送時間
+3. 增加NODE_INFO Property，用以統一回傳設備狀態(for APP，未測試)
+4. 增加可在一般狀態下存取設定參數的指令:NODE_SENSOR_SETUP_GET/NODE_SENSOR_SETUP_SET
+
+
 ### 220722 : A308M v1.00 (成) #
 1. 增加A308訊號模擬。在Server模式中，不向A308讀取數值，直接以ID填滿所有暫存器
 2. Client擴充讀取緩衝區到5組，A308數量上限由14降為10組

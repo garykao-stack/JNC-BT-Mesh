@@ -56,6 +56,7 @@
 #define SNS_SEND_A308_INFO		14
 #define SNS_A308_FETCH_INFO		15
 #define SNS_WAIT_A308_CMD		16
+#define SNS_WAIT_SEND_INFO_ACK	17
 
 
 #define SNS_SET_INFO_INIT       0x00

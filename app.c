@@ -168,6 +168,8 @@ void appMain(gecko_configuration_t *pConfig)
 		}
 		if(!CheckRunDevTask()) continue;
 
+		//dprint("===\r\nMax Sensor Info Size:%d\r\n===\r\n",sizeof(_SensorInfo));
+
 		if(NodeRole == NR_CLIENT)
 			ClientNodeTask();
 		else if(NodeRole == NR_SERVER || NodeRole == NR_SETUP_SERVER)

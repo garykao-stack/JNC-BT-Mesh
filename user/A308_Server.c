@@ -30,14 +30,26 @@ typedef struct{
 
 
 #define A308_DEVICE_COUNT 10 //SERVER_NODE_MAX
-#define A308_DEVICE_BUFF_COUNT 5
-#define A308_MEM_SIZE	(62+100*6+6+14)
+#define A308_DEVICE_BUFF_COUNT 4
+#define A308_MEM_SIZE	(62+120*3+6+14)//(62+100*6+6+14)
 #define A308_BTM_SIZE	50
 #define A308_TOT_MBS_CMD	(sizeof(A308Info)/sizeof(MbsInfo))
 #define A308_TOT_BTM_RSP	(A308_MEM_SIZE*2/A308_BTM_SIZE+1)
 #define A308_MBS_TIMEOUT	300
 
 MbsInfo A308Info[]={
+		{0x000,	62,		0},
+		{0x100,	100,	62},
+		{0x164,	20,		62+100},
+		{0x200, 100,	62+120*1},
+		{0x264,	20,		62+120*1+100},
+		{0x300, 100,	62+120*2},
+		{0x364,	20,		62+120*2+100},
+		{0x400, 6,		62+120*3},
+		{0x40c, 14,		62+120*3+6}
+};
+
+/*MbsInfo A308Info[]={
 		{0x000,	62,		0},
 		{0x100,	100,	62},
 		{0x164,	100,	62+100},
@@ -47,7 +59,7 @@ MbsInfo A308Info[]={
 		{0x364, 100,	62+100*5},
 		{0x400, 6,		62+100*6},
 		{0x40c, 14,		62+100*6+6}
-};
+};*/
 
 uint8 A308TableBuff[A308_MEM_SIZE*2*A308_DEVICE_BUFF_COUNT];
 uint8 A308Table[A308_MEM_SIZE*2*A308_DEVICE_COUNT];
@@ -295,7 +307,8 @@ typedef enum{
 	A308_GET_INFO_WAIT_CMD=2,
 	A308_GET_INFO_WAIT_RSP=3,
 	A308_GET_INFO_FINISH=4,
-	A308_GET_INFO_IDLE=5
+	A308_GET_INFO_IDLE=5,
+	A308_GET_SETTING_TST=6
 }A308_BTM_GET_INFO_STEP;
 A308_BTM_GET_INFO_STEP client_get_info_step=A308_GET_INFO_INIT;
 
@@ -348,6 +361,12 @@ void A308_Client_Rec_Info_Init(A308_BT_REC_INFO *info){
 
 void A308_Client_Rec_Info_InitAll(){
 	for(int i=0;i<A308_DEVICE_BUFF_COUNT;i++) A308_Client_Rec_Info_Init(&a308_client_rec_infos[i]);
+
+	PClientInfo pClientInfo=(void*)0;
+	do{
+		pClientInfo=FindNextServerInfo(SENSOR_A308M,pClientInfo);
+		if(pClientInfo) pClientInfo->Status|=SERVER_A308_STANDBY;
+	}while(pClientInfo);
 }
 
 void A308_Client_Timeout_Tick(){
@@ -414,14 +433,26 @@ bool A308_ServerIsBusy(PClientInfo pClientInfo){
 
 PClientInfo pA308CurrServerInfo=0;
 PClientInfo A308_GetNextServer(PClientInfo pClientInfo){
-	do{
+	/*do{
 		pClientInfo=FindNextServerInfo(SENSOR_A308M,pClientInfo);
 	}while(pClientInfo && (pClientInfo<=pA308CurrServerInfo || pClientInfo->Count==0));
 	if(pClientInfo){
 		pA308CurrServerInfo=pClientInfo;
 		a308_server_total++;
 	}
-	return pClientInfo;
+	return pClientInfo;*/
+
+	pClientInfo=(void*)0;
+	do{
+		pClientInfo=FindNextServerInfo(SENSOR_A308M,pClientInfo);
+		if(pClientInfo && (pClientInfo->Status & SERVER_A308_STANDBY)){
+			pA308CurrServerInfo=pClientInfo;
+			pClientInfo->Status&=~SERVER_A308_STANDBY;
+			a308_server_total++;
+			return pClientInfo;
+		}
+	}while(pClientInfo);
+	return 0;
 }
 
 #define DEVICE_TO_STEP(s) do{info->step=(s);/*dprint("To Step:%d\r\n",s);*/}while(0)
@@ -438,9 +469,28 @@ bool A308_Client_GetInfo_WithDevice(A308_BT_REC_INFO *info){
 				return 0;
 			}
 			DEVICE_TO_STEP(A308_GET_INFO_CMD);
+			//DEVICE_TO_STEP(A308_GET_SETTING_TST); /*測試 get setting指令是否能在一般模式下接收*/
 			info->receive_span_time=0;//a308_client_receive_span_time=0; /*計算總時間用，這裡不需要*/
 			info->rec_flag=A308_Client_GetInitFlag(); //A308_GetInfo_Init_Flag();
 			return 1;
+		/*case A308_GET_SETTING_TST:
+			if(!TIMER_IS_TIMEOUT(info->wait_ms)) return 1;
+			result=Cmd_ms_client_get_setting(SENSOR_ELEMENT, info->pClientInfo->ServerID, IGNORED, 0xA5,NODE_SENSOR_SETUP_SET,ALL_SETTING_ID)->result;
+
+			if (result){
+				if(++info->retry>=5){
+					info->retry=0;
+					DEVICE_TO_STEP(A308_GET_INFO_CMD);
+				}else{
+					info->wait_ms=400;//a308_client_get_info_wait_ms=400;
+
+				}
+			}else{
+				info->retry=0;
+				DEVICE_TO_STEP(A308_GET_INFO_CMD);
+				dprint("*** get setting command send finsihs\r\n");
+			}
+			return 1;*/
 		case A308_GET_INFO_CMD:
 			SetLed(LED_SERVER,ON);
 			//a308_received_id=pGetInfoCurrClient->ServerID;
@@ -451,7 +501,7 @@ bool A308_Client_GetInfo_WithDevice(A308_BT_REC_INFO *info){
 			info->rec_msg_count_before_cmd=info->rec_msg_count;
 			result = Cmd_ms_client_get_column(SENSOR_ELEMENT, info->pClientInfo->ServerID, IGNORED, 0xA5, NODE_GET_A308_TABLE,4,(uint8*)&(info->rec_flag))->result;
 			if(result){
-				if(++info->retry>=5){ //if(++a308_client_get_info_retry>=5){ /*失敗太多次，放棄*/
+				if(++info->retry>=10){ //if(++a308_client_get_info_retry>=5){ /*失敗太多次，放棄*/
 					//info->step=A308_GET_INFO_INIT;
 					DEVICE_TO_STEP(A308_GET_INFO_IDLE);
 					return 0;
@@ -486,7 +536,7 @@ bool A308_Client_GetInfo_WithDevice(A308_BT_REC_INFO *info){
 						return 1;
 					}else{
 						dprint("!!! A308 Server has no Response. ID:%d, try:%d\r\n",info->pClientInfo->ServerID,info->retry);
-						if(++info->retry<5){
+						if(++info->retry<=5){
 							info->wait_ms=400;
 							DEVICE_TO_STEP(A308_GET_INFO_WAIT_CMD);
 							return 1;

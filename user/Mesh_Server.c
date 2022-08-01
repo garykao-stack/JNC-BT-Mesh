@@ -464,7 +464,9 @@ void ServerGetInfoProc()
                 ToNextStage(SNS_PRE_WAITING);   //default
                 break;
             case SNS_PRE_WAITING: 
+            	if(!CheckWaitTimeOut()) return;
             	CountErr = 0;
+            	SetNodeStatus(NS_SEND_INFO_ACK,OFF);
 #if BTM_A308
             	A308_ResetModbusCmd();
             	ToWaitingStage(SNS_A308_FETCH_INFO,WAIT_MS(A308_Fetch_Timeout_Ms()+100));
@@ -632,7 +634,8 @@ void ServerGetInfoProc()
                      }
 #ifdef BTM_A308
                      //else if(pMeshNodeData->SensorClass==SENSOR_A308M)	ToWaitingStage(SNS_WAIT_A308_CMD,WAIT_SEC(30*15));
-                     else ToWaitingStage(SNS_WAIT_A308_CMD,WAIT_SEC(30*15));
+                     //else ToWaitingStage(SNS_WAIT_A308_CMD,WAIT_SEC(30*15));
+                     else ToWaitingStage(SNS_WAIT_SEND_INFO_ACK,WAIT_SEC(2));
 #else
                      else ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
 #endif
@@ -643,9 +646,21 @@ void ServerGetInfoProc()
                      CountErr++;
                      ToWaitingStage(SNS_PRE_SEND_INFO,WAIT_SEC(2)); // send info again
                     }
-
                 break;
 #ifdef BTM_A308
+            case SNS_WAIT_SEND_INFO_ACK:
+
+            	if (GetNodeStatus(NS_SEND_INFO_ACK)){
+            		ToWaitingStage(SNS_WAIT_A308_CMD,WAIT_MS(cd_sleep_ms));
+            	}else if(GetNodeStatus(NS_A308_GET_INFO)){
+					ToNextStage(SNS_SEND_A308_INFO);
+            	}else if(CheckWaitTimeOut()||GetNodeStatus(NS_GET_INFO_ACT)){
+            		dprint("\r\nNot Get Send Info Ack. Send again\r\n");
+            		ToNextStage(SNS_SEND_INFO);
+            		CountErr=0;
+            	}
+
+            	break;
             case SNS_SEND_A308_INFO:
             	CHECK_FORWARD_DATA;
             	result=A308_SendToClient();
@@ -694,7 +709,12 @@ void ServerGetInfoProc()
 
                 break;
             case SNS_WAKE_UP: 
-                ToNextStage(SNS_PRE_WAITING);
+#if defined(BTM_A308) && A308_SLEEP_MODE
+            	ToWaitingStage(SNS_PRE_WAITING,WAIT_MS(2000));
+#else
+            	ToWaitingStage(SNS_PRE_WAITING,WAIT_MS(0));
+                //ToNextStage(SNS_PRE_WAITING);
+#endif
                 break;
             default:  break;
         };
@@ -1491,10 +1511,67 @@ bool SendInfoToClient()
     	TraceErr1("SendInfoToClient 2",ServerInfo.NodeInfoSize);
     	return TRUE;
     }
-
     return ret_code;
-
 }
+
+uint16 Server_ResponseInfo(){
+
+	NodeInfo info;
+	//uint16 result;
+	info.SensorClass= ServerInfo.SensorInfo.Header.SensorClass;
+	info.BatteryPower=ServerInfo.SensorInfo.Header.BatteryPower;
+	info.Status=ServerInfo.SensorInfo.Header.Status;
+	info.Version=FW_VER;
+	memcpy(info.ModelName,MODEL_NAME,6);
+	return Cmd_ms_server_send_column_status(SENSOR_ELEMENT, pNodeEventInfo->ClientAddr, IGNORED, 0xA5, NODE_GET_BTM_INFO,sizeof(info),(uint8*)&info)->result;
+}
+
+uint16 Server_ResponseSetting(){
+
+   uint16 result;
+   uint8 data[sizeof(_BtAppData)+2];
+   _BtAppData *set=(void*)(data+2);
+   *((uint16*)data)=NODE_SENSOR_SETUP_GET;
+   set->TempGain = (int16)(pAdjValue->TempGain*MESH_INFO_SCALING);
+   set->TempOffset = (int16)(pAdjValue->TempOffset*MESH_INFO_SCALING);
+   set->RhGain = (int16)(pAdjValue->HumGain*MESH_INFO_SCALING);
+   set->RhOffset = (int16)(pAdjValue->HumOffset*MESH_INFO_SCALING);
+   set->WorkingTimer = pMeshNodeData->WorkingTimer;
+   set->BtmClass = SensorClassChange(pMeshNodeData->SensorClass,CLASS_TO_UTILITY);
+
+   /*pNodeEventInfo->ServerAddr  = pEvent->server_address;
+   pNodeEventInfo->AppkeyIndex = pEvent->appkey_index;*/
+           //Cmd_ms_server_send_column_status(SENSOR_ELEMENT, pNodeEventInfo->ClientAddr,pNodeEventInfo->AppkeyIndex, NO_FLAGS,NODE_GET_A308_TABLE, len+6, ((PUCHAR)&rsp))->result;
+   result= Cmd_ms_server_send_column_status(SENSOR_ELEMENT, pNodeEventInfo->ClientAddr, pNodeEventInfo->AppkeyIndex, 0xA5, NODE_SENSOR_SETUP_GET,sizeof(_BtAppData)+2, data)->result;
+   dprint("*** Server_ResponseSetting result:0x%X\r\n",result);
+
+   return result;
+}
+
+uint16 Server_ReceiveSetting(uint8 *data){
+	_BtAppData *set=(void*)(data);
+	uint16 result;
+	uint16 code=ACK_OK;
+    pAdjValue->TempGain = (float)(set->TempGain)/MESH_INFO_SCALING;
+    pAdjValue->TempOffset = (float)(set->TempOffset)/MESH_INFO_SCALING;
+    pAdjValue->HumGain = (float)(set->RhGain)/MESH_INFO_SCALING;
+    pAdjValue->HumOffset = (float)(set->RhOffset)/MESH_INFO_SCALING;
+    pMeshNodeData->WorkingTimer = set->WorkingTimer;
+    pMeshNodeData->SensorClass = SensorClassChange(set->BtmClass,CLASS_TO_BTM);
+    WriteNodeData();
+    dprint("*** Server_ReceiveSetting\r\n");
+    dprint("> TempGain:%f\r\n",pAdjValue->TempGain);
+    dprint("> TempOffset:%f\r\n",pAdjValue->TempOffset);
+    dprint("> HumGain:%f\r\n",pAdjValue->HumGain);
+    dprint("> HumOffset:%f\r\n",pAdjValue->HumOffset);
+    dprint("> WorkingTimer:%d\r\n",pMeshNodeData->WorkingTimer);
+    dprint("> SensorClass:%d\r\n",pMeshNodeData->SensorClass);
+
+    result= Cmd_ms_server_send_column_status(SENSOR_ELEMENT, pNodeEventInfo->ClientAddr, pNodeEventInfo->AppkeyIndex, 0xA5, NODE_SENSOR_SETUP_SET,sizeof(code), (uint8*)&code )->result;
+    dprint("*** result:0x%X\r\n",result);
+    return result;
+};
+
 
 //#ifdef BTM_TRANSMITTER
 typedef struct _ServerSerialRsp_{
@@ -1567,6 +1644,15 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
 			}else{
 				dprint("request uart data len is over(%d/%d)\r\n",ext->len,USART_TX_BUFF_SIZE);
 			}
+		}else if(pEvent->property_id==NODE_GET_BTM_INFO){
+			Server_ResponseInfo();
+			return;
+		}else if(pEvent->property_id==NODE_SENSOR_SETUP_GET){
+			Server_ResponseSetting();
+			return;
+		}else if(pEvent->property_id==NODE_SENSOR_SETUP_SET){
+			Server_ReceiveSetting(ext->data);
+			return;
 		}
 #ifdef BTM_A308
 		else if(pEvent->property_id==NODE_GET_A308_TABLE){
@@ -1578,7 +1664,11 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
     }
 
     //Trace16_1(pEvent->property_id);
-    if(pEvent->property_id == NODE_GET_ALL_SENSOR){
+    if(pEvent->property_id == PROP_SERVER_ACK){
+    	dprint("*** receive Server Ack\r\n");
+    	SetNodeStatus(NS_SEND_INFO_ACK,ON);
+    }
+    else if(pEvent->property_id == NODE_GET_ALL_SENSOR){
          SetNodeStatus(NS_GET_INFO_ACT,ON);  // Mesh get event active
      }
     else if(pEvent->property_id ==NODE_GET_A308_TABLE){
@@ -1681,7 +1771,7 @@ void EvtSetSettingRequestProc(PCmdPacket pCmdEvent)
     Trace16_1(pEvent->property_id);
     p_bt_app_data = (PBtAppData)(&pEvent->raw_value.data);
     Trace16_4(p_bt_app_data->TempGain,p_bt_app_data->TempOffset,p_bt_app_data->RhGain,p_bt_app_data->RhOffset);
-    if(pEvent->property_id == NODE_SENSOR_SETUP_SET)
+    if(pEvent->property_id == NODE_SENSOR_SETUP_GET)
         {
          setting_id = pEvent->setting_id;
          setting_data = *(PUINT16)p_bt_app_data; Trace16_1(setting_data);
@@ -1718,11 +1808,12 @@ void EvtSetSettingRequestProc(PCmdPacket pCmdEvent)
 //
 void EvtSetGettingRequestProc(PCmdPacket pCmdEvent)
 {//for Android App
+	uint16 result;
     uint16 setting_id=-1;
     _BtAppData BtSetupData;
     uchar flag_write_data=OFF;
     msg_ms_setup_server_get_setting_request_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_setup_server_get_setting_request);
-    if(pEvent->property_id == NODE_SENSOR_SETUP_SET)
+    if(pEvent->property_id == NODE_SENSOR_SETUP_GET)
         {setting_id = pEvent->setting_id;         
         }
     else { return;}
@@ -1740,8 +1831,9 @@ void EvtSetGettingRequestProc(PCmdPacket pCmdEvent)
                    BtSetupData.BtmClass = SensorClassChange(pMeshNodeData->SensorClass,CLASS_TO_UTILITY);
                    break;
            };
-    Cmd_ms_setup_server_send_setting_status(SENSOR_ELEMENT,pEvent->client_address, pEvent->appkey_index, NO_FLAGS,
-                                            pEvent->property_id, pEvent->setting_id,sizeof(_BtAppData), (uchar *)&BtSetupData);
+    result=Cmd_ms_setup_server_send_setting_status(SENSOR_ELEMENT,pEvent->client_address, pEvent->appkey_index, NO_FLAGS,
+                                            pEvent->property_id, pEvent->setting_id,sizeof(_BtAppData), (uchar *)&BtSetupData)->result;
+    dprint("\r\n*** Get Setting Setting. result:0x%X***\r\n",result);
 }
 
 

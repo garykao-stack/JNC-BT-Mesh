@@ -117,9 +117,9 @@
 #define TIME_OUT_COUNT_RX        WAIT_MS(20)    //20ms
 
 
-extern uchar volatile CounterRx,CounterTx;
+extern uint16 volatile CounterRx,CounterTx;
 extern uchar *RxBuff;//[];
-extern uchar UsartCounterTx,UsartCounterRx;
+extern uint16 UsartCounterTx,UsartCounterRx;
 
 void UsartInit(void);
 void UsartDeInit(void);

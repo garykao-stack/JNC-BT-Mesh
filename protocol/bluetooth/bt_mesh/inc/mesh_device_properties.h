@@ -1124,8 +1124,8 @@ typedef enum mesh_device_properties_e {
 
 
 //Setup Server Set & Get
-  NODE_SENSOR_SETUP_SET                         = 0x8070,     // for Sensor Server Setup Set
-  NODE_SENSOR_SETUP_GET                         = 0x8071,     // for Sensor Server Setup Get 
+  NODE_SENSOR_SETUP_GET                         = 0x8070,     // for Sensor Server Setup Set
+  NODE_SENSOR_SETUP_SET                         = 0x8071,     // for Sensor Server Setup Get
 
 // for AIP Power Percent
   AUTO_POWER_0           = 0x8100,
@@ -1142,8 +1142,10 @@ typedef enum mesh_device_properties_e {
   CLEAR_ALL_FILTER       = 0x8302,
   JNC_DEF_ENDING                                = 0xF000,          //
 
+  PROP_SERVER_ACK			= 0xFFFC,
+  CUSTOM_SERIAL_DATA	 = 0xFFFD,
   NODE_A308_GET_FINISHED = 0xFFFE,
-  CUSTOM_SERIAL_DATA	=	0xFFFF
+  NODE_INFO	=	0xFFFF // for NodeInfo
 
 } mesh_device_properties_t;
 

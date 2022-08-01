@@ -30,7 +30,7 @@ uchar *RxBuff=(uchar*)OrigignalRx+1;//[USART_RX_BUFF_SIZE];
 PUCHAR  pTxBuff,pRxBuff;
 uint16  UsartStatus;
 uchar   UsartIntervalTimer;         //max interval to receive next byte (XXX ms)
-uchar volatile  CounterRx,CounterTx;
+uint16 volatile  CounterRx,CounterTx;
 
 
 
@@ -110,9 +110,9 @@ void UsartOnOff(uchar status)
 
 
 
-uchar TCounterRx,TCounterTx;   // for USART timer counter
-uchar UsartCounterRx=0;
-uchar UsartCounterTx=0;
+uint16 TCounterRx,TCounterTx;   // for USART timer counter
+uint16 UsartCounterRx=0;
+uint16 UsartCounterTx=0;
 //UES ==> USART EVENT Stage
 #define UES_STAGE_INIT          0 
 #define UES_STANDBY_MODE        1
@@ -133,13 +133,13 @@ void UsartClientProc()
 {
 	if(!GetNodeStatus(NS_USART_RX_EVENT)){
 		if(Modbus_IsReceived()){
-			/*dprint("Uart Rec:");
+			dprint("Uart Rec:");
 			for(int i=0;i<CounterRx;i++) dprint(" %02X",RxBuff[i]);
-			dprint("\r\n");*/
+			dprint("\r\n");
 			if(CheckUsartRxCmd()){
 				UsartSetStage(USART_STAGE_RX_END);
 			}else{
-				Trace("RX Check Error");// cmd error
+				dprint("RX Check Error\r\n");// cmd error
 				UsartSetStatus(USART_RX_CRC_ERROR,ON);
 				//UsartSetStage(USART_STAGE_RX_CLEAN);
 				UsartSetStage(USART_STAGE_RX_END);

@@ -120,7 +120,7 @@ PClientInfo FindNextServerInfo(uint8 class, PClientInfo pClient){
 	}
 	int16 idx=((uint8*)pClient-(uint8*)ClientInfo)/sizeof(_ClientInfo);
 	int16 end=sizeof(ClientInfo)/sizeof(_ClientInfo);
-	dprint("FindNextServerInfo start:%d, end:%d, loc:0x%x, size:%d\r\n",idx,end,(uint8*)pClient-(uint8*)ClientInfo,sizeof(_ClientInfo));
+	//dprint("FindNextServerInfo start:%d, end:%d, loc:0x%x, size:%d\r\n",idx,end,(uint8*)pClient-(uint8*)ClientInfo,sizeof(_ClientInfo));
 	while(idx>=0 && idx<end){
 		if (ClientInfo[idx].SensorInfo.Header.SensorClass==class){
 			dprint(" Next ServerInfo index:%d\r\n",idx);
@@ -128,6 +128,7 @@ PClientInfo FindNextServerInfo(uint8 class, PClientInfo pClient){
 		}
 		idx++;
 	}
+	dprint("There Is No Next ServerInfo\r\n");
 	return 0;
 }
 
@@ -427,7 +428,7 @@ void ClientGetNodeInfoProc()
 #endif
                 else
 #ifdef BTM_A308
-                	GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_SLEEPING+10);
+                	GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_SLEEPING+10+5);
 #else
                 	GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_SLEEPING);
 #endif
@@ -781,7 +782,9 @@ void ClientPropertyEvent(msg_ms_client_status_evt *pEvent)
                     case NODE_GET_INFO_FULL_POWER_OFF:
                         memcpy(&(pClientInfo->SensorInfo),property_data,property_len);
                         dprint("** Received Info Class:%d, Battery Power:%d\r\n",pClientInfo->SensorInfo.Header.SensorClass,pClientInfo->SensorInfo.Header.BatteryPower);
-
+#ifdef BTM_A308
+                        if(property_id==NODE_GET_ALL_SENSOR) Cmd_ms_client_get(SENSOR_ELEMENT, pNodeEventInfo->ServerAddr, IGNORED, 0xA5, PROP_SERVER_ACK);
+#endif
                         GetPropertyID = NODE_GET_ALL_SENSOR;  // recover data
                         break;
                     case CUSTOM_SERIAL_DATA:

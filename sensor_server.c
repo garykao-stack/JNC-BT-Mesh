@@ -144,7 +144,7 @@ uint32 EvtSensorServerEventsProc(PCmdPacket pCmdEvent)
         case Evt_ms_server_get_column_req:
             EvtGetRequestProc(pCmdEvent);
             break;
-        case Evt_ms_setup_server_get_setting_req: Trace("Evt_ms_setup_server_get_setting_req");
+        case Evt_ms_setup_server_get_setting_req: dprint("Evt_ms_setup_server_get_setting_req");
             EvtSetGettingRequestProc(pCmdEvent);
             break;
         case Evt_ms_setup_server_set_setting_req: Trace("Evt_ms_setup_server_set_setting_req");

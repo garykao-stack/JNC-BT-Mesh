@@ -83,12 +83,13 @@
 //#define JNC_BT_MESH             1   //for JNC BT Mesh
 //#define ULTRA_SOUND_SKYNET      1 //xxxx
 //#define BTM_TRANSMITTER		1 //BTM / RS485 transmitter
-#define BTM_A308				1
+#define BTM_A308				1	//A308 Customized. Read All data from modbus, transmite data with several BTM responses.
 #define A308_SIMULATION 			0 /*A308訊號模擬。不從485讀取A308數值，直接以ID填滿所有暫存器*/
+#define A308_SLEEP_MODE			1
 
 
 #ifdef BTM_A308
-  #define FW_VER              100
+  #define FW_VER              101
   #define HW_VER              100
   #define DEVICE_NAME         "A308 BT Transmitter"
   #define MANUFACTORY_NAME    "JNC"

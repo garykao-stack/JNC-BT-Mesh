@@ -44,6 +44,7 @@ typedef struct _NodeHeader_
 // Status
 #define SERVER_NO_RESPONSE          BIT0    //server node no response
 #define SERVER_FULL_POWER           BIT1    //server full power that can not sleeping
+#define SERVER_A308_STANDBY			BIT2
 
 typedef struct _Si7021Info_
 {
@@ -299,7 +300,14 @@ typedef struct _ClientInfo_
     _SensorInfo SensorInfo;
 }_ClientInfo,*PClientInfo;
 
+typedef struct{
+    uint8  SensorClass;    // for sensor class for server node
+    uint8  Status;
+    uint8  BatteryPower;   // 0 ~ 100%
+	uchar  ModelName[6];           //
+    uint16 Version;                // Firmware version
 
+}NodeInfo;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -460,6 +468,7 @@ typedef struct _NodeEventInfo_
 #define NS_G6_READY             BIT20    // sensor ready to get information
 #define NS_A308_GET_INFO		BIT21
 #define NS_A308_GET_FINISHED	BIT22
+#define NS_SEND_INFO_ACK		BIT23
 
 
 
