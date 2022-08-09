@@ -75,7 +75,8 @@ const char* SensorClassStr[7]=
 {
     "NO Sensor","Auto Scan","PZEM","Visual Sensor","DC600","FTM94","BTM-G6"
 };
-
+extern void DebugShowSetting();
+extern uint16 IndexToBaudrate(uint8);
 //***************************************************************************
 // Initial BLE Stack, IO port,
 //
@@ -115,19 +116,21 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
 #endif
     sensor_index = SensorClassChange(pMeshNodeData->SensorClass,CLASS_TO_UTILITY);
     
-    printf("\r\nSensor Class = %s\r\nWorking Timer = %d sec\r\nTemp-Gain = %0.2f, Temp-Offset = %0.2f\r\nRH-Gain   = %0.2f, RH-Offset   = %0.2f\r\n\r\n",
-         SensorClassStr[sensor_index],TIMER_GET_INFO_SLEEPING,pAdjValue->TempGain,pAdjValue->TempOffset,pAdjValue->HumGain,pAdjValue->HumOffset);
+    printf("\r\nMAC:%02X:%02X\r\nID:%d\r\nbaudrate:%d\r\nSensor Class = %s\r\nWorking Timer = %d sec\r\nTemp-Gain = %0.2f, Temp-Offset = %0.2f\r\nRH-Gain   = %0.2f, RH-Offset   = %0.2f\r\n\r\n",
+    		pMeshNodeData->ElementAddr>>8,pMeshNodeData->ElementAddr&0xff,pMeshNodeData->MeshNodeID,IndexToBaudrate(pMeshNodeData->BaudRate),SensorClassStr[sensor_index],TIMER_GET_INFO_SLEEPING,pAdjValue->TempGain,pAdjValue->TempOffset,pAdjValue->HumGain,pAdjValue->HumOffset);
+
 
     if(NodeRole == NR_CLIENT){
          gecko_bgapi_class_mesh_sensor_client_init();
-        }
-        
-    else{
+
+    }else{
          gecko_bgapi_class_mesh_sensor_server_init();
          gecko_bgapi_class_mesh_sensor_setup_server_init();
-        }
+
+    }
     BleEventInit();
     MeshEventInit();
+    DebugShowSetting();
 }
 /*******************************************************************************
  * Main application code.
@@ -175,6 +178,8 @@ void appMain(gecko_configuration_t *pConfig)
 		else if(NodeRole == NR_SERVER || NodeRole == NR_SETUP_SERVER)
 			ServerNodeTask();
 		else BtMeshSetupTask(); //window Utility
+
+
     } 
 }
 

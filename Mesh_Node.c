@@ -25,7 +25,7 @@
 
 uchar   CountErr;
 uint16  NodeStage;
-uint32  NodeStatus;
+uint32  NodeStatus=0;
 uchar   NodeRole;       // 0: server, 1: client, 2:Friend, 3: LPN
 _NodeEventInfo  NodeEventInfo;
 PNodeEventInfo  pNodeEventInfo;

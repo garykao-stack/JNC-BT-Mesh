@@ -1083,7 +1083,7 @@ typedef enum mesh_device_properties_e {
   NODE_GET_INFO_FULL_POWER_OFF                  = 0x8037,     // for Full Speed Disable
   NODE_GET_BTM_INFO                             = 0x8038,     // Get Node information for APP
   NODE_GET_A308_TABLE							= 0x8039,	  // Gget A308 Table
-
+  NODE_GET_ALL_SENSOR_GEN2						= 0x803A,	  // for all sensor info (Gen2)
   
   NODE_GET_WATER_LEVEL                          = 0x803D,     // get water level info
   NODE_GET_OIL_LEVEL                            = 0x803E,     // get oil level info
@@ -1145,7 +1145,7 @@ typedef enum mesh_device_properties_e {
   PROP_SERVER_ACK			= 0xFFFC,
   CUSTOM_SERIAL_DATA	 = 0xFFFD,
   NODE_A308_GET_FINISHED = 0xFFFE,
-  NODE_INFO	=	0xFFFF // for NodeInfo
+  PROP_NODE_INFO	=	0xFFFF // for NodeInfo
 
 } mesh_device_properties_t;
 

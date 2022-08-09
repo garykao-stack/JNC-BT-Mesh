@@ -79,12 +79,15 @@ uchar GetButtonStatus()
     uchar ret_code;
     button0 = GPIO_PinInGet(BSP_BUTTON0_PORT, BSP_BUTTON0_PIN);
     button1 = GPIO_PinInGet(BSP_BUTTON0_PORT, BSP_BUTTON1_PIN);
+    dprint("BUTTON 0: %s\r\n",button0?"HIGH":"LOW");
+	dprint("BUTTON 1: %s\r\n",button1?"HIGH":"LOW");
     
     if(button0 == LOW & button1 == HIGH)        ret_code = KEY_NODE_SETUP;
     else if(button0 == LOW & button1 == LOW)    ret_code = KEY_FACTORY_RESET;
     else ret_code = BT_NODE_ROLE_PRE_DEF;       //default server node
     return ret_code;
 }
+
 void ServerNodeTask();
     
 //*************************************************************************************

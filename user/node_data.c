@@ -165,23 +165,26 @@ Result ReadNodeData()
   struct gecko_msg_flash_ps_load_rsp_t* pRsp;
   pRsp = Cmd_flash_ps_load(PS_KEY_MESH_NODE_DATA);
   if(pRsp->result == RESULT_OK){
-    if(pRsp->value.len > sizeof(_Mesh_Node_Data) ) { 
-    len = sizeof(_Mesh_Node_Data);
-    }else len = pRsp->value.len;
+    if(pRsp->value.len > sizeof(_Mesh_Node_Data))
+    	len = sizeof(_Mesh_Node_Data);
+    else
+    	len = pRsp->value.len;
     memcpy((void *)pMeshNodeData, (void *)&(pRsp->value.data),len);
-    }
-  else {ret_code = pRsp->result; }
+  }else {
+	  ret_code = pRsp->result;
+  }
 
 
   pRsp = Cmd_flash_ps_load(PS_KEY_ADJUST_VALUE);
   if(pRsp->result == RESULT_OK) {
-     if(pRsp->value.len > sizeof(_AdjustValue) ) { 
-     len = sizeof(_AdjustValue);
-     }else len = pRsp->value.len;
-     
+     if(pRsp->value.len > sizeof(_AdjustValue) )
+    	 len = sizeof(_AdjustValue);
+     else
+    	 len = pRsp->value.len;
      memcpy((void *)pAdjValue, (void *)&(pRsp->value.data), len);
-    }
-  else {ret_code = pRsp->result; Trace1("Read Adjust Value Error %x",pRsp->result);}
+  }else {
+	  ret_code = pRsp->result; Trace1("Read Adjust Value Error %x",pRsp->result);
+  }
 
 
   return ret_code;

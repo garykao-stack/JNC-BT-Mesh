@@ -30,7 +30,7 @@
 
 #define BAUDRATE_CLOSE              0xFF
 
-#define MAX_BAUD_RATE_NUM           14
+//#define MAX_BAUD_RATE_NUM           14
 #define USART_TX_BUFF_SIZE          (255+5+2)//50
 #define USART_RX_BUFF_SIZE          (255+5+2)//50 //Bug
 
@@ -121,6 +121,7 @@ extern uint16 volatile CounterRx,CounterTx;
 extern uchar *RxBuff;//[];
 extern uint16 UsartCounterTx,UsartCounterRx;
 
+uint32 IndexToBaudrate(uint8);
 void UsartInit(void);
 void UsartDeInit(void);
 void UsartResetRxTx(uchar tx_rx);

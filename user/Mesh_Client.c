@@ -542,7 +542,13 @@ void ClientTimer_10ms(){
 
 }
 
-bool ClientModbusResponse();
+typedef enum{
+	CMR_DONE=0,
+	CMR_NONE=1,
+	CMR_ERROR=2
+}ClientMbsResult;
+
+ClientMbsResult ClientModbusResponse();
 
 uchar SendDataDelay;
 //
@@ -565,10 +571,29 @@ void ClientFromHostProc()
         		rec_flag=0;
         		trans_retry=0;
         	}
+/*#elif 1
+        	{
+				if(GetNodeStatus(USART_RX_CRC_ERROR)){ //CRC錯誤，重置接收參數
+					UsartResetRxTx(USART_ID_RX);
+					SetNodeStatus(NS_USART_RX_EVENT,OFF);
+					ToNextStage(CHS_CHECK_RX_EVENT);
+				}
+				else switch(ClientModbusResponse()){
+					case CMR_DONE: ToNextStage(CHS_WAIT_TX_FINISHED); break;
+					case CMR_ERROR: ToNextStage(CHS_MODBUS_ERROR); break;
+					default:  ToNextStage(CHS_CHECK_MODBUS);
+				}
+        	}*/
 #elif defined(BTM_A308)
 			{
-				if(ClientModbusResponse())
-					ToNextStage(CHS_WAIT_TX_FINISHED);
+
+        		if(GetNodeStatus(USART_RX_CRC_ERROR)){ /*CRC錯誤，重置接收參數*/
+					UsartResetRxTx(USART_ID_RX);
+					SetNodeStatus(NS_USART_RX_EVENT,OFF);
+					ToNextStage(CHS_CHECK_RX_EVENT);
+				}
+				else if(ClientModbusResponse())
+						ToNextStage(CHS_WAIT_TX_FINISHED);
 				else
 					ToNextStage(CHS_MODBUS_ERROR);
 			}
@@ -778,6 +803,7 @@ void ClientPropertyEvent(msg_ms_client_status_evt *pEvent)
                     case CLEAR_FILTER1:
                     case CLEAR_ALL_FILTER:
                     case NODE_GET_ALL_SENSOR:
+                    case NODE_GET_ALL_SENSOR_GEN2:
                     case NODE_GET_INFO_FULL_POWER_ON: 
                     case NODE_GET_INFO_FULL_POWER_OFF:
                         memcpy(&(pClientInfo->SensorInfo),property_data,property_len);
@@ -1345,6 +1371,16 @@ bool ClientOemSensor(POemSensor p_info)
     return ret_code;
 }
 
+uint16 ClientGetOemSensorRegister(uint16 loc){
+	POemSensor p_info=&pClientInfo->SensorInfo.OemSensor;
+	switch (loc){
+	case BATTERY_POWER: return (uint16)(pClientInfo->SensorInfo.Header.BatteryPower);
+	case OEM_ADDR_0A: return p_info->Addr0A;
+	}
+	if(loc<=3) return *(&(p_info->Addr00)+loc);
+	return 0;
+}
+
 
 
 bool ClientIAQS(PIaqsInfo p_info)
@@ -1623,25 +1659,28 @@ bool ClientVelocity(PVelocity p_info)
 
 
 
-bool ClientModbusResponse(){
+ClientMbsResult ClientModbusResponse(){
 	uint16 (*getValueFunc)(uint16 loc);
 	UCHAR *rx=UsartGetBuff(USART_ID_RX);
 	UCHAR *tx=UsartGetBuff(USART_ID_TX);
+	uint8 fun=rx[1];
 	uint16 start=(((uint16)rx[2])<<8) | rx[3];
 	uint16 len=(((uint16)rx[4])<<8) | rx[5];
 	uint16 *values=(void*)&tx[3];
-	if(len>127 )return MbsResponseError(rx[0],rx[1],0x02); /* location error*/
+
+	if((fun==3||fun==4) && len>127 )return MbsResponseError(rx[0],rx[1],0x02)?CMR_DONE:CMR_ERROR; /* location error*/
 
 
-	if((pClientInfo = GetServerInfoPos(rx[0]))== NULL) return FALSE;
+	if((pClientInfo = GetServerInfoPos(rx[0]))== NULL) return CMR_ERROR;
 	switch(pClientInfo->SensorInfo.Header.SensorClass){
 #ifdef BTM_A308
 	case SENSOR_A308M:
-		return A308_Client_Modbus_Response();
+		return A308_Client_Modbus_Response()?CMR_DONE:CMR_ERROR;
 #endif
 	case SENSOR_RELAY: getValueFunc=ClientGetRelayRegister; break;
+	case SENSOR_OEM: getValueFunc=ClientGetOemSensorRegister; break;
 	default:
-		return FALSE;
+		return CMR_NONE;
 	}
 
 	tx[0]=rx[0];
@@ -1650,7 +1689,7 @@ bool ClientModbusResponse(){
 
 	for(uint16 i=0; i<len;i++)	values[i]=WordSwap(getValueFunc(start+i));
 
-	return MbsSend(tx,len*2+3);
+	return MbsSend(tx,len*2+3)?CMR_DONE:CMR_ERROR;
 }
 
 

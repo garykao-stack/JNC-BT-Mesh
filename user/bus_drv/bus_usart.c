@@ -21,7 +21,7 @@
 #include "Mesh_Node.h"
 #include "bus_rs485.h"
 #include "bus_usart.h"
-const uint32 UsartBaudrate[MAX_BAUD_RATE_NUM]=
+const uint32 UsartBaudrate[]=
 {2400, 4800, 9600, 19200, 38400, 57600, 115200, 128000, 256000, 460800, 921600, 1382400,1843200,2764800};
 uchar OrigignalRx[USART_RX_BUFF_SIZE+1];
 uchar OrigignalTx[USART_TX_BUFF_SIZE+1];
@@ -32,9 +32,14 @@ uint16  UsartStatus;
 uchar   UsartIntervalTimer;         //max interval to receive next byte (XXX ms)
 uint16 volatile  CounterRx,CounterTx;
 
-
+#define MAX_BAUD_RATE_NUM (sizeof(UsartBaudrate)/sizeof(UsartBaudrate[0]))
 
 bool Modbus_IsReceived();
+
+uint32 IndexToBaudrate(uint8 idx){
+	if (idx>=MAX_BAUD_RATE_NUM) return 0;
+	return UsartBaudrate[idx];
+}
 
 void UsartInit(void)
 {
@@ -47,10 +52,14 @@ void UsartInit(void)
     GPIO_PinModeSet(USART_PORT, USART_PIN_TX, gpioModePushPull, 1); //TX
     GPIO_PinModeSet(USART_PORT, USART_PIN_RX, gpioModeInputPull, 1);    //RX
 
+#ifdef BTM_TRANSMITTER
+    usart_init.baudrate = UsartBaudrate[pMeshNodeData->BaudRate];
+#else
     if(NodeRole == NR_CLIENT)
         usart_init.baudrate = UsartBaudrate[pMeshNodeData->BaudRate];   //setup baudrate
     else
         usart_init.baudrate = UsartBaudrate[USART_BAUDRATE_DEFAULT];   //setup baudrate
+#endif
     USART_InitAsync(USART, &usart_init);   // Initialize USART asynchronous mode and route pins
     
     USART->ROUTELOC0 = USART_LOCATION;
@@ -60,7 +69,26 @@ void UsartInit(void)
     UsartIrq(USART_ID_RX,ON);
     UsartIrq(USART_ID_TX,ON);
     UsartOpen();
+    dprint("RS485 Initialize. baudrate:%d\r\n",usart_init.baudrate);
     return;          
+}
+
+void UsartBaudrateChange(){
+/*
+	USART_InitAsync_TypeDef usart_init = USART_INITASYNC_DEFAULT;
+#ifdef BTM_TRANSMITTER
+    usart_init.baudrate = UsartBaudrate[pMeshNodeData->BaudRate];
+#else
+    if(NodeRole == NR_CLIENT)
+        usart_init.baudrate = UsartBaudrate[pMeshNodeData->BaudRate];   //setup baudrate
+    else
+        usart_init.baudrate = UsartBaudrate[USART_BAUDRATE_DEFAULT];   //setup baudrate
+#endif
+    USART_InitAsync(USART, &usart_init);
+    UsartResetRxTx(USART_ID_TX_RX);
+    UsartSetStatus(USART_OPEN,ON);
+    //Initializae USART Interrupts
+    Rs485Rx();*/
 }
 
 //

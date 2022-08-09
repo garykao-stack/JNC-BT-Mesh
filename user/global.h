@@ -74,19 +74,25 @@
 
 */
 
-///////////////////////////////////////////////////////////
+/*=============================================================
+ *							Product
+ *-------------------------------------------------------------*/
 //for G6-DAC7760
 // version: 1.00
 
-
+//#define JNC_BT_MESH             1   //for JNC BT Mesh (預設版本)
 //#define BT_MESH_G6              1   //for BT Mesh Control G6
-//#define JNC_BT_MESH             1   //for JNC BT Mesh
 //#define ULTRA_SOUND_SKYNET      1 //xxxx
-//#define BTM_TRANSMITTER		1 //BTM / RS485 transmitter
-#define BTM_A308				1	//A308 Customized. Read All data from modbus, transmite data with several BTM responses.
+#define BTM_TRANSMITTER		1 //BTM / RS485 transmitter
+//#define BTM_A308				1	//A308 Customized. Read All data from modbus, transmite data with several BTM responses.
 #define A308_SIMULATION 			0 /*A308訊號模擬。不從485讀取A308數值，直接以ID填滿所有暫存器*/
 #define A308_SLEEP_MODE			1
 
+/*=============================================================
+ *							Debug
+ *-------------------------------------------------------------*/
+//#define DEBUG_PRINT
+#define DPRINT 0			// dprint, 0:disabled, 1:enabled
 
 #ifdef BTM_A308
   #define FW_VER              101
@@ -126,12 +132,13 @@
   #define MODEL_NAME          "BTM-UD"
 #endif
 
+#define BTM_PROTOCOL_GEN	2
+
 
 #ifndef _GLOBAL_H_
 #define _GLOBAL_H_
 
-//#define DEBUG_PRINT
-#define DPRINT 1			// dprint, 0:disabled, 1:enabled
+
 #define BTM_TEST
 
 

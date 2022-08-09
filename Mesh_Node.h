@@ -306,7 +306,9 @@ typedef struct{
     uint8  BatteryPower;   // 0 ~ 100%
 	uchar  ModelName[6];           //
     uint16 Version;                // Firmware version
-
+    uint16 ProtocolGen;
+    uint8  DeviceNameChartCount;
+    char DeviceName[30];
 }NodeInfo;
 
 
@@ -447,10 +449,9 @@ typedef struct _NodeEventInfo_
 #define NS_GET_INFO_ACT         BIT7    // BT Mesh Get info Event action
 #define NS_FULL_POWER           BIT8    // do not sleeping(connect USB power)
 #define NS_SET_NODE_ACT         BIT9    // BT Mesh Set info Event action
-
+#define NS_REBOOT				BIT10    //Reboot System
 
 ///Client node
-//#define NS_USART_RX_EVENT       BIT10    //
 #define NS_CLIENT_GET_INFO      BIT11    //
 #define NS_CLIENT_SET_INFO      BIT12    //
 #define NS_CLIENT_CHANGE_POWER  BIT13    // Change System Power Status

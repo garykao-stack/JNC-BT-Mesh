@@ -450,6 +450,7 @@ uint32 EvtMeshNodeModelConfigChangedProc(PCmdPacket pCmdEvent)
     Trace16Ptr_4(pEvent, mesh_node_config_state, element_address, vendor_id, model_id);
     SetEventTaskTimer(TD_SYS_SETUP_RESET,TIMER_SYS_SETUP,TIMER_EVENT_ONCE);
 
+    //if(GetNodeStatus(NS_REBOOT)) Cmd_sys_reset(0); //reboot)
     return ret_code;
 }
 

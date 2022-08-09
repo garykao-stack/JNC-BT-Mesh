@@ -1,5 +1,19 @@
 ## v1.24 #
 ---
+### 220809 : RS485/BTM v1.1 (成) #
+1. 增加設備訊息Property(PROP_NODE_INFO:0xffff)，內含:
+    - Sernsor類型
+    - 狀態旗標
+    - 電池電量
+    - 韌體版本編號
+    - 通訊協定版本
+    - 設備名稱(上限30字)
+2. App設定增加Baudrate設定(for RS485/BTM)
+3. 增加非Setup模式下提供APP存取設定的指令(Read/Write Column)
+4. 非Setup模式下讀取設定後，可指定暫停工作秒數(0~255秒)，其間不進入休眠，也不回應廣播指令
+5. 在RS485/BTM模式下，Property:GET_ALL_SENSOR回傳內容同JNC_BT_MESH
+6. GET_ALL_SENSOR指令中的Property統一回傳NODE_GET_ALL_SENSOR_GEN2(0x803a)，提供App識別是否支援新版通訊
+
 ### 220801 : A308M v1.01 (成) #
 1. 修改A308讀取機制
     - Client:
