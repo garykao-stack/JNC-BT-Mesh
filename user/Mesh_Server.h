@@ -57,6 +57,7 @@
 #define SNS_A308_FETCH_INFO		15
 #define SNS_WAIT_A308_CMD		16
 #define SNS_WAIT_SEND_INFO_ACK	17
+#define SNS_WAIT_GET_INFO		18
 
 
 #define SNS_SET_INFO_INIT       0x00
@@ -230,6 +231,7 @@ bool GetVelocityInfo();
 bool G6SetupInfo();
 bool G6GetInfo();
 bool ModbusSetupFC6();
+bool GetJYGD15Info();
 
 
 bool G6SetSegPowerPercent(uint16 addr,uint16 value);

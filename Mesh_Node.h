@@ -253,7 +253,9 @@ typedef struct _BtmG6_
     uint16 TimeFilter2;
 }_BtmG6,*PBtmG6;
 
-
+typedef struct{
+	uint16 values[16];
+}_JYGD15Info;
 
 
 typedef struct _SensorInfo_
@@ -279,6 +281,7 @@ union{
         _BtMeshInfo BtmMeshInfo;
         _Velocity   Velocity;
         _BtmG6      BtmG6;
+        _JYGD15Info	JYGD15Info;
         
      };
 }_SensorInfo,*PSensorInfo;
@@ -362,6 +365,7 @@ typedef struct _NodeEventInfo_
 #define SENSOR_BTM_MESH_INFO 18     // return BTM Mesh Infomation
 #define SENSOR_BTM_G6        19     // for G6 Control
 #define SENSOR_VELOCITY      20     // for G6 Control
+#define SENSOR_JYGD15		 21		/*風速風量變送器*/
 #define SENSOR_CUSTOM_SERIAL 0xff
 
 
@@ -474,7 +478,7 @@ typedef struct _NodeEventInfo_
 
 
 // Device
-#define NS_USART_RX_ACTION      BIT24    // 
+#define NS_USART_WAIT_RESP      BIT24    //
 #define NS_USART_TX_ENDING      BIT25    //
 #define NS_FORCE_FULL_POWER     BIT26    // Force System To Full Status
 #define NS_SYS_NO_WAITING       BIT27    // 

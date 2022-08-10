@@ -902,42 +902,25 @@ bool ClientPrepareToHost()
 
     switch(sensor_class)
         {
-            case SENSOR_SI7021:     ret_code = ClientSkynet(&pClientInfo->SensorInfo.Si7021Info);
-                break;
-            case SENSOR_PT485:      ret_code = ClientPT485(&pClientInfo->SensorInfo.PT485);
-                break;
-            case SENSOR_AIP:        ret_code = ClientAIP(&pClientInfo->SensorInfo.AipInfo);
-                break;
-            case SENSOR_A308M:      ret_code = ClientA308m(&pClientInfo->SensorInfo.A308mInfo);
-                break;
-           case SENSOR_WATER_LEVEL: ret_code = ClientWaterLevel(&pClientInfo->SensorInfo.WaterLevelInfo);
-                break;
-            case SENSOR_JNC_SD:     ret_code = ClientJncSd(&pClientInfo->SensorInfo.SdInfo);
-                break; 
-            case SENSOR_ULTRA_SOUND: ret_code = ClientUltraSound(&pClientInfo->SensorInfo.UltraSound);
-                break;
-            case SENSOR_DO_485:     ret_code = ClientJncDo485(&pClientInfo->SensorInfo.JncDo485);
-                break;
-            case SENSOR_A6D6:       ret_code = ClientA6D6(&pClientInfo->SensorInfo.A6D6);
-                break;             
-            case SENSOR_RELAY:      ret_code = ClientRelay(&pClientInfo->SensorInfo.RelayNode);
-                break;
-            case SENSOR_IAQS:       ret_code = ClientIAQS(&pClientInfo->SensorInfo.IaqsInfo);
-                break;
-            case SENSOR_CW9:        ret_code = ClientCW9(&pClientInfo->SensorInfo.Cw9Info);
-                break;
-            case SENSOR_SKYNET_CO2: ret_code = ClientSkynetCo2(&pClientInfo->SensorInfo.SkynetCo2);
-                break;
-            case SENSOR_PZEM:       ret_code = ClientPzem(&pClientInfo->SensorInfo.Pzem);
-                break;                   
-            case SENSOR_OEM:        ret_code = ClientOemSensor(&pClientInfo->SensorInfo.OemSensor);
-                break;
-            case SENSOR_BTM_G6:     ret_code = ClientBtmG6(&pClientInfo->SensorInfo.BtmG6);
-                break;
-            case SENSOR_VELOCITY:   ret_code = ClientVelocity(&pClientInfo->SensorInfo.Velocity);
-                break;                                 
-            case OTHER_MODBUS_CMD:  ret_code = ClientOtherModbusCmd();
-                break;
+            case SENSOR_SI7021:     ret_code = ClientSkynet(&pClientInfo->SensorInfo.Si7021Info);	break;
+            case SENSOR_PT485:      ret_code = ClientPT485(&pClientInfo->SensorInfo.PT485);			break;
+            case SENSOR_AIP:        ret_code = ClientAIP(&pClientInfo->SensorInfo.AipInfo);			break;
+            case SENSOR_A308M:      ret_code = ClientA308m(&pClientInfo->SensorInfo.A308mInfo);		break;
+           case SENSOR_WATER_LEVEL: ret_code = ClientWaterLevel(&pClientInfo->SensorInfo.WaterLevelInfo);	break;
+            case SENSOR_JNC_SD:     ret_code = ClientJncSd(&pClientInfo->SensorInfo.SdInfo);		break;
+            case SENSOR_ULTRA_SOUND: ret_code = ClientUltraSound(&pClientInfo->SensorInfo.UltraSound);	break;
+            case SENSOR_DO_485:     ret_code = ClientJncDo485(&pClientInfo->SensorInfo.JncDo485);	break;
+            case SENSOR_A6D6:       ret_code = ClientA6D6(&pClientInfo->SensorInfo.A6D6);			break;
+            case SENSOR_RELAY:      ret_code = ClientRelay(&pClientInfo->SensorInfo.RelayNode);		break;
+            case SENSOR_IAQS:       ret_code = ClientIAQS(&pClientInfo->SensorInfo.IaqsInfo);		break;
+            case SENSOR_CW9:        ret_code = ClientCW9(&pClientInfo->SensorInfo.Cw9Info);			break;
+            case SENSOR_SKYNET_CO2: ret_code = ClientSkynetCo2(&pClientInfo->SensorInfo.SkynetCo2);	break;
+            case SENSOR_PZEM:       ret_code = ClientPzem(&pClientInfo->SensorInfo.Pzem);			break;
+            case SENSOR_OEM:        ret_code = ClientOemSensor(&pClientInfo->SensorInfo.OemSensor);	break;
+            case SENSOR_BTM_G6:     ret_code = ClientBtmG6(&pClientInfo->SensorInfo.BtmG6);			break;
+            case SENSOR_VELOCITY:   ret_code = ClientVelocity(&pClientInfo->SensorInfo.Velocity);	break;
+            case SENSOR_JYGD15:	ret_code = ClientJYGD15(&pClientInfo->SensorInfo.JYGD15Info);	break;
+            case OTHER_MODBUS_CMD:  ret_code = ClientOtherModbusCmd();                				break;
             default:  ret_code=FALSE;
                 break;
         }
@@ -980,6 +963,33 @@ bool ClientOtherModbusCmd()
     memcpy(ModbusToHostCmd.Data,BtmModelName,6);
 
     return ret_code;
+}
+
+bool ClientJYGD15(_JYGD15Info *info){
+	ModbusToHostCmd.ModbusID = pModbusCmd->ModbusID;
+	uint8 *data=(void*)(ModbusToHostCmd.Data);
+	uint16 loc,len=WordSwap(pModbusCmd->TotalReg);
+
+	if(len>(MODBUS_TO_HOST_BUFF_NUM/2)){
+		dprint("req len:%d is over then %d\r\n",len,(MODBUS_TO_HOST_BUFF_NUM/2));
+		ModbusToHostCmd.FunCode = pModbusCmd->FunCode | 0x80;
+		ModbusToHostCmd.ByteNum = 1;
+		ModbusToHostCmd.Data[0]=0x02;
+	}else{
+		ModbusToHostCmd.FunCode = pModbusCmd->FunCode;
+		ModbusToHostCmd.ByteNum=len*2;
+		for(int i=0;i<len;i++){
+			loc=pModbusCmd->StartAddr+i;
+			if (loc<14){
+				data[i*2]=info->values[loc]>>8;
+				data[i*2+1]=info->values[loc]&0xff;
+			}else{
+				data[i*2]=0;data[i*2+1]=0;
+			}
+		}
+
+	}
+	return TRUE;
 }
 
 

@@ -152,6 +152,7 @@ void appMain(gecko_configuration_t *pConfig)
     
     BleMeshNodeInit(pConfig);
     PCmdPacket pEvent;
+    dprint("Sensor Info Size:%d\r\n",sizeof(_SensorInfo));
     
     while(1)
     {
@@ -172,6 +173,8 @@ void appMain(gecko_configuration_t *pConfig)
 		if(!CheckRunDevTask()) continue;
 
 		//dprint("===\r\nMax Sensor Info Size:%d\r\n===\r\n",sizeof(_SensorInfo));
+
+
 
 		if(NodeRole == NR_CLIENT)
 			ClientNodeTask();

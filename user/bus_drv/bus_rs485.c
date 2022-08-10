@@ -101,6 +101,11 @@ uchar CheckRs485Device(int16 connectTryCount)
         SetNodeStatus(NS_SERVER_RS485_ENABLE,ON);
         rs485_dev = SENSOR_VELOCITY; goto Check485_End;
         }
+    else if(pMeshNodeData->SensorClass == SENSOR_JYGD15){
+    	pFunSensor = GetJYGD15Info;GetDeviceInfoDelay = 5;
+    	 SetNodeStatus(NS_SERVER_RS485_ENABLE,ON);
+    	 rs485_dev = SENSOR_JYGD15; goto Check485_End;
+    }
 #ifdef BTM_TRANSMITTER
     else if(pMeshNodeData->SensorClass == SENSOR_CUSTOM_SERIAL){
     	pFunSensor = GetCustomSerial;GetDeviceInfoDelay = 5;

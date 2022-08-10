@@ -80,10 +80,10 @@
 //for G6-DAC7760
 // version: 1.00
 
-//#define JNC_BT_MESH             1   //for JNC BT Mesh (預設版本)
+#define JNC_BT_MESH             1   //for JNC BT Mesh (預設版本)
 //#define BT_MESH_G6              1   //for BT Mesh Control G6
 //#define ULTRA_SOUND_SKYNET      1 //xxxx
-#define BTM_TRANSMITTER		1 //BTM / RS485 transmitter
+//#define BTM_TRANSMITTER		1 //BTM / RS485 transmitter
 //#define BTM_A308				1	//A308 Customized. Read All data from modbus, transmite data with several BTM responses.
 #define A308_SIMULATION 			0 /*A308訊號模擬。不從485讀取A308數值，直接以ID填滿所有暫存器*/
 #define A308_SLEEP_MODE			1
@@ -117,7 +117,7 @@
   #define NODE_DATA_ID        0xA5A5
   #define MODEL_NAME          "G6S-BT"
 #elif defined(JNC_BT_MESH)
-  #define FW_VER              124
+  #define FW_VER              125
   #define HW_VER              110
   #define DEVICE_NAME         "JNC-BT-Mesh"
   #define MANUFACTORY_NAME    "JNC"

@@ -35,6 +35,7 @@ uchar   UsartRxCount;   // Receive data from Rx bytes
 PFunSensor pFunSensor=0;
 
 
+
 NodeStageInfo NodeStageInfoTbl[NODE_STAGE_INFO_NUM]=
 {
     {NODE_STAGE_INIT,0}, {NODE_STAGE_INIT,0}, {NODE_STAGE_INIT,0}, {NODE_STAGE_INIT,0},

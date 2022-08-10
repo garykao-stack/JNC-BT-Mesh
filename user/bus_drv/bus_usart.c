@@ -501,7 +501,7 @@ bool UsartTxSendCmd(PUCHAR pBuff,uint16 size)
     {
         ret_code = UsartSendCmd(size);
     }
-   else {TraceErr1 ("USART Tx Error 1",CounterTx);
+   else {dprint("USART Tx Error 1 CounterTx:%d\r\n",CounterTx);
         UsartSetStage(USART_STAGE_TX_END); 
     }
     

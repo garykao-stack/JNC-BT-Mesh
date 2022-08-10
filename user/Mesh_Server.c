@@ -53,6 +53,8 @@ uint16  GetDeviceInfoDelay=5;     //Nx10ms ==> 50ms
 _ServerInfo ServerInfo;
 PServerInfo pServerInfo = &ServerInfo;
 PNodeHeader pSensorHeader = &ServerInfo.SensorInfo.Header;
+void (*parseMbsResponse)()=0;
+
 const uchar AipPowerCtrlCmd[5][8]=
 {
     {0x01, 0x06, 0x00, 0x02, 0x00, 0x00, 0x28, 0x0A},   // 00%
@@ -490,13 +492,17 @@ void ServerGetInfoProc()
 
                 if((GetNodeStatus(NS_SYS_NO_WAITING) == ON) || CheckWaitTimeOut() == TRUE){
                     //Trace("SNS_GET_INFO 1");
-                	if(UsartIsBusy()) {
+                	/*if(UsartIsBusy()) {
                 		dprint("uart is busy\r\n");
                 		return;
-                	}
+                	}*/
                     dprint("GET_INFO: pFunSensor:%d, NULL:%d\r\n",(int)pFunSensor,(int16)NULL);
                     if((pFunSensor!= NULL) && (GetSensorInfo() == TRUE) ){
-						if(pFunSensor==GetRelay /*&& !pMeshNodeData->RelayEnabled*/){ /*不論是否開啟Relay功能，都要嘗試讀取設備*/
+                    	if(GetNodeStatus(NS_USART_WAIT_RESP)){
+                    		SetNodeStatus(NS_USART_WAIT_RESP,OFF);
+                    		ToWaitingStage(SNS_WAIT_GET_INFO,WAIT_MS(1000));
+                    		return;
+                    	}else if(pFunSensor==GetRelay /*&& !pMeshNodeData->RelayEnabled*/){ /*不論是否開啟Relay功能，都要嘗試讀取設備*/
 							CheckRs485Device(3);
 							if(pFunSensor!=GetRelay) break;
 						}
@@ -509,8 +515,22 @@ void ServerGetInfoProc()
                         ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
                    }
                 }
-                
                 break;
+            case SNS_WAIT_GET_INFO:
+
+            	if(GetNodeStatus(NS_USART_RX_EVENT)){
+            		if(!UsartGetStatus(USART_RX_CRC_ERROR)){//succeed
+            			if(parseMbsResponse) parseMbsResponse();
+            			ToWaitingStage(SNS_EVENT_WAITING,0);
+            		}else{//error
+            			ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
+            		}
+            		SetNodeStatus(NS_USART_RX_EVENT,OFF);
+            		UsartResetRxTx(USART_ID_TX_RX);
+            	}else if(CheckWaitTimeOut()){ //timeout
+            		ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
+            	}
+            	break;
             case SNS_EVENT_WAITING:
 
             	//fordward mbs data to uart
@@ -737,7 +757,7 @@ bool GetSensorInfo()
     ret_code = GetBtmMeshInfo();
   }else if(pFunSensor){
     ret_code = pFunSensor();
-    if(GetCustomSerial!=pFunSensor)UsartResetRxTx(USART_ID_TX_RX);
+    if(GetCustomSerial!=pFunSensor && !GetNodeStatus(NS_USART_WAIT_RESP))UsartResetRxTx(USART_ID_TX_RX);
   }
 
   return ret_code;
@@ -864,6 +884,33 @@ bool GetBtmMeshInfo()
  p_sensor->BtmClass = pMeshNodeData->SensorClass; //0x01;
 
  return ret_code; 
+}
+
+uint16 ResponseBtmMeshInfo(){
+	_ServerInfo info=ServerInfo;
+
+	 PBtMeshInfo p_sensor = &info.SensorInfo.BtmMeshInfo;
+	 info.NodeInfoSize=sizeof(_NodeHeader) + sizeof(_BtMeshInfo);
+	 info.ProperityID = NODE_GET_ALL_SENSOR_GEN2;
+
+	 info.SensorInfo.Header.BatteryPower = GetBatteryPower();
+	 if(GetNodeStatus(NS_FULL_POWER)) info.SensorInfo.Header.Status|= SERVER_FULL_POWER;
+	 else		 info.SensorInfo.Header.Status&= ~SERVER_FULL_POWER;
+
+
+	 memcpy(p_sensor->ModelName,MODEL_NAME,6);
+	 p_sensor->Version = FW_VER;
+	 p_sensor->TempGain = (int16)((pAdjValue->TempGain)*MESH_INFO_SCALING);
+	 p_sensor->TempOffset = (int16)((pAdjValue->TempOffset)*MESH_INFO_SCALING);
+
+	 p_sensor->RhGain = (int16)((pAdjValue->HumGain)*MESH_INFO_SCALING);
+	 p_sensor->RhOffset = (int16)((pAdjValue->HumOffset)*MESH_INFO_SCALING);
+
+	 p_sensor->WorkingTime = pMeshNodeData->WorkingTimer; //60;
+	 p_sensor->BtmClass = pMeshNodeData->SensorClass; //0x01;
+
+	 return Cmd_ms_server_send_status(SENSOR_ELEMENT, pNodeEventInfo->ClientAddr,pNodeEventInfo->AppkeyIndex,
+	 	                                             NO_FLAGS, info.NodeInfoSize+3, (PUCHAR)&info)->result;
 }
 
 
@@ -1479,6 +1526,32 @@ bool GetVelocityInfo()
     return ret_code;
 }
 
+void ParseJYGD15Info(){
+	//dprint("ParseJYGD15Info()...\r\n");
+	_JYGD15Info *p_sensor = &ServerInfo.SensorInfo.JYGD15Info;
+	PUCHAR rx=UsartGetBuff(USART_ID_RX);
+	int len=rx[2];
+	if(CounterRx<3 || CounterRx<(5+len/2)) { dprint("receive data is too short. len:%d\r\n",CounterRx);return;} /*長度不足*/
+	if(rx[1]&0x80) {dprint("receive error code\r\n");return;}/*錯誤碼*/
+	for(int i=0;i<14;i++){
+		p_sensor->values[i]=(((uint16)rx[3+i*2])<<8) | rx[4+i*2];
+		dprint(">%d ",p_sensor->values[i]);
+	}
+	dprint("\r\n");
+}
+
+
+bool GetJYGD15Info(){
+	//dprint("GetJYGD15Info()...\r\n");
+	SetNodeInfoSize(_JYGD15Info);
+	SetNodeClass(SENSOR_JYGD15);
+	MbsSetReadRegCmd(1,3,0,14);
+	SetNodeStatus(NS_USART_WAIT_RESP,ON);
+	parseMbsResponse=ParseJYGD15Info;
+	return TRUE;
+}
+
+
 
 bool GetCustomSerial(){
 	SetNodeInfoSize(_BtMeshInfo);
@@ -1564,13 +1637,10 @@ uint16 Server_ResponseSetting(uint8 *in,uint8 len){
    /*停止回應廣播指令 in[0] 秒*/
    if (len>=1){
 	   IgnoreBroadcastCmdMs=in[0]*1000;
-	   dprint("Response Setting: Ignore Broadcast Request for %d sec\r\n",in[0]);
+	   dprint("Response Setting: Ignore Broadcast Request for %.1f sec\r\n",IgnoreBroadcastCmdMs/1000.0);
    }
 
 
-   /*pNodeEventInfo->ServerAddr  = pEvent->server_address;
-   pNodeEventInfo->AppkeyIndex = pEvent->appkey_index;*/
-           //Cmd_ms_server_send_column_status(SENSOR_ELEMENT, pNodeEventInfo->ClientAddr,pNodeEventInfo->AppkeyIndex, NO_FLAGS,NODE_GET_A308_TABLE, len+6, ((PUCHAR)&rsp))->result;
    result= Cmd_ms_server_send_column_status(SENSOR_ELEMENT, pNodeEventInfo->ClientAddr, pNodeEventInfo->AppkeyIndex, 0xA5, NODE_SENSOR_SETUP_GET,sizeof(_BtAppData)+2, data)->result;
    dprint("*** Server_ResponseSetting result:0x%X\r\n",result);
 
@@ -1659,6 +1729,7 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
 {
 	uint16 result;
     msg_ms_server_get_request_evt *pEvent = &(pCmdEvent->data.evt_mesh_sensor_server_get_request);
+    _NodeEventInfo tmpNodeEvtInfo=*pNodeEventInfo;
     pNodeEventInfo->ElemIndex   = pEvent->appkey_index;
     pNodeEventInfo->ClientAddr  = pEvent->client_address;
     pNodeEventInfo->ServerAddr  = pEvent->server_address;
@@ -1702,9 +1773,11 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
 			return;
 		}*/else if(pEvent->property_id==NODE_SENSOR_SETUP_GET){
 			Server_ResponseSetting(ext->data,ext->len);
+			*pNodeEventInfo=tmpNodeEvtInfo;
 			return;
 		}else if(pEvent->property_id==NODE_SENSOR_SETUP_SET){
 			Server_ReceiveSetting(ext->data,ext->len);
+			*pNodeEventInfo=tmpNodeEvtInfo;
 			return;
 		}
 #ifdef BTM_A308
@@ -1721,12 +1794,17 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
     	dprint("*** Receive PROP_NODE_INFO:");
     	result=Server_ResponseInfo();
     	dprint("%s, code:0x%X\r\n===\r\n",result?"failed":"successed",result);
+    	*pNodeEventInfo=tmpNodeEvtInfo;
     }else if(pEvent->property_id == PROP_SERVER_ACK){
     	dprint("*** receive Server Ack\r\n");
     	SetNodeStatus(NS_SEND_INFO_ACK,ON);
     }
     else if(pEvent->property_id == NODE_GET_ALL_SENSOR){
          SetNodeStatus(NS_GET_INFO_ACT,ON);  // Mesh get event active
+         if(pEvent->server_address!=0xC000){ /*非廣播指令，直接回應(for APP)*/
+        	 SendInfoToClient();
+        	 *pNodeEventInfo=tmpNodeEvtInfo;
+         }
      }
     else if(pEvent->property_id ==NODE_GET_A308_TABLE){
     	 SetNodeStatus(NS_A308_GET_INFO,ON);
@@ -1749,7 +1827,9 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
          SetNodeStatus(NS_SET_NODE_ACT,ON);  // Mesh set event active
     }    
     else if(pEvent->property_id == NODE_GET_BTM_INFO){
-         SetNodeStatus(NS_GET_INFO_ACT,ON);  // Mesh set event active
+    	ResponseBtmMeshInfo();
+    	*pNodeEventInfo=tmpNodeEvtInfo;
+         //SetNodeStatus(NS_GET_INFO_ACT,ON);  // Mesh set event active
     }    
     else if(pEvent->property_id >= BTM_G6_CMD_START && pEvent->property_id <= BTM_G6_CMD_END){//Trace("G6-Setup");
              SetNodeStatus(NS_SET_NODE_ACT,ON);  // Mesh set event active
@@ -1791,27 +1871,33 @@ bool ServerSendModbusCmd(PUCHAR modbus_cmd,uchar len)
 //
 uint16  SensorClassChange(uint16 class,uint8 status)
 {
-    uint16 ret_code;
     if(status == CLASS_TO_UTILITY){ // change to Utility or App sensor class
-        
-        if(class == SENSOR_PZEM) ret_code = 2;
-        else if(class == SENSOR_OEM) ret_code = 3;
-        else if(class == SENSOR_AGB_POWER) ret_code = 4;
-        else if(class == SENSOR_VELOCITY) ret_code = 5;
-        else ret_code = 1;
+        switch(class){
+        case SENSOR_PZEM: return 2;
+        case SENSOR_OEM: return 3;
+        case SENSOR_AGB_POWER: return 4;
+        case SENSOR_VELOCITY: return 5;
+        case SENSOR_JYGD15: return 6;
+        default: return 1;
+        }
         //TraceDec1("To Utility",ret_code);
     }
     else{// change to BTM Class
-        
-    if(class == 2) ret_code = SENSOR_PZEM;
-    else if(class == 3) ret_code = SENSOR_OEM;
-    else if(class == 4) ret_code = SENSOR_AGB_POWER;
-    else if(class == 5) ret_code = SENSOR_VELOCITY;
-    else ret_code = 1;
+        switch(class){
+        case 2: return SENSOR_PZEM;
+        case 3: return SENSOR_OEM;
+        case 4: return SENSOR_AGB_POWER;
+        case 5: return SENSOR_VELOCITY;
+        case 6: return SENSOR_JYGD15;
+        default :return 1;
+        }
+		/*if(class == 2) ret_code = SENSOR_PZEM;
+		else if(class == 3) ret_code = SENSOR_OEM;
+		else if(class == 4) ret_code = SENSOR_AGB_POWER;
+		else if(class == 5) ret_code = SENSOR_VELOCITY;
+		else ret_code = 1;*/
      //TraceDec1("To BTM",ret_code);
     }
-
-    return ret_code;
 }
 
 

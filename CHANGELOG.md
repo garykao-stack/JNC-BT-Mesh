@@ -1,5 +1,12 @@
+## v1.25 #
+### 20220810 (成)#
+1. Sensor功能增加JY-GD15(風速風量變送器)
+2. 增加非阻塞流程來讀取JY-GD15的資料
+3. 讀取BT-Mesh設備資訊時，直接回傳結果，不參與GET_ALL_SENSOR流程，以加快APP顯示速度
+4. 當APP以簡易設定方式來存取設定時，直接進行處理，加快APP處理進度同時不會影響讀取Sensor&休眠流程。
+
 ## v1.24 #
----
+
 ### 220809 : RS485/BTM v1.1 (成) #
 1. 增加設備訊息Property(PROP_NODE_INFO:0xffff)，內含:
     - Sernsor類型
@@ -69,14 +76,14 @@
 4. 承上，未讀取到設備時會進入中繼模式，在每次喚醒時會嘗試讀取設備資訊。
 
 ## v1.20 #
----
+
 ### 211216 (Richard) #
 1. Add Server + Relay Node Number to 45 ~ 50
 2. UltraSound Add Temp & RH
 3. Add 風速計-宇田FMT95/95
 
 ## v1.18 #
----
+
 ### 211105 (Richard) #
 1. for Android App Setup
 2. Modify Gain & Offset report error for App
@@ -85,20 +92,20 @@
 5. Add UltraSound
 
 ## v1.16 #
----
+
 ### 210802 (Richard) #
 1. add Co2 sensor 
 2. add Gain & Offset 
 3. Add working Timer and Server Class
 
 ## v1.15 #
----
+
 ### 210623 (Richard) #
  1.  Visual Sensor 
  2. Add IAQS and CW9
  
  ## v1.14 #
----
+
 ### 210521 #
 1. Add (Skewness, Kurtosis), 
 2. Modify UltraSound for WaterLevel
@@ -109,7 +116,7 @@
 7. modify AIP status error
 
 ## v1.13 #
----
+
 ###  210320 (Richard) #
 1.  Bluetooth Mesh first final release.
 

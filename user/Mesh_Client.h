@@ -319,6 +319,7 @@ bool ClientCW9(PCw9Info p_info);
 bool ClientSkynetCo2(PSkynetCo2 p_info);
 bool ClientBtmG6(PBtmG6 p_info);
 bool ClientVelocity(PVelocity p_info);
+bool ClientJYGD15(_JYGD15Info *info);
 
 void ShowAllNodeInfo(void);
 void ShowEventInfo(PClientInfo p_info);
