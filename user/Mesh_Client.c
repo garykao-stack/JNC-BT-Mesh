@@ -2,7 +2,7 @@
 #include "global.h"
 
 #define CLIENT_NODE_DEBUG 1
-#define STATE_CHANGE_DEBUG 0
+#define STATE_CHANGE_DEBUG 1
 
 #if CLIENT_NODE_DEBUG
 #undef DEBUG_FUNCTION
@@ -326,7 +326,7 @@ void ClientGetInfoActionNow()
 void ClientGetNodeInfoProc()
 {
     pStageInfo = GetNodeStageInfo(CLIENT_GET_NODE_INFO_PROC);
-    
+    //dprint("State:%d\r\n",ActiveStage());
     switch(ActiveStage())
         {
             case NODE_STAGE_INIT:
@@ -381,14 +381,19 @@ void ClientGetNodeInfoProc()
                     GetEventCount++;
                     SetLed(LED_SERVER,ON);
                     dprint("STEP: CNS_GET_SERVER_INFO\r\n");
+#ifdef BTM_TRANSMITTER
+                    result=0; /*不發訊息，避免影響到透傳動作*/
+#else
                     result = Cmd_ms_client_get(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, GetPropertyID)->result;
-                    //result = Cmd_ms_client_get_column(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, GetPropertyID,tstmsg_len,tstmsg_data)->result;
+#endif
 
                     if(result){ //error
-						TraceErr1("CNS_GET_SEVER_INFO 1",result);
+						//TraceErr1("CNS_GET_SEVER_INFO 1",result);
+                    	dprint("!!! CNS_GET_SEVER_INFO Error:%d\r\n",result);
 						CountErr++;
 						ToWaitingStage(CNS_GET_SEVER_INFO,WAIT_SEC(2));
                     }else{ //successed
+                    	dprint("SEND_GET_ALL Succeed\r\n");
                     	//TraceOk("Get Info");
 						CountErr = 0; RespServerNode = 0;
 						ToWaitingStage(CNS_WAIT_INFO,TIMER_CLI_WAIT_INFO);
@@ -397,6 +402,7 @@ void ClientGetNodeInfoProc()
                     if(GetNodeStatus(NS_GET_INFO_ACT)){
                     	ToWaitingStage(CNS_WAIT_INFO,TIMER_CLI_WAIT_INFO);
                     }
+                	//dprint("countdown:%d\r\n",pStageInfo->Timer);
                 }
                     
                 break;
@@ -570,6 +576,8 @@ void ClientFromHostProc()
         		trans_seq++;
         		rec_flag=0;
         		trans_retry=0;
+        		trans_wait_ms=0;
+        		goto CLIENT_SEND_DATA_TO_SERVER;
         	}
 /*#elif 1
         	{
@@ -618,7 +626,7 @@ void ClientFromHostProc()
 
             break;
         case CHS_SEND_TO_CLIENT:
-
+CLIENT_SEND_DATA_TO_SERVER:
         	if(TIMER_IS_TIMEROUT(trans_wait_ms)){
         		*(UsartGetBuff(USART_ID_RX)-1)=trans_seq;
 				result = Cmd_ms_client_get_column(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, CUSTOM_SERIAL_DATA,UsartGetRxCounter()+1,UsartGetBuff(USART_ID_RX)-1)->result;
@@ -809,7 +817,10 @@ void ClientPropertyEvent(msg_ms_client_status_evt *pEvent)
                         memcpy(&(pClientInfo->SensorInfo),property_data,property_len);
                         dprint("** Received Info Class:%d, Battery Power:%d\r\n",pClientInfo->SensorInfo.Header.SensorClass,pClientInfo->SensorInfo.Header.BatteryPower);
 #ifdef BTM_A308
-                        if(property_id==NODE_GET_ALL_SENSOR) Cmd_ms_client_get(SENSOR_ELEMENT, pNodeEventInfo->ServerAddr, IGNORED, 0xA5, PROP_SERVER_ACK);
+                        if(property_id==NODE_GET_ALL_SENSOR || property_id==NODE_GET_ALL_SENSOR_GEN2) {
+                        	result=Cmd_ms_client_get(SENSOR_ELEMENT, pNodeEventInfo->ServerAddr, IGNORED, 0xA5, PROP_SERVER_ACK)->result;
+                        	dprint("PROP_SERVER_ACK:0x%x\r\n",result);
+                        }
 #endif
                         GetPropertyID = NODE_GET_ALL_SENSOR;  // recover data
                         break;
