@@ -98,7 +98,7 @@
 #define TRANSDEBUG 0
 
 #ifdef BTM_A308
-  #define FW_VER              101
+  #define FW_VER              102
   #define HW_VER              100
   #define DEVICE_NAME         "A308 BT Transmitter"
   #define MANUFACTORY_NAME    "JNC"

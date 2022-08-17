@@ -411,12 +411,14 @@ void UsartResetRxTx(uchar tx_rx)
             UsartSetStatus(USART_RX_ING|USART_RX_END|USART_RX_CRC_ERROR,OFF);
             UsartSetStatus(USART_RX_WAITING,ON);
             memset(pRxBuff,0,USART_RX_BUFF_SIZE);
+            SetNodeStatus(NS_USART_RX_EVENT,OFF);
         }
     else if(tx_rx == USART_ID_TX_RX)
         {
             pTxBuff = TxBuff; CounterTx = 0; pRxBuff = RxBuff; CounterRx = 0;
             TCounterTx=TCounterRx=0;
             UsartStatus = USART_FREE;
+            SetNodeStatus(NS_USART_RX_EVENT,OFF);
             UsartSetStatus(USART_RX_WAITING,ON);
             UsartSetStatus(USART_RX_CRC_ERROR,OFF);
             memset(pTxBuff,0,USART_TX_BUFF_SIZE);   //reset buffer

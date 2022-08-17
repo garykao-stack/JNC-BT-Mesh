@@ -563,6 +563,7 @@ uchar SendDataDelay;
 void ClientFromHostProc()
 {
     pStageInfo = GetNodeStageInfo(CLIENT_TO_HOST_STAGE_PROC);
+    //dprint("MbsHost Stage:%d\r\n",ActiveStage());
     switch(ActiveStage())
         {
         case CHS_STAGE_INIT: 
@@ -599,11 +600,23 @@ void ClientFromHostProc()
 					UsartResetRxTx(USART_ID_RX);
 					SetNodeStatus(NS_USART_RX_EVENT,OFF);
 					ToNextStage(CHS_CHECK_RX_EVENT);
+				}else{
+					switch(ClientModbusResponse()){
+					case CMR_NONE:
+						ToWaitingStage(CHS_WAIT_TX_FINISHED,WAIT_SEC(1));
+						//ToNextStage(CHS_WAIT_TX_FINISHED);
+						break;
+					case CMR_ERROR:
+						ToNextStage(CHS_MODBUS_ERROR);
+						break;
+					default: /*不在ClientModbusResponse()函式的處理範圍中，採用原先的方式*/
+						ToNextStage(CHS_CHECK_MODBUS);
+					}
 				}
-				else if(ClientModbusResponse())
+				/*else if(ClientModbusResponse())
 						ToNextStage(CHS_WAIT_TX_FINISHED);
 				else
-					ToNextStage(CHS_MODBUS_ERROR);
+					ToNextStage(CHS_MODBUS_ERROR);*/
 			}
 #else
             	ToNextStage(CHS_CHECK_MODBUS); //ToNextStage(CHS_PREPARE_DATA);   //default
@@ -612,10 +625,11 @@ void ClientFromHostProc()
 
         case CHS_WAIT_TX_FINISHED:
 
-        	if(UsartGetStatus(USART_TX_END)){
+        	if(UsartGetStatus(USART_TX_END)||CheckWaitTimeOut()){
+        		UsartSetStatus(USART_TX_END,OFF);
         		UsartResetRxTx(USART_ID_RX);
 				SetNodeStatus(NS_USART_RX_EVENT,OFF);
-				ToNextStage(CHS_CHECK_RX_EVENT);
+				ToWaitingStage(CHS_CHECK_RX_EVENT,0);
         	}
 
         	break;
