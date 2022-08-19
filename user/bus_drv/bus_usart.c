@@ -161,9 +161,9 @@ void UsartClientProc()
 {
 	if(!GetNodeStatus(NS_USART_RX_EVENT)){
 		if(Modbus_IsReceived()){
-			dprint("Uart Rec:");
+			/*dprint("Uart Rec:");
 			for(int i=0;i<CounterRx;i++) dprint(" %02X",RxBuff[i]);
-			dprint("\r\n");
+			dprint("\r\n");*/
 			if(CheckUsartRxCmd()){
 				UsartSetStage(USART_STAGE_RX_END);
 			}else{

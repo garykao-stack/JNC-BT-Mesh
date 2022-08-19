@@ -735,11 +735,11 @@ void ServerGetInfoProc()
 #ifdef BTM_A308
             case SNS_WAIT_SEND_INFO_ACK:
 
-            	if (GetNodeStatus(NS_SEND_INFO_ACK)){
+            	if (GetNodeStatus(NS_SEND_INFO_ACK)){	// received ACK, wait for A308_GET_INFO
             		ToWaitingStage(SNS_WAIT_A308_CMD,WAIT_MS(cd_sleep_ms));
-            	}else if(GetNodeStatus(NS_A308_GET_INFO)){
+            	}else if(GetNodeStatus(NS_A308_GET_INFO)){ // received A308_GET_INFO, start to send A308 data
 					ToNextStage(SNS_SEND_A308_INFO);
-            	}else if(CheckWaitTimeOut()||GetNodeStatus(NS_GET_INFO_ACT)){
+            	}else if(CheckWaitTimeOut()||GetNodeStatus(NS_GET_INFO_ACT)){ // Timeout or get another NS_GET_INFO_ACT, send Node info again.
             		dprint("\r\nNot Get Send Info Ack. Send again\r\n");
             		ToNextStage(SNS_SEND_INFO);
             		CountErr=0;
@@ -753,16 +753,16 @@ void ServerGetInfoProc()
             		SetNodeStatus(NS_A308_GET_INFO,OFF);
             		//ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING+WAIT_SEC(10)); /*多預留一點時間，提供Client接收不完整時重試*/
             		dprint("relay mode:%d, cd_sleep_ms:%d\r\n",pMeshNodeData->RelayEnabled,cd_sleep_ms); /*啟用Relay功能時，發送完訊息不要直接進入休眠，保持一段時間保持Relay作用*/
-            		ToWaitingStage(SNS_WAIT_A308_CMD,TIMER_WAIT_SLEEPING+(pMeshNodeData->RelayEnabled?cd_sleep_ms/10:WAIT_SEC(20))); /*多預留一點時間，提供Client接收不完整時重試*/
+            		ToWaitingStage(SNS_WAIT_A308_CMD,TIMER_WAIT_SLEEPING+(pMeshNodeData->RelayEnabled?cd_sleep_ms/10:WAIT_SEC(30))); /*多預留一點時間，提供Client接收不完整時重試*/
             	}
             	break;
             case SNS_WAIT_A308_CMD:
             	CHECK_FORWARD_DATA;
-            	if(GetNodeStatus(NS_GET_INFO_ACT)){
+            	if(GetNodeStatus(NS_GET_INFO_ACT)){ //received another GET_INFO_ACE command, send Node info again.
             		ToNextStage(SNS_EVENT_WAITING);
-            	}else if(GetNodeStatus(NS_A308_GET_INFO)){
+            	}else if(GetNodeStatus(NS_A308_GET_INFO)){	//received A308_GET_INFO, start to send A308 data
 					ToNextStage(SNS_SEND_A308_INFO);
-				}else if(CheckWaitTimeOut()||GetNodeStatus(NS_A308_GET_FINISHED)){
+				}else if(CheckWaitTimeOut()||GetNodeStatus(NS_A308_GET_FINISHED)){ //wait too
 					SetNodeStatus(NS_A308_GET_FINISHED,OFF);
 					ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
 				}
@@ -772,11 +772,11 @@ void ServerGetInfoProc()
 
             case SNS_PRE_SLEEPING: 
             	CHECK_FORWARD_DATA;
-            	if(GetNodeStatus(NS_A308_GET_INFO)){
+            	if(GetNodeStatus(NS_GET_INFO_ACT)){
+            		ToWaitingStage(SNS_PRE_WAITING,WAIT_MS(0));
+            	}else if(GetNodeStatus(NS_A308_GET_INFO)){
 					ToNextStage(SNS_SEND_A308_INFO);
-					break;
-				}
-                if(CheckWaitTimeOut()){
+				}else if(CheckWaitTimeOut()){
                      if(GetNodeStatus(NS_FULL_POWER) == ON || GetNodeStatus(NS_FORCE_FULL_POWER) == ON || IgnoreBroadcastCmdMs){ /*在App設定模式下不進入休眠*/
                     	 dprint("*** Full Power Mode ***\r\n");
                     	 SetLedStatus(LED_STATUS_SLEEP); ToNextStage(SNS_WAKE_UP);

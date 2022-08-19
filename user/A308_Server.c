@@ -30,7 +30,7 @@ typedef struct{
 
 
 #define A308_DEVICE_COUNT 10 //SERVER_NODE_MAX
-#define A308_DEVICE_BUFF_COUNT 4
+#define A308_DEVICE_BUFF_COUNT 5
 #define A308_MEM_SIZE	(62+120*3+6+14)//(62+100*6+6+14)
 #define A308_BTM_SIZE	50
 #define A308_TOT_MBS_CMD	(sizeof(A308Info)/sizeof(MbsInfo))
@@ -546,7 +546,7 @@ bool A308_Client_GetInfo_WithDevice(A308_BT_REC_INFO *info){
 					}
 				}
 				info->wait_ms=0;
-				dprint("*** A308 id:%d Receive Span %d(ms)\r\n",info->pClientInfo->ServerID,info->receive_span_time*10);
+				dprint("*** A308 id:%d Receive Span %d(sec)\r\n",info->pClientInfo->ServerID,info->receive_span_time/100);
 				info->pClientInfo=A308_GetNextServer(info->pClientInfo);
 				if (info->pClientInfo){ /*要求讀取下一個設備*/
 					info->rec_flag=A308_Client_GetInitFlag();//A308_GetInfo_Init_Flag();
