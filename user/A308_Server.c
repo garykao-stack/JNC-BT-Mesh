@@ -77,7 +77,6 @@ typedef enum{
 }A308_STEP;
 
 A308_STEP A308Step=A308Step_Command;
-//extern bool UsartIsBusy();
 
 int16 MbsUpdateSpan=-1;
 int16 a308_client_receive_span_time=-1;

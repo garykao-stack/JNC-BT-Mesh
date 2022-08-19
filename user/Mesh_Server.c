@@ -459,11 +459,30 @@ void ServerGetInfoActionNow()
 
 #define CHECK_FORWARD_DATA  //if(GetNodeStatus(NS_TRANS_SERIAL_DATA)){ToNextStage(SNS_EVENT_WAITING); break;}
 uint8 res_loc;
-extern bool UsartIsBusy();
+extern bool UsartTxIsBusy();
+extern bool UsartRxIsBusy();
 uint8 trans_retry_cnt=0;
+uint16 trans_tx_timeout_ms=0;
+uint8 trans_ignore_rx=0;
 
 void ServerSerialTransProc(){
+
+	if(UsartTxIsBusy() && !trans_tx_timeout_ms){ // tx timeout
+		UsartResetRxTx(USART_ID_TX_RX);
+	}
+
 	if(GetNodeStatus(NS_TRANS_SERIAL_DATA)){
+
+
+		if( (UsartRxIsBusy())	/*正在接收RX訊息，放棄轉送TX訊息*/
+			||(UsartTxIsBusy())){	/*正在轉送上一次資料，放棄新TX訊息*/
+			SetNodeStatus(NS_TRANS_SERIAL_DATA,OFF);
+			trans_ignore_rx=1; /*丟棄下一次接收到的RX訊息*/
+			return;
+		}
+
+		/*清除已接收內容，避免造成錯位*/
+		UsartResetRxTx(USART_ID_RX);
 
 		dprint("sendData to Serial(%d)\r\n",TransArrayLength);
 		if (TransArrayLength){
@@ -474,30 +493,44 @@ void ServerSerialTransProc(){
 			CountErr = 0;
 			trans_retry_cnt=0;
 			trans_retry_ms=0;
+			trans_tx_timeout_ms=1000;
+			trans_ignore_rx=0;
 		}
 		SetNodeStatus(NS_TRANS_SERIAL_DATA,OFF);
+		res_loc=0;
 	}
 
 	if(GetNodeStatus(NS_USART_RX_EVENT) && !trans_retry_ms){ //received response, send back to client
 		//transprint("receive serial response\r\n");
-		res_loc=0;
-		result=SendRxToClient(RxBuff,res_loc,CounterRx);//(CounterRx-res_loc)>50?50:(CounterRx-res_loc));
-		transprint("SendRxToClient, len:%d, result:%s\r\n",CounterRx,result?"Successed":"Failed !!!!!");
+		if(trans_ignore_rx){ /*丟棄這次接收的內容，因為Master已發出新的指令，舊回應已不需要*/
+			trans_ignore_rx=0;
+			result=0;
+		}else{
+			result=SendRxToClient(RxBuff,res_loc,CounterRx);//(CounterRx-res_loc)>50?50:(CounterRx-res_loc));
+			transprint("SendRxToClient, len:%d, result:%s\r\n",CounterRx,result?"Successed":"Failed !!!!!");
+			IFDPRINT(
+				if(res_loc==0){
+					dprint("SendRxToClient: \r\n" );
+					for(int i=0;i<CounterRx;i++) dprint(" %02X",RxBuff[i]);
+					dprint("\r\n");
+				}
+			);
+		}
 
-		if (!result && trans_retry_cnt<6){//succeed
+		if (!result && trans_retry_cnt<6){//fail
 			trans_retry_cnt++;
 			trans_retry_ms=50;
 		}else{ //succeed or try too many time
-			SetNodeStatus(NS_USART_RX_EVENT,OFF);
-			UsartResetRxTx(USART_ID_TX_RX);
-		}
-		IFDPRINT(
-			if(res_loc==0){
-				dprint("SendRxToClient: \r\n" );
-				for(int i=0;i<CounterRx;i++) dprint(" %02X",RxBuff[i]);
-				dprint("\r\n");
+			res_loc+=50;
+			CountErr=0;
+			if (res_loc>=CounterRx){
+				SetNodeStatus(NS_USART_RX_EVENT,OFF);
+				UsartResetRxTx(USART_ID_TX_RX);
+			}else{
+				trans_retry_ms=100;
 			}
-		);
+		}
+
 	}
 
 

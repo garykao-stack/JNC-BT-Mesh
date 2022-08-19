@@ -611,9 +611,13 @@ bool UsartGetStatusTxIng()
     else return FALSE;
 }
 
-bool UsartIsBusy()
+bool UsartTxIsBusy()
 {
-	return UsartStatus&(USART_TX_ING|USART_TX_END);
+	return (UsartStatus&USART_TX_ING) && ((~UsartStatus)&USART_TX_END);
+}
+
+bool UsartRxIsBusy(){
+	return (UsartStatus & USART_RX_ING) && CounterRx && !GetNodeStatus(NS_USART_RX_EVENT);
 }
 
 void UsartPrintBuff(uchar rx_tx)

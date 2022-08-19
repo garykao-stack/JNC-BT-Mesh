@@ -689,7 +689,7 @@ CLIENT_SEND_DATA_TO_SERVER:
 }
 
 
-
+extern bool UsartRxIsBusy();
 void ClientSeriesEvent(msg_ms_client_series_status_evt *pEvent){
 	uint8_t *property_data = NULL;
 	uint8_t property_len=0;
@@ -716,7 +716,7 @@ void ClientSeriesEvent(msg_ms_client_series_status_evt *pEvent){
 		size=property_data[1];
 		flag=property_data[2];
 		data=property_data+3;
-		if(trans_seq!=seq) return;
+		if(trans_seq!=seq || UsartRxIsBusy()) return;
 
 
 		if(rec_flag==0){
@@ -749,7 +749,11 @@ void ClientSeriesEvent(msg_ms_client_series_status_evt *pEvent){
 				for(uint8_t _idx=0;_idx<size;_idx++)dprint(" %02X",p_tx_buff[_idx]);
 				dprint("\r\n");
 			)
-			UsartTxSendCmd(p_tx_buff,size);
+			if (UsartRxIsBusy()){
+				dprint("Received response but RX is Busy !!!!!!\r\n");
+			}else{
+				UsartTxSendCmd(p_tx_buff,size);
+			}
 			return;
 		}
 
