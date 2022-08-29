@@ -506,11 +506,17 @@ void ServerSerialTransProc(){
 			trans_ignore_rx=0;
 			result=0;
 		}else{
-			result=SendRxToClient(RxBuff,res_loc,CounterRx);//(CounterRx-res_loc)>50?50:(CounterRx-res_loc));
-			transprint("SendRxToClient, len:%d, result:%s\r\n",CounterRx,result?"Successed":"Failed !!!!!");
+			result=SendRxToClient(
+					((uint16)TransData[2])<<8 | TransData[3],
+					((uint16)TransData[4])<<8 | TransData[5],
+					RxBuff,
+					res_loc,
+					CounterRx);//(CounterRx-res_loc)>50?50:(CounterRx-res_loc));
+			//transprint("SendRxToClient loc:%d, len:%d, result:%s\r\n",((uint16)TransData[2])<<8 | TransData[3],CounterRx,result?"Successed":"Failed !!!!!");
 			IFDPRINT(
 				if(res_loc==0){
-					dprint("SendRxToClient: \r\n" );
+					//dprint("SendRxToClient: \r\n" );
+					transprint("SendRxToClient loc:%d, len:%d, result:%s\r\n> ",((uint16)TransData[2])<<8 | TransData[3],CounterRx,result?"Successed":"Failed !!!!!");
 					for(int i=0;i<CounterRx;i++) dprint(" %02X",RxBuff[i]);
 					dprint("\r\n");
 				}
@@ -648,6 +654,8 @@ void ServerGetInfoProc()
                     	CountErr = 0;
 #ifdef BTM_A308
                     	cd_sleep_ms=30*15*1000;
+#elif defined(BTM_TRANSMITTER)
+                    	cd_sleep_ms=pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep*1000L;
 #else
                     	cd_sleep_ms=4000;
 #endif
@@ -660,7 +668,7 @@ void ServerGetInfoProc()
                 }
 #endif
                 break;
-
+#if 0 /*已移到獨處立理函式*/
             case SNS_WAIT_UART_RSP: //等待Uart回應
             	if(GetNodeStatus(NS_USART_RX_EVENT)){ //received response, send back to client
             		dprint("receive serial response\r\n");
@@ -714,6 +722,7 @@ void ServerGetInfoProc()
 						ToWaitingStage(SNS_SEND_UART_RSP,WAIT_MS(100));
 				}
             	break;
+#endif
             case SNS_PRE_SEND_INFO: 
                 //waiting to send info
             	CHECK_FORWARD_DATA;
@@ -746,6 +755,9 @@ void ServerGetInfoProc()
                      //else if(pMeshNodeData->SensorClass==SENSOR_A308M)	ToWaitingStage(SNS_WAIT_A308_CMD,WAIT_SEC(30*15));
                      //else ToWaitingStage(SNS_WAIT_A308_CMD,WAIT_SEC(30*15));
                      else ToWaitingStage(SNS_WAIT_SEND_INFO_ACK,WAIT_SEC(2));
+#elif defined(BTM_TRANSMITTER)
+                     else ToWaitingStage(SNS_PRE_SLEEPING,WAIT_MS(cd_sleep_ms));
+
 #else
                      else{
                     	 if(pMeshNodeData->RelayEnabled){ /*Relay啟動時，發送完設備資訊後不直接進入休眠，讓後端的Server有機會把資料傳完*/
@@ -1729,6 +1741,9 @@ uint16 Server_ResponseSetting(uint8 *in,uint8 len){
    set->WorkingTimer = pMeshNodeData->WorkingTimer;
    set->BtmClass = SensorClassChange(pMeshNodeData->SensorClass,CLASS_TO_UTILITY);
    set->BaudrateIndex=pMeshNodeData->BaudRate;
+   set->Rs485ClientBuffTimeoutMs=pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs;
+   set->Rs485ServerDelayBeforeSleep=pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep;
+
 
    /*停止回應廣播指令 in[0] 秒*/
    if (len>=1){
@@ -1770,6 +1785,8 @@ uint16 Server_ReceiveSetting(uint8 *data,uint8 len){
     pMeshNodeData->WorkingTimer = set->WorkingTimer;
     pMeshNodeData->SensorClass = SensorClassChange(set->BtmClass,CLASS_TO_BTM);
     NODE_DATA_UPDATE(pMeshNodeData->BaudRate,set->BaudrateIndex,req_reboot=1);
+    NODE_DATA_UPDATE(pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs,set->Rs485ClientBuffTimeoutMs,);
+    NODE_DATA_UPDATE(pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep,set->Rs485ServerDelayBeforeSleep,);
 
     WriteNodeData();
     dprint("*** Server_ReceiveSetting\r\n");
@@ -1788,27 +1805,31 @@ uint16 Server_ReceiveSetting(uint8 *data,uint8 len){
 
 
 //#ifdef BTM_TRANSMITTER
-typedef struct _ServerSerialRsp_{
+typedef struct __attribute__((__packed__)){
   //uint16 ProperityID;
   uint8 Seq;
   uint8 Size;
   uint8 Flag;
+  uint16 Location;
+  uint8 RegCount;
   uint8 Data[50];
 } _ServerSerialRsp;
 
 uint8 SeriesSeq;
-bool SendRxToClient(PUCHAR data,uint8_t loc,uint8_t count){
+bool SendRxToClient(uint16 reg_loc, uint16 reg_count, PUCHAR data,uint8_t offset,uint8_t count){
 	_ServerSerialRsp ServerSerialRsp;
 	uint16 len;
 	uint16 result;
 	ServerSerialRsp.Seq=SeriesSeq;
 	ServerSerialRsp.Size=count;
-	ServerSerialRsp.Flag=0x01<<(loc/50);
-	len=(count-loc)>50?50:(count-loc);
-	memcpy(ServerSerialRsp.Data,data+loc,len);
+	ServerSerialRsp.Flag=0x01<<(offset/50);
+	ServerSerialRsp.Location=reg_loc;
+	ServerSerialRsp.RegCount=reg_count;
+	len=(count-offset)>50?50:(count-offset);
+	memcpy(ServerSerialRsp.Data,data+offset,len);
 	result=Cmd_ms_server_send_series_status(SENSOR_ELEMENT, 0/*pNodeEventInfo->ClientAddr*/,pNodeEventInfo->AppkeyIndex,
-		  NO_FLAGS,CUSTOM_SERIAL_DATA, len+3, ((PUCHAR)&ServerSerialRsp))->result;
-	dprint(" *** SendRxToClient Seq:%d(%d,%d), len:%d, result:%d\r\n",ServerSerialRsp.Seq,loc/50+1,count/50+1, len,result);
+		  NO_FLAGS,CUSTOM_SERIAL_DATA, len+6, ((PUCHAR)&ServerSerialRsp))->result;
+	dprint(" *** SendRxToClient Seq:%d(%d,%d), len:%d, result:%d\r\n",ServerSerialRsp.Seq,offset/50+1,count/50+1, len,result);
 
   return result?FALSE:TRUE;
 }
@@ -2032,6 +2053,9 @@ void EvtSetSettingRequestProc(PCmdPacket pCmdEvent)
                 pMeshNodeData->WorkingTimer = set->WorkingTimer;
                 pMeshNodeData->SensorClass = SensorClassChange(set->BtmClass,CLASS_TO_BTM);
                 NODE_DATA_UPDATE(pMeshNodeData->BaudRate,set->BaudrateIndex,);
+                NODE_DATA_UPDATE(pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs,set->Rs485ClientBuffTimeoutMs,);
+                NODE_DATA_UPDATE(pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep,set->Rs485ServerDelayBeforeSleep,);
+
                 break;
   
             default: ret_ack=ACK_ERROR; 
@@ -2076,6 +2100,8 @@ void EvtSetGettingRequestProc(PCmdPacket pCmdEvent)
                    BtSetupData.WorkingTimer = pMeshNodeData->WorkingTimer;
                    BtSetupData.BtmClass = SensorClassChange(pMeshNodeData->SensorClass,CLASS_TO_UTILITY);
                    BtSetupData.BaudrateIndex=pMeshNodeData->BaudRate;
+                   BtSetupData.Rs485ClientBuffTimeoutMs=pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs;
+                   BtSetupData.Rs485ServerDelayBeforeSleep=pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep;
                    break;
            };
     result=Cmd_ms_setup_server_send_setting_status(SENSOR_ELEMENT,pEvent->client_address, pEvent->appkey_index, NO_FLAGS,

@@ -125,6 +125,9 @@ typedef struct _BtAppData_
     uint16  WorkingTimer;            // >5 and <3600 sec
     uint16  BtmClass;               //1 : for JNC Sensor(Auto Scan) 2 : PZEM 3 : Visual Sensor 4 : AGB Motor Control(? ?)
     uint8	BaudrateIndex;
+    uint8 	Rs485ServerDelayBeforeSleep;
+    uint16	Rs485ClientBuffTimeoutMs;
+
 }_BtAppData,*PBtAppData;
 
 #define CLASS_TO_UTILITY    0
@@ -195,7 +198,7 @@ void ServerGetInfoProc();
 void ServerSetNodeProc();
 
 bool SendInfoToClient();
-bool SendRxToClient(PUCHAR data,uint8_t loc,uint8_t count);
+bool SendRxToClient(uint16 reg_loc, uint16 reg_count, PUCHAR data,uint8_t offset,uint8_t count);
 uchar PreAllSensorInfo();
 uchar CheckPowerStatus();
 void GetRs485InfoProc();

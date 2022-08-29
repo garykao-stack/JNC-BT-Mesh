@@ -42,7 +42,14 @@ PClientInfo pClientInfo=ClientInfo;
 _PModbusCmdF4  pModbusCmd;
 _ModbusToHost ModbusToHostCmd;
 
-
+#ifdef BTM_TRANSMITTER
+extern void MbsTransmitterInit();
+extern void MbsTransmitterRecordCmd(PUCHAR tx, int len);
+extern void MbsTransmitterRecordRes(PUCHAR rx, int len, uint16 reg_loc, uint16 reg_len);
+extern int MbsTransmitterPrepareBuff(PUCHAR buff, int max_count);
+extern void SetSourceBtId(uint8 mbsId, uint8 btId);
+extern uint8 GetSourceBtId(uint8 mbsId);
+#endif
 void ClientNodeInit()
 {
 
@@ -52,6 +59,10 @@ void ClientNodeInit()
     ToNextStage(NODE_STAGE_INIT);
     UsartClientProc();
     ClientFromHostProc();
+#ifdef BTM_TRANSMITTER
+    MbsTransmitterInit();
+#endif
+
 
 }
 
@@ -323,6 +334,16 @@ void ClientGetInfoActionNow()
 //
 //uchar tstmsg_data[]={9,4,0,8,6};
 //int tstmsg_len=sizeof(tstmsg_data)/sizeof(uchar);
+
+#define max(a,b) ((a) > (b) ? (a) : (b))
+
+#ifdef BTM_TRANSMITTER
+#define DELAY_BEFORE_SLEEP_SEC (max((int)pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep-TIMER_CLI_WAIT_INFO,0))
+#else
+#define DELAY_BEFORE_SLEEP_SEC 0
+#endif
+
+bool ServerIsAwake=true;
 void ClientGetNodeInfoProc()
 {
     pStageInfo = GetNodeStageInfo(CLIENT_GET_NODE_INFO_PROC);
@@ -355,15 +376,20 @@ void ClientGetNodeInfoProc()
                   }
                 break;
             case CNS_PRE_SEVER_INFO: 
-                SetLed(LED_SERVER,OFF); 
-                SetNodeStatus(NS_GET_INFO_ACT,OFF);
-                if(RespServerNode == 0) {ToWaitingStage(CNS_WAIT_SET_INFO,100);}
-                else {
-                	dprint("*** Wait %d(ms) for next time.\r\n",GetInfoCycle*10);
-                	ToWaitingStage(CNS_WAIT_SET_INFO,GetInfoCycle);
-                }
+                //SetLed(LED_SERVER,OFF);
+                //SetNodeStatus(NS_GET_INFO_ACT,OFF);
+            	if(CheckWaitTimeOut()){
+            		if(!GetNodeStatus(NS_FULL_POWER) || DELAY_BEFORE_SLEEP_SEC>0)	ServerIsAwake=false;
+            		//dprint("CNS_PRE_SEVER_INFO: set ServerIsAwake=%d\r\n",ServerIsAwake);
+					if(RespServerNode == 0) {ToWaitingStage(CNS_WAIT_SET_INFO,100);}
+					else {
+						dprint("*** Wait %.1f(Sec) for next time.\r\n",GetInfoCycle/100.0);
+						ToWaitingStage(CNS_WAIT_SET_INFO,GetInfoCycle);
+					}
+            	}
                 break;
             case CNS_WAIT_SET_INFO: 
+
                 if(GetNodeStatus(NS_LINKING) ==ON) break;
                 if(CheckWaitTimeOut()){
                      ToNextStage(CNS_GET_SEVER_INFO);
@@ -372,17 +398,20 @@ void ClientGetNodeInfoProc()
                     ToNextStage(CNS_GET_SEVER_INFO);
                 break;
             case CNS_GET_SEVER_INFO: 
-                
+
                 if(CountErr > 3) ToNextStage(CNS_GET_INFO_ERR); // err: go to sleeping
 
 
                 if(CheckWaitTimeOut()){
+                	ServerIsAwake=true;
+                	//dprint("CNS_GET_SEVER_INFO: set ServerIsAwake=%d\r\n",ServerIsAwake);
                     //to get info from all server node
                     GetEventCount++;
                     SetLed(LED_SERVER,ON);
                     dprint("STEP: CNS_GET_SERVER_INFO\r\n");
 #ifdef BTM_TRANSMITTER
-                    result=0; /*不發訊息，避免影響到透傳動作*/
+                    //result=0; /*不發訊息，避免影響到透傳動作*/
+                    result = Cmd_ms_client_get(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, GetPropertyID)->result;
 #else
                     result = Cmd_ms_client_get(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, GetPropertyID)->result;
 #endif
@@ -396,11 +425,11 @@ void ClientGetNodeInfoProc()
                     	dprint("SEND_GET_ALL Succeed\r\n");
                     	//TraceOk("Get Info");
 						CountErr = 0; RespServerNode = 0;
-						ToWaitingStage(CNS_WAIT_INFO,TIMER_CLI_WAIT_INFO);
+						ToWaitingStage(CNS_WAIT_INFO,WAIT_SEC(TIMER_CLI_WAIT_INFO));
                     }
                 }else{
                     if(GetNodeStatus(NS_GET_INFO_ACT)){
-                    	ToWaitingStage(CNS_WAIT_INFO,TIMER_CLI_WAIT_INFO);
+                    	ToWaitingStage(CNS_WAIT_INFO,WAIT_SEC(TIMER_CLI_WAIT_INFO));
                     }
                 	//dprint("countdown:%d\r\n",pStageInfo->Timer);
                 }
@@ -443,12 +472,19 @@ void ClientGetNodeInfoProc()
 
             case CNS_GET_INFO_ERR:
                 CountErr = 0;
-                ToNextStage(CNS_PRE_SEVER_INFO); 
+                SetLed(LED_SERVER,OFF);
+                SetNodeStatus(NS_GET_INFO_ACT,OFF);
+                ServerIsAwake=true;
+                ToWaitingStage(CNS_PRE_SEVER_INFO,WAIT_SEC(DELAY_BEFORE_SLEEP_SEC));
                 break;
             case CNS_GET_INFO_END:
                 ShowAllNodeInfo();
                 GetServerNodeNum();
-                ToNextStage(CNS_PRE_SEVER_INFO); 
+                SetLed(LED_SERVER,OFF);
+                SetNodeStatus(NS_GET_INFO_ACT,OFF);
+                ServerIsAwake=true;
+                ToWaitingStage(CNS_PRE_SEVER_INFO,WAIT_SEC(DELAY_BEFORE_SLEEP_SEC));
+                dprint("keep awake for %d(SEC)\r\n",DELAY_BEFORE_SLEEP_SEC);
                 break;
             default: TraceErr1("ClientGetNodeInfoProc",ActiveStage()); break;
         };
@@ -557,11 +593,17 @@ typedef enum{
 ClientMbsResult ClientModbusResponse();
 
 uchar SendDataDelay;
+
+#ifdef BTM_TRANSMITTER
+	uint8 trans_prepare_response_count=0;
+#endif
 //
 // Handle Client, Host message
 //
 void ClientFromHostProc()
 {
+	uint8 btId;
+	PClientInfo cInfo;
     pStageInfo = GetNodeStageInfo(CLIENT_TO_HOST_STAGE_PROC);
     //dprint("MbsHost Stage:%d\r\n",ActiveStage());
     switch(ActiveStage())
@@ -578,7 +620,21 @@ void ClientFromHostProc()
         		rec_flag=0;
         		trans_retry=0;
         		trans_wait_ms=0;
+        		trans_prepare_response_count=0; /*取消回傳暫存數值*/
+        		//dprint("rx process: ServerIsAwake=%d\r\n",ServerIsAwake);
         		goto CLIENT_SEND_DATA_TO_SERVER;
+        	}else if(trans_prepare_response_count>0 && CheckWaitTimeOut()){
+        		btId=GetSourceBtId(UsartGetBuff(USART_ID_TX)[0]);
+        		if (btId){
+        			cInfo=GetServerInfoPos(btId);
+        			if (cInfo && cInfo->ServerID>0){
+        				MbsSend(UsartGetBuff(USART_ID_TX),trans_prepare_response_count);
+						//trans_prepare_response_count=0;
+						trans_seq++; /*累加計數，避免回傳內容錯誤*/
+        			}
+        		}
+        		trans_prepare_response_count=0;
+
         	}
 /*#elif 1
         	{
@@ -639,21 +695,40 @@ void ClientFromHostProc()
             else ToNextStage(CHS_MODBUS_ERROR);
 
             break;
+#ifdef BTM_TRANSMITTER
         case CHS_SEND_TO_CLIENT:
 CLIENT_SEND_DATA_TO_SERVER:
-        	if(TIMER_IS_TIMEROUT(trans_wait_ms)){
-        		*(UsartGetBuff(USART_ID_RX)-1)=trans_seq;
-				result = Cmd_ms_client_get_column(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, CUSTOM_SERIAL_DATA,UsartGetRxCounter()+1,UsartGetBuff(USART_ID_RX)-1)->result;
-				if (!result || ++trans_retry>=5){ /*發送完成 or 重試超過n次*/
-					UsartResetRxTx(USART_ID_RX);
-					SetNodeStatus(NS_USART_RX_EVENT,OFF);
-					ToNextStage(CHS_CHECK_RX_EVENT);
-				}else {
-					trans_wait_ms=100; /*100ms後重試*/
-					dprint("command transfer error! try:%d\r\n",trans_retry);
+
+			if(ServerIsAwake){
+				if(TIMER_IS_TIMEROUT(trans_wait_ms)){
+
+					*(UsartGetBuff(USART_ID_RX)-1)=trans_seq;
+					result = Cmd_ms_client_get_column(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, CUSTOM_SERIAL_DATA,UsartGetRxCounter()+1,UsartGetBuff(USART_ID_RX)-1)->result;
+					if (!result || ++trans_retry>=5){ /*發送完成 or 重試超過n次*/
+
+						MbsTransmitterRecordCmd(UsartGetBuff(USART_ID_RX),UsartGetRxCounter());
+						trans_prepare_response_count=MbsTransmitterPrepareBuff(UsartGetBuff(USART_ID_TX),USART_TX_BUFF_SIZE);
+						//dprint("cmd:%d ,prepare res len:%d\r\n",UsartGetRxCounter(),trans_prepare_response_count);
+						UsartResetRxTx(USART_ID_RX);
+						SetNodeStatus(NS_USART_RX_EVENT,OFF);
+						ToWaitingStage(CHS_CHECK_RX_EVENT,WAIT_MS(pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs));
+					}else {
+						trans_wait_ms=100; /*100ms後重試*/
+						dprint("command transfer error! try:%d\r\n",trans_retry);
+					}
 				}
+			}else{
+				//dprint("server is sleeing\r\n");
+				MbsTransmitterRecordCmd(UsartGetBuff(USART_ID_RX),UsartGetRxCounter());
+				trans_prepare_response_count=MbsTransmitterPrepareBuff(UsartGetBuff(USART_ID_TX),USART_TX_BUFF_SIZE);
+				//dprint("cmd:%d ,prepare res len:%d\r\n",UsartGetRxCounter(),trans_prepare_response_count);
+				UsartResetRxTx(USART_ID_RX);
+				SetNodeStatus(NS_USART_RX_EVENT,OFF);
+				ToWaitingStage(CHS_CHECK_RX_EVENT,WAIT_MS(0));
+				//if(trans_prepare_response_count) dprint("send buff data directory:%d\r\n",trans_prepare_response_count);
 			}
         	break;
+#endif
         case CHS_PREPARE_DATA: 
             if(ClientPrepareToHost() == TRUE)
                 {SendDataDelay = 1;ToNextStage(CHS_SEND_DATA_DELAY);}
@@ -697,7 +772,9 @@ void ClientSeriesEvent(msg_ms_client_series_status_evt *pEvent){
 	uint8 seq;
 	uint8 size;
 	uint8 flag;
-	uint8 loc=0;
+	uint16 reg;
+	uint16 reg_len;
+	uint8 offset=0;
 	uint8 part=0;
 	uint8 part_len=0;
 	PUCHAR data;
@@ -709,51 +786,69 @@ void ClientSeriesEvent(msg_ms_client_series_status_evt *pEvent){
 		A308ClientSeriesEvent(pEvent);
 		break;
 #endif
+#ifdef BTM_TRANSMITTER
 	case CUSTOM_SERIAL_DATA:
 		property_len=pEvent->sensor_data.len;
 		property_data=pEvent->sensor_data.data;
 		seq=property_data[0];
 		size=property_data[1];
 		flag=property_data[2];
-		data=property_data+3;
-		if(trans_seq!=seq || UsartRxIsBusy()) return;
+		reg=property_data[3]|(((uint16)property_data[4])<<8);
+		reg_len=property_data[5];//property_data[5]|(((uint16)property_data[6])<<8);
+		data=property_data+6;
+		//if(trans_seq!=seq || UsartRxIsBusy()) return;
 
 
 		if(rec_flag==0){
 			part=0;
-			loc=0;
-			while(loc<size){
+			offset=0;
+			while(offset<size){
 				rec_flag|=0x1<<part;
 				part++;
-				loc+=50;
+				offset+=50;
 			}
 			dprint("initial rec_flag:0x%x\r\n",rec_flag);
 		}
 
 		part=0;
-		loc=0;
-		while(loc<size){
+		offset=0;
+		while(offset<size){
 			if((1<<part)==flag) break;
 			part++;
-			loc+=50;
+			offset+=50;
 		}
 
-		part_len=size-loc;
+		part_len=size-offset;
 		if (part_len>50) part_len=50;
-		memcpy(p_tx_buff+loc,data,part_len);
+		memcpy(p_tx_buff+offset,data,part_len);
 		rec_flag&= ~flag;
-		dprint("receive msg. rec_flag:0x%x, flag:0x%x, loc:%d, part_len:%d\r\n",rec_flag,flag, loc, part_len);
+		dprint("receive msg. rec_flag:0x%x, flag:0x%x, offset:%d, part_len:%d\r\n",rec_flag,flag, offset, part_len);
 		if(!rec_flag){
 			IFDPRINT(
-				dprint("req_seq:%d, rsp_seq:%d, size:%d>",trans_seq,property_data[0],size);
+				dprint("req_seq:%d, rsp_seq:%d, reg:%d(0x%X) size:%d>",trans_seq,property_data[0],reg,reg,size);
 				for(uint8_t _idx=0;_idx<size;_idx++)dprint(" %02X",p_tx_buff[_idx]);
 				dprint("\r\n");
 			)
-			if (UsartRxIsBusy()){
+
+			if(trans_seq==seq || !UsartRxIsBusy()){
+				UsartTxSendCmd(p_tx_buff,size);
+			}else{
+				if(UsartRxIsBusy()) dprint("Rx is Busy. ");
+				if (trans_seq!=seq)	dprint("seq is not matched. ");
+				dprint("record value only.\r\n");
+			}
+
+			SetSourceBtId(p_tx_buff[0], pEvent->server_address);
+			MbsTransmitterRecordRes(p_tx_buff, size,reg,reg_len);
+			trans_prepare_response_count=0;
+			/*if (UsartRxIsBusy()){
 				dprint("Received response but RX is Busy !!!!!!\r\n");
 			}else{
 				UsartTxSendCmd(p_tx_buff,size);
-			}
+				SetSourceBtId(p_tx_buff[0], pEvent->server_address);
+				MbsTransmitterRecordRes(p_tx_buff, size);
+				trans_prepare_response_count=0;
+			}*/
 			return;
 		}
 
@@ -765,6 +860,8 @@ void ClientSeriesEvent(msg_ms_client_series_status_evt *pEvent){
 		if (trans_seq==property_data[0])
 			UsartTxSendCmd(property_data+1,property_len-1);*/
 		break;
+#endif
+	default:
 	}
 }
 
@@ -790,7 +887,7 @@ void ClientPropertyEvent(msg_ms_client_status_evt *pEvent)
     //else if(pEvent->server_address == 51) TraceDec1(" 4 = ",RTCC_CounterGet());
     
     //Reset Timer
-    GetNodeStageInfo(CLIENT_GET_NODE_INFO_PROC)->Timer = TIMER_CLI_WAIT_INFO;
+    GetNodeStageInfo(CLIENT_GET_NODE_INFO_PROC)->Timer = WAIT_SEC(TIMER_CLI_WAIT_INFO);
     RespServerNode++;
     pClientInfo->ServerID = pEvent->server_address;
     pClientInfo->Status &= !SERVER_NO_RESPONSE;

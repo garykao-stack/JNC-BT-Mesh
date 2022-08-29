@@ -34,6 +34,7 @@ typedef struct
   uint16    FilterTime2,FilterAllTime2;  // Hour
   uchar     G6Status,G6ActPercent;
   uchar     SegPPercent[6]; // for segment power percent
+
 } _Mesh_Node_Data,*_PMesh_Node_Data;
 
 // Mesh Node Status
@@ -42,12 +43,18 @@ typedef struct
 
 #define G6_SCHEDULE_NUM             5
 
-
+typedef struct{
+	uint8 Rs485ServerDelayBeforeSleep;
+	uint16	Rs485ClientBuffTimeoutMs;
+}RS485_TRANSMITTER_DATA;
 
 typedef struct
 {
     float   TempGain,TempOffset,HumGain,HumOffset;
-  _G6Schedule G6Schedule[G6_SCHEDULE_NUM];
+    union{
+    	_G6Schedule G6Schedule[G6_SCHEDULE_NUM];
+    	RS485_TRANSMITTER_DATA RS485TransmitterData;
+    };
 }_AdjustValue,*_PAdjustValue;
 
 #define G6_AUTO_RUN             BIT0

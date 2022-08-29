@@ -116,8 +116,33 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
 #endif
     sensor_index = SensorClassChange(pMeshNodeData->SensorClass,CLASS_TO_UTILITY);
     
-    printf("\r\nMAC:%02X:%02X\r\nID:%d\r\nbaudrate:%d\r\nSensor Class = %s\r\nWorking Timer = %d sec\r\nTemp-Gain = %0.2f, Temp-Offset = %0.2f\r\nRH-Gain   = %0.2f, RH-Offset   = %0.2f\r\n\r\n",
-    		pMeshNodeData->ElementAddr>>8,pMeshNodeData->ElementAddr&0xff,pMeshNodeData->MeshNodeID,IndexToBaudrate(pMeshNodeData->BaudRate),SensorClassStr[sensor_index],TIMER_GET_INFO_SLEEPING,pAdjValue->TempGain,pAdjValue->TempOffset,pAdjValue->HumGain,pAdjValue->HumOffset);
+    printf("\r\nMAC:%02X:%02X\r\n"
+    		"ID:%d\r\n"
+    		"baudrate:%d\r\n"
+    		"Sensor Class = %s\r\n"
+    		"Working Timer = %d sec\r\n"
+    		"Temp-Gain = %0.2f, Temp-Offset = %0.2f\r\n"
+    		"RH-Gain   = %0.2f, RH-Offset   = %0.2f\r\n"
+#ifdef BTM_TRANSMITTER
+    		"RS485 Client Buff Trigger Timeout = %d ms\r\n"
+    		"RS485 Server Sleep After Response = %d sec\r\n"
+#endif
+    		"\r\n",
+    		pMeshNodeData->ElementAddr>>8,
+			pMeshNodeData->ElementAddr&0xff,
+			pMeshNodeData->MeshNodeID,
+			IndexToBaudrate(pMeshNodeData->BaudRate),
+			SensorClassStr[sensor_index],
+			TIMER_GET_INFO_SLEEPING,
+			pAdjValue->TempGain,
+			pAdjValue->TempOffset,
+			pAdjValue->HumGain,
+			pAdjValue->HumOffset,
+#ifdef BTM_TRANSMITTER
+			pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs,
+			pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep
+#endif
+			);
 
 
     if(NodeRole == NR_CLIENT){

@@ -417,7 +417,7 @@ typedef struct _NodeEventInfo_
 #define TIMER_GET_INFO_FULL_POWER   2 //5 // xxx Sec
 #define TIMER_GET_INFO_SLEEPING     (pMeshNodeData->WorkingTimer)//18 //62 //18 // xxx sec
 #define TIMER_SERVER_SLEEPING       (TIMER_GET_INFO_SLEEPING - 2)    
-#define TIMER_CLI_WAIT_INFO         WAIT_SEC(4)  //2 //WAIT_SEC(4) //WAIT_SEC(3)
+#define TIMER_CLI_WAIT_INFO         4 //WAIT_SEC(4)  //2 //WAIT_SEC(4) //WAIT_SEC(3)
 #define TIMER_SERVER_DELAY          40  //ms
 #define TIMER_SERVER_SENS_INFO      (pMeshNodeData->MeshNodeID*TIMER_SERVER_DELAY)
 

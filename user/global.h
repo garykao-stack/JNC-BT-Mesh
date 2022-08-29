@@ -86,6 +86,9 @@
 #define BTM_TRANSMITTER		1		//BTM / RS485 transmitter
 //#define BTM_A308				1		//A308 Customized. Read All data from modbus, transmite data with several BTM responses.
 
+/*------------------ RS485 Transmitter Option ------------------*/
+#define TRANS_BUFF_MODE	1	/*啟動Buff功能*/
+
 /*------------------------ A308 Option -------------------------*/
 #define A308_SIMULATION 			0	/*A308訊號模擬。不從485讀取A308數值，直接以ID填滿所有暫存器*/
 #define A308_SLEEP_MODE			1 		/*喚醒後延遲兩秒再讀取數值*/
@@ -94,7 +97,7 @@
  *							Debug
  *-------------------------------------------------------------*/
 //#define DEBUG_PRINT
-#define DPRINT 0			// dprint, 0:disabled, 1:enabled
+#define DPRINT 1			// dprint, 0:disabled, 1:enabled
 #define TRANSDEBUG 0
 
 #ifdef BTM_A308

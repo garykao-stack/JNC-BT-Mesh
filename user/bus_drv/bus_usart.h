@@ -149,6 +149,8 @@ bool UsartGetStatusRxEnd();
 bool UsartGetStatusTxEnd();
 bool UsartGetStatusTxIng();
 bool UsartGetStatusRxIng();
+bool UsartTxIsBusy();
+bool UsartRxIsBusy();
 
 
 void UsartMonitor();

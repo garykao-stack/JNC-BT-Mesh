@@ -293,16 +293,26 @@ void UsartClientProc()
 }
 
 int MbsRxTimeout=0;
+int MbsTxTimeout=0;
 #define MBS_REC_TIME_OUT_MS 50
 #define MBS_TIMER_MS 10
-#define MBS_TIMEOUT_COUNT (MBS_REC_TIME_OUT_MS/MBS_TIMER_MS)
+#define MBS_REC_TIMEOUT_COUNT (MBS_REC_TIME_OUT_MS/MBS_TIMER_MS)
+
 void Modbus_Timer()
 {
-	if (CounterRx && MbsRxTimeout<MBS_TIMEOUT_COUNT) MbsRxTimeout++;
+	if (CounterRx && MbsRxTimeout<MBS_REC_TIMEOUT_COUNT) MbsRxTimeout++;
+	if (UsartTxIsBusy() && MbsTxTimeout){
+		MbsTxTimeout--;
+		if(!MbsTxTimeout){
+			CounterTx=0;
+			UsartSetStatus(USART_TX_END,ON);
+			RS485ToRx();
+		}
+	}
 }
 bool Modbus_IsReceived()
 {
-	return CounterRx && (MbsRxTimeout>=MBS_TIMEOUT_COUNT);
+	return CounterRx && (MbsRxTimeout>=MBS_REC_TIMEOUT_COUNT);
 }
 
 
@@ -361,7 +371,8 @@ void UsartSetStage(uchar stage)
                 break;
             case USART_STAGE_RX_END: //Trace("USART_STAGE_RX_END");
                 UsartSetStatus(USART_RX_END,ON);
-                UsartSetStatus(USART_RX_ING,OFF); UsartSetStatus(USART_TX_ING,OFF);
+                UsartSetStatus(USART_RX_ING,OFF);
+                UsartSetStatus(USART_TX_ING,OFF);
                 UsartSetStatus(USART_RX_WAITING,OFF);
                 USART_IntClear(USART, USART_IFS_RXUF);  
                 break;
@@ -488,6 +499,7 @@ bool UsartSendCmd(uchar size)
     CounterTx = size;    
     UsartResetRxTx(USART_ID_RX);
     UsartSetStage(USART_STAGE_TX_ING);
+    MbsTxTimeout=size;
     return TRUE;
 }
 
@@ -499,7 +511,8 @@ bool UsartTxSendCmd(PUCHAR pBuff,uint16 size)
 
     if(p_tx_buff!=pBuff)memcpy(p_tx_buff,pBuff,size);
    
-   if(UsartGetStatusTxIng() == OFF || CounterTx == 0)
+   //if(UsartGetStatusTxIng() == OFF || CounterTx == 0)
+    if(!UsartTxIsBusy() || CounterTx == 0)
     {
         ret_code = UsartSendCmd(size);
     }
@@ -622,7 +635,6 @@ bool UsartRxIsBusy(){
 
 void UsartPrintBuff(uchar rx_tx)
 {
-
     if(rx_tx == USART_ID_RX )
         PrintDataByte("RX Buffer", RxBuff, CounterRx);
     else if(rx_tx == USART_ID_TX )

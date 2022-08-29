@@ -646,6 +646,9 @@ void SetForceFullPowerTime(uchar status)
 
 int16 PowerTest;
 extern uint16 ActMotoSpeed;
+#ifdef BTM_TRANSMITTER
+extern void MbsTransShowBuffInfo();
+#endif
 
 // BLE and Mesh common event 
 //**********************************************************************************************
@@ -670,6 +673,10 @@ uint32 EvtSysExternalSignalProc(PCmdPacket pEvent)
         }
     
     else if(ext_signal == PB1_PRESS_ON){//Trace("PB1_PRESS_ON");
+    	dprint("--- PB1 ON\r\n");
+#ifdef BTM_TRANSMITTER
+    	MbsTransShowBuffInfo();
+#endif
         }
 #else 
 

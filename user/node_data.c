@@ -60,6 +60,8 @@ void MeshNodeDataReset()
     pAdjValue->HumGain = hum_gain;
     pAdjValue->TempOffset = temp_offset;
     pAdjValue->HumOffset = hum_offset;    
+    pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs=500;
+    pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep=3*60;
     // Printf("TempGain=%f hum_gain=%f temp_offset=%f hum_offset=%f ",temp_gain,hum_gain,temp_offset,hum_offset);
     BtmG6Reset();
     WriteNodeData();
@@ -79,6 +81,8 @@ void MeshNodeSetupReset()
     pAdjValue->TempOffset = 0.0;
     pAdjValue->HumGain = 1.0;
     pAdjValue->HumOffset = 0.0;    
+    pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs=500;
+    pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep=3*60;
     WriteNodeData();
    
 }
