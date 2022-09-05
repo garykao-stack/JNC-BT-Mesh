@@ -14,6 +14,7 @@
 
 
 uint8_t init_done = 0;
+extern uint32 ShowSqueNum();
 
 //uint8 MeshNodeModel;
 //**********************************************************************************************
@@ -217,6 +218,7 @@ uint32 EvtMeshSensorInitProc(PCmdPacket pEvent)
     uint32 ret_code = TRUE;
     msg_mt_get_relay_rsp rsp_get_relay;
     msg_mn_initialized_evt *pMeshInit = &(pEvent->data.evt_mesh_node_initialized);
+    msg_mn_get_seq_remaining_rsp* seq_remain;
     if(NodeRole == NR_CLIENT)
         iv_config(IV_TEST_MODE, IV_RECOVERY_MODE, SNB_STATE);
     else
@@ -228,8 +230,9 @@ uint32 EvtMeshSensorInitProc(PCmdPacket pEvent)
         SetMeshNodeStatus(STATUS_PROVISIONED,ON);  
         pMeshNodeData->MeshNodeID = pMeshInit->address;
         pMeshNodeData->IvIndex = pMeshInit->ivi;
-        Printf("node1 is provisioned. Mesh Node ID:0x%x, %d, IVI:%ld\r\n", 
-                pMeshNodeData->MeshNodeID,pMeshNodeData->MeshNodeID, pMeshNodeData->IvIndex);
+		seq_remain=gecko_cmd_mesh_node_get_seq_remaining(0);
+        printf("Node1 is provisioned. Mesh Node ID:0x%x, %d, IVI:%d(0x%X), SeqNo:0x%X\r\n",
+                pMeshNodeData->MeshNodeID,pMeshNodeData->MeshNodeID, pMeshNodeData->IvIndex, pMeshNodeData->IvIndex,seq_remain->count);
         MeshNodeModelInit();
         SetTxPower(TX_POWER_LO);
         SetEventTaskTimer(TD_GET_SENSOR_INFO,200,TIMER_EVENT_ONCE);        

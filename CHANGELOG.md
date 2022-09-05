@@ -1,4 +1,22 @@
+## v1.26 #
+### 20220905 (成) #
+1. 修正IvIndex不會自動更新的問題，觸發更新條件為：
+    - 當傳送序號低於0x100
+    - Client發送GET_ALL_SENSOR指令時回應錯誤碼為0xc03
+    - Server發送GET_ALL_SENSOR指令時回應錯誤碼為0xc03
+2. 修正IvIndex每次更新會直接跳2號的問題。 
+3. 版本編號更新
+    - 標準版SKYNET: v1.26
+    - BT_MESH_G6: v1.02
+    - ULTRA_SOUND_SKYNET: v1.02
+
 ## v1.25 #
+### 20220831 : RS485/BTM v1.1 (成) #
+1. 將綠燈改為uart通訊燈，當收到RX訊息亮起，重置RX Buff時熄滅。
+2. 藍燈新增功能
+    - 原為角色指示燈：Client>亮, Server>滅
+    - 當Server發送Node訊息錯誤碼為0xc03時(limit_reached)，以0.5秒速度閃礫
+
 ### 20220826 : RS485/BTM v1.1 (成) #
 1. 透傳模式增加Buff將已讀取過的內容暫存，當Client達成以下條件時回傳：
     - Server超過設定時間未回傳結果(預設500ms)

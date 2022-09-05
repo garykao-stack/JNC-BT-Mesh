@@ -208,6 +208,7 @@ void CheckStageTimer()
     ClientTimer_10ms();
     ServerTimer_10ms();
     Modbus_Timer();
+    LedTick();
 #ifdef BTM_A308
     A308_TimeEvent();
 #endif
@@ -655,6 +656,7 @@ extern void MbsTransShowBuffInfo();
 // Event: gecko_evt_system_external_signal_id
 //
 //**********************************************************************************************
+uint32 extern ShowSqueNum();
 uint32 EvtSysExternalSignalProc(PCmdPacket pEvent)
 {
     uint32 ret_code=TRUE;
@@ -675,6 +677,11 @@ uint32 EvtSysExternalSignalProc(PCmdPacket pEvent)
     else if(ext_signal == PB1_PRESS_ON){//Trace("PB1_PRESS_ON");
     	dprint("--- PB1 ON\r\n");
 #ifdef BTM_TRANSMITTER
+    	//for test
+    	//SetNodeStatus(NS_IVI_UPDATE,ON);
+    	/*result=Cmd_mt_set_element_seqnum(PRIMARY_ELEM, 0xffffff)->result; //set sequence num = 0
+    	dprint("Cmd_mt_set_element_seqnum:result:0x%X\r\n",result);
+    	ShowSqueNum();*/
     	MbsTransShowBuffInfo();
 #endif
         }

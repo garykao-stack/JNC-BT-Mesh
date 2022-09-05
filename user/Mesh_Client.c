@@ -417,8 +417,9 @@ void ClientGetNodeInfoProc()
 #endif
 
                     if(result){ //error
+                    	if(result==0xc03)SetNodeStatus(NS_IVI_UPDATE,ON);
 						//TraceErr1("CNS_GET_SEVER_INFO 1",result);
-                    	dprint("!!! CNS_GET_SEVER_INFO Error:%d\r\n",result);
+                    	dprint("!!! CNS_GET_SEVER_INFO Error:0x%X\r\n",result);
 						CountErr++;
 						ToWaitingStage(CNS_GET_SEVER_INFO,WAIT_SEC(2));
                     }else{ //successed
@@ -624,14 +625,16 @@ void ClientFromHostProc()
         		//dprint("rx process: ServerIsAwake=%d\r\n",ServerIsAwake);
         		goto CLIENT_SEND_DATA_TO_SERVER;
         	}else if(trans_prepare_response_count>0 && CheckWaitTimeOut()){
-        		btId=GetSourceBtId(UsartGetBuff(USART_ID_TX)[0]);
-        		if (btId){
-        			cInfo=GetServerInfoPos(btId);
-        			if (cInfo && cInfo->ServerID>0){
-        				MbsSend(UsartGetBuff(USART_ID_TX),trans_prepare_response_count);
-						//trans_prepare_response_count=0;
-						trans_seq++; /*累加計數，避免回傳內容錯誤*/
-        			}
+        		if(!UsartTxIsBusy() && !UsartRxIsBusy()){
+					btId=GetSourceBtId(UsartGetBuff(USART_ID_TX)[0]);
+					if (btId){
+						cInfo=GetServerInfoPos(btId);
+						if (cInfo && cInfo->ServerID>0){
+							MbsSend(UsartGetBuff(USART_ID_TX),trans_prepare_response_count);
+							//trans_prepare_response_count=0;
+							trans_seq++; /*累加計數，避免回傳內容錯誤*/
+						}
+					}
         		}
         		trans_prepare_response_count=0;
 
@@ -825,12 +828,12 @@ void ClientSeriesEvent(msg_ms_client_series_status_evt *pEvent){
 		dprint("receive msg. rec_flag:0x%x, flag:0x%x, offset:%d, part_len:%d\r\n",rec_flag,flag, offset, part_len);
 		if(!rec_flag){
 			IFDPRINT(
-				dprint("req_seq:%d, rsp_seq:%d, reg:%d(0x%X) size:%d>",trans_seq,property_data[0],reg,reg,size);
+				dprint("req_seq:%03d, rsp_seq:%03d, reg:%d(0x%X) size:%d>",trans_seq,property_data[0],reg,reg,size);
 				for(uint8_t _idx=0;_idx<size;_idx++)dprint(" %02X",p_tx_buff[_idx]);
 				dprint("\r\n");
 			)
 
-			if(trans_seq==seq || !UsartRxIsBusy()){
+			if(trans_seq==seq && !UsartRxIsBusy() && !GetNodeStatus(NS_USART_RX_EVENT)){
 				UsartTxSendCmd(p_tx_buff,size);
 			}else{
 				if(UsartRxIsBusy()) dprint("Rx is Busy. ");

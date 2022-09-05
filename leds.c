@@ -81,12 +81,23 @@ void led_set_state(uint8_t state)
   }
 }
 
+static long LedStatus=0;
+static uint8 tick=0;
+void LedTick(){
+	if (tick<=100)tick++;
+	else tick=0;
+	if (tick==50 || !tick){ //0.5 sec
+		//dprint("0.5sec !!!!!\r\n");
+		if(LedStatus & LED_STATE_MESH_ERROR) SetLedToggle(LED_BLUE);
+	}
+}
 
 
+
 //
 //
 //
-void SetLedStatus(uchar status)
+void SetLedStatus(uint16 status)
 {
    switch(status) 
     {
@@ -113,9 +124,12 @@ void SetLedStatus(uchar status)
              SetLed(LED_GREEN,ON); Delay_ms(300); SetLed(LED_GREEN,OFF);
              break;
 
-        case LED_STATUS_SERVER_TO_RS485:   Trace("LED_STATUS_SERVER_TO_RS485");//from Built-in or RS-485
-             SetLed(LED_GREEN,ON);
-             break;
+        case LED_STATUS_SERVER_TO_RS485:   /*Trace("LED_STATUS_SERVER_TO_RS485");//from Built-in or RS-485
+             SetLed(LED_GREEN,ON);*/        break;
+        case LED_UART_RX_ON: SetLed(LED_GREEN,ON); break;
+        case LED_UART_RX_OFF: SetLed(LED_GREEN,OFF); break;
+        case LED_SEND_NODE_INFO_ERROR_ON: SetLed(LED_BLUE,ON); LedStatus|=LED_STATE_MESH_ERROR; break;
+        case LED_SEND_NODE_INFO_ERROR_OFF: SetLed(LED_BLUE,OFF); LedStatus&=~LED_STATE_MESH_ERROR; break;
         case LED_STATUS_SERVER_TO_SILICON:  Trace("LED_STATUS_SERVER_TO_SILICON"); //from Built-in or RS-485
              SetLed(LED_GREEN,OFF);
              break;

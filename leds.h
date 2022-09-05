@@ -136,17 +136,21 @@ void led_set_state(uint8_t state);
 #define LED_STATUS_SERVER_IO_CHANGE  13
 #define LED_STATUS_SERVER_TO_RS485   14
 #define LED_STATUS_SERVER_TO_SILICON 15
+#define LED_UART_RX_ON					16
+#define LED_UART_RX_OFF					17
+#define LED_SEND_NODE_INFO_ERROR_ON 	18
+#define LED_SEND_NODE_INFO_ERROR_OFF 	19
+
+
+
+#define LED_STATE_MESH_ERROR	1
 
 
 
 
-
-
-
-
-
+void LedTick();
 void SetLed(uchar led_num, uchar status);
-void SetLedStatus(uchar status);
+void SetLedStatus(uint16 status);
 void SetLedToggle(uchar led);
 
 

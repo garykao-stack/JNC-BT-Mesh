@@ -206,6 +206,7 @@ void ServerNodeTask()
     ServerSerialTransProc();
 #endif
     ServerGetInfoProc();
+    NodeIviUpdateProc();
 }
 
 uint32_t cd_sleep_ms=0;
@@ -548,7 +549,7 @@ void ServerSerialTransProc(){
 void ServerGetInfoProc()
 {
     pStageInfo = GetNodeStageInfo(SERVER_GET_INFO_PROC);
-    bool result;
+    uint16 result;
     switch(ActiveStage())
         {
             case NODE_STAGE_INIT:
@@ -587,7 +588,7 @@ void ServerGetInfoProc()
                 	transprint("GET_INFO: pFunSensor:%d\r\n",(int)pFunSensor);
                     dprint("GET_INFO: pFunSensor:%d\r\n",(int)pFunSensor);
                     if((pFunSensor!= NULL) && (GetSensorInfo() == TRUE) ){
-                    	if(GetNodeStatus(NS_USART_WAIT_RESP)){
+                    	if(GetNodeStatus(NS_USART_WAIT_RESP)){ /*非阻塞式Modbus處理，進入SNS_WAIT_GET_INFO中等待1秒，若未收到回應直接進入休眠模式*/
                     		SetNodeStatus(NS_USART_WAIT_RESP,OFF);
                     		ToWaitingStage(SNS_WAIT_GET_INFO,WAIT_MS(1000));
                     		return;
@@ -621,26 +622,8 @@ void ServerGetInfoProc()
             	}
             	break;
             case SNS_EVENT_WAITING:
-            	/*
-            	//fordward mbs data to uart
-            	if(GetNodeStatus(NS_TRANS_SERIAL_DATA)){
-            		if(UsartIsBusy()){
-            			dprint("uart is busy\r\n");
-            			return;
-            		}
-            		dprint("sendData to Serial(%d)\r\n",TransArrayLength);
-            		if (TransArrayLength){
-						SetLedStatus(LED_STATUS_ACTIVE);
-						SetNodeStatus(NS_USART_RX_EVENT,OFF);
-						UsartTxSendCmd(TransData,TransArrayLength);
-						CountErr = 0;
-						ToWaitingStage(SNS_WAIT_UART_RSP,WAIT_MS(1000));
-            		}
 
-            		SetNodeStatus(NS_TRANS_SERIAL_DATA,OFF);
-
-            	}//response Client Mesh message
-            	else */if(GetNodeStatus(NS_GET_INFO_ACT)){
+            	if(GetNodeStatus(NS_GET_INFO_ACT)){
             		SetNodeStatus(NS_A308_GET_FINISHED,OFF);
                     SetLedStatus(LED_STATUS_ACTIVE);
                     dprint("Step: NS_GET_INFO_ACT, Sleep:%d\r\n",GetNodeStatus(NS_SLEEPING));
@@ -668,61 +651,6 @@ void ServerGetInfoProc()
                 }
 #endif
                 break;
-#if 0 /*已移到獨處立理函式*/
-            case SNS_WAIT_UART_RSP: //等待Uart回應
-            	if(GetNodeStatus(NS_USART_RX_EVENT)){ //received response, send back to client
-            		dprint("receive serial response\r\n");
-            		SetWaitTimer(0);
-            		res_loc=0;
-            		ToNextStage(SNS_SEND_UART_RSP);
-            	}else if(CheckWaitTimeOut()){ // Timeout, back to SNS_EVENT_WAITING
-            		UsartResetRxTx(USART_ID_TX_RX);
-            		ToNextStage(SNS_EVENT_WAITING);
-            	}
-            	break;
-
-            case SNS_SEND_UART_RSP: //Uart的回應回傳給Server
-
-            	/*將uart訊息回傳給client之前，又收到了新的指令，放棄目前回應，直接處理下一筆訊息*/
-            	if(GetNodeStatus(NS_TRANS_SERIAL_DATA)){
-            		SetNodeStatus(NS_USART_RX_EVENT,OFF);
-            		UsartResetRxTx(USART_ID_TX_RX);
-            		ToNextStage(SNS_EVENT_WAITING);
-            		printf("response has been cancel by new command\r\n");
-            		break;
-            	}
-
-            	if(!CheckWaitTimeOut()) break;
-
-            	result=SendRxToClient(RxBuff,res_loc,CounterRx);//(CounterRx-res_loc)>50?50:(CounterRx-res_loc));
-            	dprint("SendRxToClient, len:%d, result:%s\r\n",CounterRx,result?"Successed":"Failed");
-            	IFDPRINT(
-            		if(res_loc==0){
-						dprint("SendRxToClient: \r\n" );
-						for(int i=0;i<CounterRx;i++) dprint(" %02X",RxBuff[i]);
-						dprint("\r\n");
-            		}
-            	);
-				if (result){
-					res_loc+=50;
-					CountErr=0;
-					if (res_loc>=CounterRx){
-						SetNodeStatus(NS_USART_RX_EVENT,OFF);
-						UsartResetRxTx(USART_ID_TX_RX);
-						ToNextStage(SNS_EVENT_WAITING);
-					}else{
-						ToWaitingStage(SNS_SEND_UART_RSP,WAIT_MS(100));
-					}
-				}else{
-					if(++CountErr>=10){
-						SetNodeStatus(NS_USART_RX_EVENT,OFF);
-						UsartResetRxTx(USART_ID_TX_RX);
-						ToNextStage(SNS_EVENT_WAITING);
-					}else
-						ToWaitingStage(SNS_SEND_UART_RSP,WAIT_MS(100));
-				}
-            	break;
-#endif
             case SNS_PRE_SEND_INFO: 
                 //waiting to send info
             	CHECK_FORWARD_DATA;
@@ -738,19 +666,18 @@ void ServerGetInfoProc()
             
                 dprint("SNS_SEND_INFO ServerInfo.NodeInfoSize:%d\r\n",ServerInfo.NodeInfoSize);
                 if(ServerInfo.NodeInfoSize>0) result=SendInfoToClient();
-                else{
+                /*else{
                 	result=TRUE;
-                }
+                }*/
 
-                if(result) // to send sensor info
+                if(!result) // succeed. go to send sensor info
                 {
 
-                     SetNodeStatus(NS_GET_INFO_ACT,OFF);
 
-                     if(GetNodeStatus(NS_A308_GET_INFO)){
+                	SetLedStatus(LED_SEND_NODE_INFO_ERROR_OFF);
+					SetNodeStatus(NS_GET_INFO_ACT,OFF);
 
-                    	 ToNextStage(SNS_SEND_A308_INFO);
-                     }
+					if(GetNodeStatus(NS_A308_GET_INFO)){ToNextStage(SNS_SEND_A308_INFO);}
 #ifdef BTM_A308
                      //else if(pMeshNodeData->SensorClass==SENSOR_A308M)	ToWaitingStage(SNS_WAIT_A308_CMD,WAIT_SEC(30*15));
                      //else ToWaitingStage(SNS_WAIT_A308_CMD,WAIT_SEC(30*15));
@@ -767,15 +694,19 @@ void ServerGetInfoProc()
                      }
 #endif
 
-                }   // waiting to sleeping
-                else{
+                }else{ //failed. waiting to sleeping
+                	if(result==0xc03){ //limit_reached
+                		/*不知道達到什麼極限，需要重新組網*/
+                		SetLedStatus(LED_SEND_NODE_INFO_ERROR_ON);
+                		SetNodeStatus(NS_IVI_UPDATE,ON);
+                	}
                 	dprint("SNS_SEND_INFO failed. send again(try:%d)\r\n",CountErr);
                      CountErr++;
                      /* 發送失敗，等待指定時間後重試
                       * Client等待4秒，故每800ms重試一次，共5次
                       * ※原設定為Client等待2秒，Server每2秒重試共5次，此設定不合理*/
                      ToWaitingStage(SNS_PRE_SEND_INFO,WAIT_MS(800)); // send info again WAIT_SEC(2)
-                    }
+                }
                 break;
 #ifdef BTM_A308
             case SNS_WAIT_SEND_INFO_ACK:
@@ -1682,10 +1613,11 @@ bool GetCustomSerial(){
 //
 //Send sensor information to client
 //
-bool SendInfoToClient()
+uint16 SendInfoToClient()
 {
-    bool ret_code=FALSE;
-    uchar   send_size;
+    //bool ret_code=FALSE;
+	uint16 result;
+    uchar send_size;
     if(ServerInfo.NodeInfoSize > 0){
         if(GetNodeStatus(NS_FULL_POWER) == ON)
            pSensorHeader->Status |= SERVER_FULL_POWER;
@@ -1699,15 +1631,19 @@ bool SendInfoToClient()
         result = Cmd_ms_server_send_status(SENSOR_ELEMENT, pNodeEventInfo->ClientAddr,pNodeEventInfo->AppkeyIndex,
                                             NO_FLAGS, send_size, (PUCHAR)&ServerInfo)->result;
       if(result) {
-        ret_code = FALSE;
+    	dprint("!!!Cmd_ms_server_send_status, dest addr:%d, len:%d, ERROR:0x%x\r\n",pNodeEventInfo->ClientAddr,send_size,result);
+        //ret_code = FALSE;
       }
-      else ret_code=TRUE;
+      //else ret_code=TRUE;
     }
     else{
-    	TraceErr1("SendInfoToClient 2",ServerInfo.NodeInfoSize);
-    	return TRUE;
+    	//TraceErr1("SendInfoToClient 2",ServerInfo.NodeInfoSize);
+    	dprint("SendInfoToClient Error NodeInfoSize(%d)<=0\r\n",ServerInfo.NodeInfoSize);
+    	//return TRUE;
+    	return  0;
     }
-    return ret_code;
+    //return ret_code;
+    return result;
 }
 
 uint16 Server_ResponseInfo(){
@@ -1918,7 +1854,7 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
     	SetNodeStatus(NS_SEND_INFO_ACK,ON);
     }
     else if(pEvent->property_id == NODE_GET_ALL_SENSOR){
-    	transprint("*** GET_ALL_SENSOR\r\n");
+    	dprint("receive cmd: GET_ALL_SENSOR\r\n");
          SetNodeStatus(NS_GET_INFO_ACT,ON);  // Mesh get event active
          if(pEvent->server_address!=0xC000){ /*非廣播指令，直接回應(for APP)*/
         	 SendInfoToClient();

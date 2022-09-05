@@ -137,12 +137,14 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
 			pAdjValue->TempGain,
 			pAdjValue->TempOffset,
 			pAdjValue->HumGain,
-			pAdjValue->HumOffset,
+			pAdjValue->HumOffset
 #ifdef BTM_TRANSMITTER
-			pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs,
+			,pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs,
 			pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep
 #endif
 			);
+
+
 
 
     if(NodeRole == NR_CLIENT){
@@ -156,6 +158,17 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
     BleEventInit();
     MeshEventInit();
     DebugShowSetting();
+
+    /*msg_coex_get_counters_rsp *rsp_cnt;
+    rsp_cnt=gecko_cmd_coex_get_counters(0);
+    dprint("get_counters result:%d\r\n",rsp_cnt->result);
+    for(int i=0;i<rsp_cnt->counters.len;i++){
+    	dprint("%d: %d\r\n",i,rsp_cnt->counters.data[i]);
+    }*/
+
+    /*msg_mn_get_seq_remaining_rsp* seq_remain;
+    seq_remain=gecko_cmd_mesh_node_get_seq_remaining(0);
+    dprint("seq_remain, result:0x%x, count:%d\r\n",seq_remain->result,seq_remain->count);*/
 }
 /*******************************************************************************
  * Main application code.

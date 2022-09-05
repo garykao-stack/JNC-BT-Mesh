@@ -197,7 +197,7 @@ void ServerNodeTask();
 void ServerGetInfoProc();
 void ServerSetNodeProc();
 
-bool SendInfoToClient();
+uint16 SendInfoToClient();
 bool SendRxToClient(uint16 reg_loc, uint16 reg_count, PUCHAR data,uint8_t offset,uint8_t count);
 uchar PreAllSensorInfo();
 uchar CheckPowerStatus();

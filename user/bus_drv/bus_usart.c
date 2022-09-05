@@ -328,6 +328,7 @@ void USART2_RX_IRQHandler(void)
 	   MbsRxTimeout=0;
         *pRxBuff++ = USART_RxDataGet(USART);//USART_Rx(USART);
         CounterRx++; UsartSetStatus(USART_RX_ING,ON);
+        SetLedStatus(LED_UART_RX_ON);
     } else {
     	USART_Rx(USART);   // clean RX buffer Rx
     }
@@ -423,6 +424,8 @@ void UsartResetRxTx(uchar tx_rx)
             UsartSetStatus(USART_RX_WAITING,ON);
             memset(pRxBuff,0,USART_RX_BUFF_SIZE);
             SetNodeStatus(NS_USART_RX_EVENT,OFF);
+            SetLedStatus(LED_UART_RX_OFF);
+
         }
     else if(tx_rx == USART_ID_TX_RX)
         {
@@ -434,6 +437,7 @@ void UsartResetRxTx(uchar tx_rx)
             UsartSetStatus(USART_RX_CRC_ERROR,OFF);
             memset(pTxBuff,0,USART_TX_BUFF_SIZE);   //reset buffer
             memset(pRxBuff,0,USART_RX_BUFF_SIZE);
+            SetLedStatus(LED_UART_RX_OFF);
         }
     else TraceErr1("UsartResetRxTx",tx_rx);
 }

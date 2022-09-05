@@ -109,7 +109,7 @@ uchar CheckRs485Device(int16 connectTryCount)
 #ifdef BTM_TRANSMITTER
     else if(pMeshNodeData->SensorClass == SENSOR_CUSTOM_SERIAL){
     	pFunSensor = GetCustomSerial;GetDeviceInfoDelay = 5;
-        SetNodeStatus(NS_SERVER_RS485_ENABLE,OFF);
+        SetNodeStatus(NS_SERVER_RS485_ENABLE,ON);
         rs485_dev = SENSOR_CUSTOM_SERIAL; goto Check485_End;
     }
 #elif defined(BTM_A308) && A308_SIMULATION
