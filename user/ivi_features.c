@@ -51,6 +51,11 @@ void NodeIviUpdateProc(void)
                     if(GetNodeStatus(NS_IVI_UPDATE) == ON)
                         {ToWaitingStage(IVI_UPDATE_ACTION,WAIT_SEC(1)); }
                     else if(CheckWaitTimeOut()){
+                    	if(GetMeshNodeStatus(STATUS_PROXY_CONNECT)){
+                    		result=Cmd_mt_send_beacons()->result;
+                    		dprint("send_beacons for proxy result:0x%X\r\n",result);
+                    	}
+
                     	if (ShowSqueNum()<0x100){
                     		ToWaitingStage(IVI_UPDATE_ACTION,WAIT_SEC(0));
                     	}else{
@@ -107,8 +112,13 @@ Bool IvIndexUpdate(uchar status)
         	dprint("Cmd_mt_set_iv_index(%d + %d):0x%x\r\n",pMeshNodeData->IvIndex,IVI_INC_MIN,result);
         	return ret_code;
         }
-
         pMeshNodeData->IvIndex = pMeshNodeData->IvIndex + IVI_INC_MIN;*/
+        /*result = Cmd_mt_set_ivupdate_state(ON)->result;
+        if(result){
+			dprint("Cmd_mt_set_ivupdate_state:0x%x\r\n",result);
+			return ret_code;
+		}*/
+
         result = Cmd_mn_req_ivupdate()->result;
         if(result){
         	dprint("Cmd_mn_req_ivupdate:0x%x\r\n",result);
@@ -209,7 +219,11 @@ uint32 EvtMeshIviClientProc(PCmdPacket pEvent)
             {
             	result=Cmd_mt_set_iv_index(p_ivrecovery->network_ivindex)->result;
             	dprint("set Iv Index: result:0x%X\r\n",result);
-            	if(!result) pMeshNodeData->IvIndex = p_ivrecovery->network_ivindex;
+            	if(!result){
+            		pMeshNodeData->IvIndex = p_ivrecovery->network_ivindex;
+					result=Cmd_mt_set_element_seqnum(PRIMARY_ELEM, 0)->result; //set sequence num = 0
+					dprint("Cmd_mt_set_element_seqnum:result:0x%X\r\n",result);
+            	}
             }
             result = Cmd_mn_set_ivrecovery_mode(ON)->result;
             ShowSqueNum();
@@ -218,8 +232,8 @@ uint32 EvtMeshIviClientProc(PCmdPacket pEvent)
         case Evt_mn_changed_ivupdate_state:
         	dprint("!!!\r\n EVENT(Client) change_ivupdate_state\r\n>state:%d,ivindex:%d\r\n!!!\r\n",p_iv_update->state,p_iv_update->ivindex);
             if(p_iv_update->state == ON){
-            	result=Cmd_mt_set_iv_index(p_iv_update->ivindex)->result;
-            	dprint("set Iv Index: result:0x%X\r\n",result);
+            	/*result=Cmd_mt_set_iv_index(p_iv_update->ivindex)->result;
+            	dprint("set Iv Index: result:0x%X\r\n",result);*/
             	result = Cmd_mt_send_beacons()->result;
             }else{
             	result = Cmd_mt_send_beacons()->result;
@@ -251,24 +265,24 @@ uint32 EvtMeshIviServerProc(PCmdPacket pEvent)
         	dprint("!!!\r\n EVENT(Server) change_ivupdate_state\r\n>state:%d,ivindex:%d\r\n!!!\r\n",p_iv_update->state,p_iv_update->ivindex);
             if(p_iv_update->state == YES){ 
                 //IviUpdateStatus(ON);
-            	result=Cmd_mt_set_iv_index(p_iv_update->ivindex)->result;
+            	/*result=Cmd_mt_set_iv_index(p_iv_update->ivindex)->result;
             	if(!result) pMeshNodeData->IvIndex = p_iv_update->ivindex;
-            	dprint("set Iv Index: result:0x%X\r\n",result);
+            	dprint("set Iv Index: result:0x%X\r\n",result);*/
                 SetLedStatus(LED_STATUS_OFF);
             }
             else {
                 IviUpdateStatus(OFF);
                 SetLedStatus(LED_STATUS_IVI_UPDATE_OFF);
             }
-
+            pMeshNodeData->IvIndex = p_iv_update->ivindex;
             ShowSqueNum();
             break;
 
         case Evt_mn_ivrecovery_needed: 
         	dprint("!!!\r\n EVENT(Server) ivrecovery_needed\r\n>network IvIndex:%d\r\n node IvIndex:%d\r\n!!!\r\n",p_ivrecovery->network_ivindex,p_ivrecovery->node_ivindex);
             if(GetMeshNodeStatus(STATUS_PROXY_CONNECT) == TRUE)  break;
-            if(p_ivrecovery->network_ivindex != p_ivrecovery->node_ivindex){                
-                result=Cmd_mt_set_iv_index(p_ivrecovery->network_ivindex)->result;
+            if(p_ivrecovery->network_ivindex != p_ivrecovery->node_ivindex){
+                result=Cmd_mt_set_iv_index(p_ivrecovery->network_ivindex)->result; /*立即生效*/
                 dprint("set Iv Index: result:0x%X\r\n",result);
                 IviUpdateStatus(OFF);
             }
@@ -276,7 +290,7 @@ uint32 EvtMeshIviServerProc(PCmdPacket pEvent)
             result = Cmd_mn_set_ivrecovery_mode(ON)->result;
             result=Cmd_mt_set_element_seqnum(PRIMARY_ELEM, 0)->result; //set sequence num = 0
             dprint("Cmd_mt_set_element_seqnum:result:0x%X\r\n",result);
-            SetMeshNodeStatus(STATUS_IVI_UPDATE, ON);
+            //SetMeshNodeStatus(STATUS_IVI_UPDATE, ON);
             ShowSqueNum();
             break;
 

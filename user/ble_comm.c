@@ -665,23 +665,24 @@ uint32 EvtSysExternalSignalProc(PCmdPacket pEvent)
 #ifndef  BT_MESH_G6
 
     if(ext_signal == PB_SPEED_NORMAL){//Trace("PB_SPEED_NORMAL");
+    	dprint("--- PB0 ON\r\n");
         GetPropertyID = NODE_GET_INFO_FULL_POWER_OFF;
         SetForceFullPowerTime(OFF);
         //SetVolDecInc(1);
-        } 
-    else if(ext_signal == PB_SPEED_5SEC){//Trace("PB_SPEED_5SEC");
+        /*result=Cmd_mt_set_element_seqnum(PRIMARY_ELEM, 0)->result; //set sequence num = 0
+		dprint("Cmd_mt_set_element_seqnum:result:0x%X\r\n",result);*/
+		ShowSqueNum();
+    }else if(ext_signal == PB_SPEED_5SEC){//Trace("PB_SPEED_5SEC");
         GetPropertyID = NODE_GET_INFO_FULL_POWER_ON;  
         SetForceFullPowerTime(ON);
-        }
-    
-    else if(ext_signal == PB1_PRESS_ON){//Trace("PB1_PRESS_ON");
+    }else if(ext_signal == PB1_PRESS_ON){//Trace("PB1_PRESS_ON");
     	dprint("--- PB1 ON\r\n");
 #ifdef BTM_TRANSMITTER
     	//for test
     	//SetNodeStatus(NS_IVI_UPDATE,ON);
     	/*result=Cmd_mt_set_element_seqnum(PRIMARY_ELEM, 0xffffff)->result; //set sequence num = 0
-    	dprint("Cmd_mt_set_element_seqnum:result:0x%X\r\n",result);
-    	ShowSqueNum();*/
+    	dprint("Cmd_mt_set_element_seqnum:result:0x%X\r\n",result);*/
+    	ShowSqueNum();
     	MbsTransShowBuffInfo();
 #endif
         }

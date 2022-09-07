@@ -115,7 +115,8 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
         printf("%s: Firmware Version ==> v%1.2f \r\n", MODEL_NAME, FW_VER/100.0);
 #endif
     sensor_index = SensorClassChange(pMeshNodeData->SensorClass,CLASS_TO_UTILITY);
-    
+    //msg_mn_get_element_addr_rsp* r_addr=Cmd_mn_get_element_addr(0);
+
     printf("\r\nMAC:%02X:%02X\r\n"
     		"ID:%d\r\n"
     		"baudrate:%d\r\n"

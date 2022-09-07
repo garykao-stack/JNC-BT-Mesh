@@ -389,18 +389,21 @@ uint32 EvtMeshProxyProc(PCmdPacket pEvent)
 
     switch(event_id)
     {
-        case Evt_m_proxy_connected: Trace1("Evt_m_proxy_connected",p_connected->handle);
+        case Evt_m_proxy_connected: dprint("Evt_m_proxy_connected, handle:0x%x\r\n",p_connected->handle);
             SetEventTaskTimer(TD_SYS_SETUP_RESET,TIMER_ENDING,TIMER_EVENT_ONCE); // for Reset
             SetMeshNodeStatus(STATUS_PROXY_CONNECT,ON);
+            //Cmd_mc_client_set_beacon(,,1);
+    		result=Cmd_mt_send_beacons()->result;
+    		dprint("send_beacons result:0x%X\r\n",result);
             break;
-        case Evt_m_proxy_disconnected: Trace2("Evt_m_proxy_disconnected",p_disconnected->handle,p_disconnected->reason);
+        case Evt_m_proxy_disconnected: dprint("Evt_m_proxy_disconnected, handle:0x%x, reason:%d\r\n",p_disconnected->handle,p_disconnected->reason);
             SetMeshNodeStatus(STATUS_PROXY_CONNECT,OFF);
             //SetEventTaskTimer(TD_SYS_SETUP_RESET,TIMER_SYS_SETUP,TIMER_EVENT_ONCE);
             SetEventTaskTimer(TD_SYS_SETUP_RESET,TIMER_5SEC,TIMER_EVENT_ONCE);
             break;
-        case Evt_m_proxy_filter_status: Trace3("Evt_m_proxy_filter_status",p_filter->handle, p_filter->type, p_filter->count);
+        case Evt_m_proxy_filter_status: dprint("Evt_m_proxy_filter_status, handle:0x%x, type:%d, count:%d\r\n",p_filter->handle, p_filter->type, p_filter->count);
             break;
-       default: TraceErr("EvtMeshConfigProc"); break;     
+       default: dprint("EvtMeshConfigProc, event_id:0x%x\r\n",event_id); break;
     }
     return ret_code;
 }
