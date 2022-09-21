@@ -1,4 +1,8 @@
 ## v1.26 #
+### 20220921 (成) #
+1. 修正透傳模式中，Server與Slave設備斷線時，Client會回傳暫存值而造成Master無法判斷為斷線的問題。
+    - Client連續5次Modbus指令未回則判斷為斷線，不會回應Master的指令。
+
 ### 20220906 (成) #
 1. 移除在Evt_mn_changed_ivupdate_state事件處理中，不必要的手動指定iv index動作。
 

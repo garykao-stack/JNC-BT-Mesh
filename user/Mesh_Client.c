@@ -44,7 +44,7 @@ _ModbusToHost ModbusToHostCmd;
 
 #ifdef BTM_TRANSMITTER
 extern void MbsTransmitterInit();
-extern void MbsTransmitterRecordCmd(PUCHAR tx, int len);
+extern void MbsTransmitterRecordCmd(PUCHAR tx, int len, bool countAlive);
 extern void MbsTransmitterRecordRes(PUCHAR rx, int len, uint16 reg_loc, uint16 reg_len);
 extern int MbsTransmitterPrepareBuff(PUCHAR buff, int max_count);
 extern void SetSourceBtId(uint8 mbsId, uint8 btId);
@@ -624,7 +624,7 @@ void ClientFromHostProc()
         		trans_prepare_response_count=0; /*取消回傳暫存數值*/
         		//dprint("rx process: ServerIsAwake=%d\r\n",ServerIsAwake);
         		goto CLIENT_SEND_DATA_TO_SERVER;
-        	}else if(trans_prepare_response_count>0 && CheckWaitTimeOut()){
+        	}else if(trans_prepare_response_count>0 && CheckWaitTimeOut()){ /*發送到Server的指令未回應，將預備好的回應內容回應到485*/
         		if(!UsartTxIsBusy() && !UsartRxIsBusy()){
 					btId=GetSourceBtId(UsartGetBuff(USART_ID_TX)[0]);
 					if (btId){
@@ -637,7 +637,6 @@ void ClientFromHostProc()
 					}
         		}
         		trans_prepare_response_count=0;
-
         	}
 /*#elif 1
         	{
@@ -709,7 +708,7 @@ CLIENT_SEND_DATA_TO_SERVER:
 					result = Cmd_ms_client_get_column(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, CUSTOM_SERIAL_DATA,UsartGetRxCounter()+1,UsartGetBuff(USART_ID_RX)-1)->result;
 					if (!result || ++trans_retry>=5){ /*發送完成 or 重試超過n次*/
 
-						MbsTransmitterRecordCmd(UsartGetBuff(USART_ID_RX),UsartGetRxCounter());
+						MbsTransmitterRecordCmd(UsartGetBuff(USART_ID_RX),UsartGetRxCounter(),true);
 						trans_prepare_response_count=MbsTransmitterPrepareBuff(UsartGetBuff(USART_ID_TX),USART_TX_BUFF_SIZE);
 						//dprint("cmd:%d ,prepare res len:%d\r\n",UsartGetRxCounter(),trans_prepare_response_count);
 						UsartResetRxTx(USART_ID_RX);
@@ -722,7 +721,7 @@ CLIENT_SEND_DATA_TO_SERVER:
 				}
 			}else{
 				//dprint("server is sleeing\r\n");
-				MbsTransmitterRecordCmd(UsartGetBuff(USART_ID_RX),UsartGetRxCounter());
+				MbsTransmitterRecordCmd(UsartGetBuff(USART_ID_RX),UsartGetRxCounter(),false);
 				trans_prepare_response_count=MbsTransmitterPrepareBuff(UsartGetBuff(USART_ID_TX),USART_TX_BUFF_SIZE);
 				//dprint("cmd:%d ,prepare res len:%d\r\n",UsartGetRxCounter(),trans_prepare_response_count);
 				UsartResetRxTx(USART_ID_RX);

@@ -36,11 +36,13 @@ RegisterBuffer regBuff[MBS_REGISTER_BUFF_COUNT];
 MBS_READ_CMD MbsReadCmd;
 static int maxIndex=-1;
 static uint8 sourceBtId[256];
+static uint8 cntWaitResponse[256];
 
 void MbsTransmitterInit(){
 	memset(regBuff,0,sizeof(regBuff));
 	memset(&MbsReadCmd,0,sizeof(MbsReadCmd));
 	memset(sourceBtId,0,sizeof(sourceBtId));
+	memset(cntWaitResponse,0,sizeof(cntWaitResponse));
 }
 
 RegisterBuffer* MbsFindEmptyBuff(){
@@ -109,10 +111,12 @@ void MbsTransShowBuffInfo(){
 }
 
 #define ToWORD(hi,lo) ((((uint16)hi)<<8) | lo)
+#define DISCONNECT_COUNT 5
 
-void MbsTransmitterRecordCmd(PUCHAR tx, int len){
+void MbsTransmitterRecordCmd(PUCHAR tx, int len, bool countAlive){
 	uint8 reg_len;
 	uint16 reg_loc;
+	if(countAlive && cntWaitResponse[tx[0]]<DISCONNECT_COUNT)cntWaitResponse[tx[0]]++; /*計算命令次數*/
 	switch(tx[1]){
 	case 4: case 3: case 2: case 1:
 		if(len>=5){
@@ -146,6 +150,10 @@ void MbsTransmitterRecordCmd(PUCHAR tx, int len){
 int MbsTransmitterPrepareBuff(PUCHAR buff, int max_count){
 	RegisterBuffer *reg;
 	if ((3+MbsReadCmd.len*2)>max_count) return 0;
+	if(cntWaitResponse[buff[0]]>=DISCONNECT_COUNT){
+		dprint("id:%d is disconnected\r\n", buff[0]);
+		return 0; /*已判斷為斷線，不取出暫存值*/
+	}
 	switch(MbsReadCmd.fun){
 	case 4: case 3:
 		for(int i=0;i<MbsReadCmd.len;i++){
@@ -188,6 +196,7 @@ void MbsTransmitterRecordRes(PUCHAR rx, int len, uint16 reg_loc, uint16 reg_len)
 		dprint("Mismatch id %d>%d, fun:%d>%d\r\n",MbsReadCmd.id,rx[0],MbsReadCmd.fun,rx[1]);
 		return;
 	}else*/
+	cntWaitResponse[rx[0]]=0; /*已收到回應，重置命令計數*/
 	if(len<4){
 		dprint("Mbs response Error: len is short:%d\r\n", len);
 		return;
@@ -226,7 +235,7 @@ uint8 GetSourceBtId(uint8 mbsId){
 }
 #else
 void MbsTransmitterInit(){}
-void MbsTransmitterRecordCmd(PUCHAR tx, int len){}
+void MbsTransmitterRecordCmd(PUCHAR tx, int len, bool countAlive){}
 void MbsTransmitterRecordRes(PUCHAR rx, int len, uint16 reg_loc, uint16 reg_len){}
 int MbsTransmitterPrepareBuff(PUCHAR buff, int max_count){return 0;}
 void SetSourceBtId(uint8 mbsId, uint8 btId){}
