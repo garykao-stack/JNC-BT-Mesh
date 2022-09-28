@@ -72,7 +72,7 @@ uchar CheckRs485Device(int16 connectTryCount)
        pMeshNodeData->SensorClass = SENSOR_A308M;
 #endif
 
-    TraceDec1("BTM Sensor", pMeshNodeData->SensorClass);
+    dprint("BTM Sensor type:%d\r\n", pMeshNodeData->SensorClass);
     if(pMeshNodeData->SensorClass == SENSOR_PZEM){
         CHECK_RS485_CMD((PUCHAR)&PzemClean[0],sizeof_array(PzemClean)); UsartResetRxTx(USART_ID_TX_RX);
         Delay_ms(500); SetLedToggle(LED_GREEN);
@@ -122,6 +122,7 @@ uchar CheckRs485Device(int16 connectTryCount)
 
     if(Si7013_Detect(I2C0, SI7021_ADDR, NULL) == TRUE)
       {
+    	//dprint("!!! Si7013_Detected !!!\r\n");
         if(CheckUltraSound() == TRUE){
             GetUltraSoundInfo();
             pMeshNodeData->SensorClass = SENSOR_ULTRA_SOUND;rs485_dev = SENSOR_ULTRA_SOUND;  goto Assigned;
@@ -133,6 +134,10 @@ uchar CheckRs485Device(int16 connectTryCount)
             pMeshNodeData->SensorClass = SENSOR_SKYNET_CO2;rs485_dev = SENSOR_SKYNET_CO2;  goto Assigned;
         }       
       }
+    else if(CheckCDMCo2()){
+    	dprint("!!! Si7013 is not existed !!!\r\n");
+    	pMeshNodeData->SensorClass = SENSOR_SKYNET_CO2;rs485_dev = SENSOR_SKYNET_CO2;  goto Assigned;
+    }
   
     if(CheckRs485Connect(connectTryCount) == FALSE)
         {pMeshNodeData->SensorClass = SENSOR_DISCONNECT; goto Assigned;}
@@ -289,7 +294,8 @@ bool CheckRs485Connect(int16 connectTryCount)
             }
          Delay_ms(400); SetLedToggle(LED_BLUE); SetLedToggle(LED_RED);
         }
-    if(ret_code == FALSE) TraceErr1("RS-485 Disconnect 2",UsartGetRxCounter());
+    if(ret_code == FALSE) dprint("RS-485 Disconnect. RxCounter:%d\r\n",UsartGetRxCounter());
+    else dprint("RS-485 connect. RxCounter:%d\r\n",UsartGetRxCounter());
     UsartResetRxTx(USART_ID_TX_RX);
     SetLedStatus(LED_STATUS_OFF);
   

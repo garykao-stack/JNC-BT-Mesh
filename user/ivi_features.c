@@ -154,6 +154,21 @@ Bool IvIndexUpdate(uchar status)
     return ret_code;
 }
 
+void TestIvUpdate(){
+	result = Cmd_mt_set_ivupdate_test_mode(ON)->result;
+	if(result)
+	{
+		dprint("Cmd_mt_set_ivupdate_test_mode(ON):0x%x\r\n",result);
+		return;
+	}
+	result = Cmd_mt_set_ivupdate_state(ON)->result;
+	if(result){
+		dprint("Cmd_mt_set_ivupdate_state:0x%x\r\n",result);
+	}else{
+		dprint("Cmd_mt_set_ivupdate_state: succeed");
+	}
+}
+
 
 //
 //

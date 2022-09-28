@@ -75,23 +75,29 @@
 */
 
 /*=============================================================
- *							Product
+ *						Product Select
  *-------------------------------------------------------------*/
 //for G6-DAC7760
 // version: 1.00
 
-//#define JNC_BT_MESH             1		//for JNC BT Mesh (預設版本)
+#define JNC_BT_MESH             1		//for JNC BT Mesh (預設版本)
 //#define BT_MESH_G6              1		//for BT Mesh Control G6
 //#define ULTRA_SOUND_SKYNET      1		//xxxx
-#define BTM_TRANSMITTER		1		//BTM / RS485 transmitter
+//#define BTM_TRANSMITTER		1		//BTM / RS485 transmitter
 //#define BTM_A308				1		//A308 Customized. Read All data from modbus, transmite data with several BTM responses.
 
+/*------------------------ Basic Option ------------------------*/
+/*NODE_DISCONNECT_DETECT_COUNT : Server斷線判斷次數 ，預設為0
+ *  0	:自動計算(40分鐘無回應)限制範圍(4~50)
+ *  >0	:指定次數*/
+#define NODE_DISCONNECT_DETECT_COUNT 0
+
 /*------------------ RS485 Transmitter Option ------------------*/
-#define TRANS_BUFF_MODE	1	/*啟動Buff功能*/
+#define TRANS_BUFF_MODE	1	/*啟動Buff功能，0:關, 1:開(預設值)*/
 
 /*------------------------ A308 Option -------------------------*/
 #define A308_SIMULATION 			0	/*A308訊號模擬。不從485讀取A308數值，直接以ID填滿所有暫存器*/
-#define A308_SLEEP_MODE			1 		/*喚醒後延遲兩秒再讀取數值*/
+#define A308_SLEEP_MODE			1 		/*喚醒後延遲兩秒再讀取數值，預設開啟(1)*/
 
 /*=============================================================
  *							Debug
@@ -100,10 +106,16 @@
 #define DPRINT 0			// dprint, 0:disabled, 1:enabled
 #define TRANSDEBUG 0
 
+#if NODE_DISCONNECT_DETECT_COUNT>0
+#define SPACMARK "*"
+#else
+#define SPACMARK
+#endif
+
 #ifdef BTM_A308
   #define FW_VER              103
   #define HW_VER              100
-  #define DEVICE_NAME         "A308 BT Transmitter"
+  #define DEVICE_NAME         "A308 BT Transmitter"SPACMARK
   #define MANUFACTORY_NAME    "JNC"
   #define NODE_DATA_ID        0xA5A5
   #define MODEL_NAME          "BTA308"
@@ -111,28 +123,29 @@
 #elif defined(BTM_TRANSMITTER)
   #define FW_VER              100
   #define HW_VER              100
-  #define DEVICE_NAME         "BT-Mesh/RS485 Transmitter"
+  #define DEVICE_NAME         "BT-Mesh/RS485 Transmitter"SPACMARK
   #define MANUFACTORY_NAME    "JNC"
   #define NODE_DATA_ID        0xA5A5
   #define MODEL_NAME          "BTM485"
+
 #elif defined(BT_MESH_G6)
   #define FW_VER              102
   #define HW_VER              100
-  #define DEVICE_NAME         "G6S-BT"
+  #define DEVICE_NAME         "G6S-BT"SPACMARK
   #define MANUFACTORY_NAME    "JNC"
   #define NODE_DATA_ID        0xA5A5
   #define MODEL_NAME          "G6S-BT"
 #elif defined(JNC_BT_MESH)
-  #define FW_VER              126
+  #define FW_VER              127
   #define HW_VER              110
-  #define DEVICE_NAME         "JNC-BT-Mesh"
+  #define DEVICE_NAME         "JNC-BT-Mesh"SPACMARK
   #define MANUFACTORY_NAME    "JNC"
   #define NODE_DATA_ID        0xA5A5
   #define MODEL_NAME          "BTM001"
 #elif defined(ULTRA_SOUND_SKYNET)
   #define FW_VER              102
   #define HW_VER              110
-  #define DEVICE_NAME         "UD-BT-Mesh"
+  #define DEVICE_NAME         "UD-BT-Mesh"SPACMARK
   #define MANUFACTORY_NAME    "JNC"
   #define NODE_DATA_ID        0xA5A5
   #define MODEL_NAME          "BTM-UD"

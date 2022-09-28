@@ -959,11 +959,14 @@ void ClientPropertyEvent(msg_ms_client_status_evt *pEvent)
                
         };
 
-   
+
+#if (NODE_DISCONNECT_DETECT_COUNT==0)
     if(COUNT_NODE_DETECTED > 50) pClientInfo->Count = 50;
     else if(COUNT_NODE_DETECTED < 4) pClientInfo->Count = 4;
     else pClientInfo->Count = COUNT_NODE_DETECTED;
-
+#else
+    pClientInfo->Count=NODE_DISCONNECT_DETECT_COUNT;
+#endif
 }
 
 

@@ -1,3 +1,8 @@
+
+### SYKNET v1.27 20220928 (成)  #
+1. 移除Skynet必須要在溫濕度Sensor存在時才能讀取CO2的限制。
+2. 增加測試模式定義NODE_DISCONNECT_DETECT_COUNT，當值大於0時，直接指定斷線判斷的未回應次數
+
 ## v1.26 #
 ### 20220921 (成) #
 1. 修正透傳模式中，Server與Slave設備斷線時，Client會回傳暫存值而造成Master無法判斷為斷線的問題。
