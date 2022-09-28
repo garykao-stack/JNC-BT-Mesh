@@ -85,6 +85,16 @@ void MbsTransClearBuff(uint8 id, uint16 loc, REG_TYPE type){
 		}
 	}
 }
+
+void TransClearBuffById(uint8 id){
+	for(int i=maxIndex;i>=0;i--){
+		if(regBuff[i].id==id){
+			memset(&regBuff[i],0,sizeof(RegisterBuffer));
+			if (maxIndex==i && maxIndex>=0) maxIndex--;
+		}
+	}
+}
+
 char* getRegTypeText(REG_TYPE typ){
 	switch(typ){
 	case rtRCoil: return "DI";
@@ -151,6 +161,7 @@ int MbsTransmitterPrepareBuff(PUCHAR buff, int max_count){
 	RegisterBuffer *reg;
 	if ((3+MbsReadCmd.len*2)>max_count) return 0;
 	if(cntWaitResponse[buff[0]]>=DISCONNECT_COUNT){
+		TransClearBuffById(buff[0]);
 		dprint("id:%d is disconnected\r\n", buff[0]);
 		return 0; /*已判斷為斷線，不取出暫存值*/
 	}

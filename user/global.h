@@ -80,10 +80,10 @@
 //for G6-DAC7760
 // version: 1.00
 
-#define JNC_BT_MESH             1		//for JNC BT Mesh (預設版本)
+//#define JNC_BT_MESH             1		//for JNC BT Mesh (預設版本)
 //#define BT_MESH_G6              1		//for BT Mesh Control G6
 //#define ULTRA_SOUND_SKYNET      1		//xxxx
-//#define BTM_TRANSMITTER		1		//BTM / RS485 transmitter
+#define BTM_TRANSMITTER		1		//BTM / RS485 transmitter
 //#define BTM_A308				1		//A308 Customized. Read All data from modbus, transmite data with several BTM responses.
 
 /*------------------------ Basic Option ------------------------*/
