@@ -80,10 +80,10 @@
 //for G6-DAC7760
 // version: 1.00
 
-//#define JNC_BT_MESH             1		//for JNC BT Mesh (預設版本)
+#define JNC_BT_MESH             1		//for JNC BT Mesh (預設版本)
 //#define BT_MESH_G6              1		//for BT Mesh Control G6
 //#define ULTRA_SOUND_SKYNET      1		//xxxx
-#define BTM_TRANSMITTER		1		//BTM / RS485 transmitter
+//#define BTM_TRANSMITTER		1		//BTM / RS485 transmitter
 //#define BTM_A308				1		//A308 Customized. Read All data from modbus, transmite data with several BTM responses.
 
 /*------------------------ Basic Option ------------------------*/
@@ -107,7 +107,7 @@
 #define TRANSDEBUG 0
 
 #if NODE_DISCONNECT_DETECT_COUNT>0
-#define SPACMARK "*"
+#define SPACMARK "*" /*當指定斷線判斷次數時，在產品名稱中加入星號(*)以區別*/
 #else
 #define SPACMARK
 #endif
@@ -136,7 +136,7 @@
   #define NODE_DATA_ID        0xA5A5
   #define MODEL_NAME          "G6S-BT"
 #elif defined(JNC_BT_MESH)
-  #define FW_VER              127
+  #define FW_VER              128
   #define HW_VER              110
   #define DEVICE_NAME         "JNC-BT-Mesh"SPACMARK
   #define MANUFACTORY_NAME    "JNC"

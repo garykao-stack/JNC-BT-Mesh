@@ -48,7 +48,9 @@ void led_init(void)
   GPIO_PinModeSet(BSP_LED0_PORT, BSP_LED0_PIN, gpioModePushPull, LED_DEFAULT_STATE);
   GPIO_PinModeSet(BSP_LED1_PORT, BSP_LED1_PIN, gpioModePushPull, LED_DEFAULT_STATE);
   GPIO_PinModeSet(BSP_LED2_PORT, BSP_LED2_PIN, gpioModePushPull, LED_DEFAULT_STATE);
-  SetLedStatus(LED_STATUS_OFF);   
+  SetLedStatus(LED_STATUS_ON);
+  Delay_ms(1000);
+  SetLedStatus(LED_STATUS_OFF);
 }
 
 /*******************************************************************************

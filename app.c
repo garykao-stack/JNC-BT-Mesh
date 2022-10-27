@@ -192,7 +192,7 @@ void appMain(gecko_configuration_t *pConfig)
     BleMeshNodeInit(pConfig);
     PCmdPacket pEvent;
     dprint("Sensor Info Size:%d\r\n",sizeof(_SensorInfo));
-    
+
     while(1)
     {
 		// Event pointer for handling events
