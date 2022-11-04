@@ -7,7 +7,7 @@
 #include "global.h"
 
 
-#if defined(BTM_TRANSMITTER) && TRANS_BUFF_MODE
+#if (defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)) && TRANS_BUFF_MODE
 
 typedef enum{
 	rtRCoil=2,

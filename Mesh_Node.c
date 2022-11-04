@@ -147,11 +147,12 @@ bool GetNodeStatus(uint32 status)
 //
 void SetSleepingTimer(uchar status)
 {
-    uint32 sleeping_timer;
+    int32 sleeping_timer;
     
     if(status == ON)
         {// sleeping on
         sleeping_timer = (TIMER_SERVER_SLEEPING*1000 - TIMER_SERVER_SENS_INFO)-(uint32)GetDeviceInfoDelay;;
+        if (sleeping_timer<0)sleeping_timer=1000; /*當休眠時間<0,至少休眠一秒，如GetDeviceInfoDelay未變更，應該不會發生此狀況*/
         dprint("sleep for sleeping_timer %d(ms)\r\n",sleeping_timer);
         SetEventTaskTimer(TD_NODE_WAKE_UP,      sleeping_timer, TIMER_EVENT_ONCE);
         SetEventTaskTimer(TD_NO_EVENT,          TIMER_ENDING, TIMER_EVENT_ONCE); 

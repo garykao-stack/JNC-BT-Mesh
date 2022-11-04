@@ -294,6 +294,7 @@ void PropertyLcd();
 bool PrepareModbusCmd();
 bool SendModbusToHost();
 void ClientCheckNodeStatus();
+int ClientSensorClassCount();
 PClientInfo GetServerInfoPos(uint16 node_addr);
 
 

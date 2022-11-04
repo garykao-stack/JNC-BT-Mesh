@@ -42,7 +42,7 @@ PClientInfo pClientInfo=ClientInfo;
 _PModbusCmdF4  pModbusCmd;
 _ModbusToHost ModbusToHostCmd;
 
-#ifdef BTM_TRANSMITTER
+#if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
 extern void MbsTransmitterInit();
 extern void MbsTransmitterRecordCmd(PUCHAR tx, int len, bool countAlive);
 extern void MbsTransmitterRecordRes(PUCHAR rx, int len, uint16 reg_loc, uint16 reg_len);
@@ -59,7 +59,7 @@ void ClientNodeInit()
     ToNextStage(NODE_STAGE_INIT);
     UsartClientProc();
     ClientFromHostProc();
-#ifdef BTM_TRANSMITTER
+#if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
     MbsTransmitterInit();
 #endif
 
@@ -83,9 +83,9 @@ void ClientNodeTask()
     UsartClientProc();
 
     ClientFromHostProc();
-#ifndef BTM_TRANSMITTER
+//#ifndef BTM_TRANSMITTER
     ClientSetNodeInfoProc();
-#endif
+//#endif
     NodeIviUpdateProc();
 }
 //
@@ -337,7 +337,7 @@ void ClientGetInfoActionNow()
 
 #define max(a,b) ((a) > (b) ? (a) : (b))
 
-#ifdef BTM_TRANSMITTER
+#if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
 #define DELAY_BEFORE_SLEEP_SEC (max((int)pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep-TIMER_CLI_WAIT_INFO,0))
 #else
 #define DELAY_BEFORE_SLEEP_SEC 0
@@ -384,7 +384,7 @@ void ClientGetNodeInfoProc()
 					if(RespServerNode == 0) {ToWaitingStage(CNS_WAIT_SET_INFO,100);}
 					else {
 						dprint("*** Wait %.1f(Sec) for next time.\r\n",GetInfoCycle/100.0);
-						ToWaitingStage(CNS_WAIT_SET_INFO,GetInfoCycle);
+						ToWaitingStage(CNS_WAIT_SET_INFO,max((int16)GetInfoCycle-(int16)WAIT_SEC(TIMER_CLI_WAIT_INFO),0));
 					}
             	}
                 break;
@@ -409,12 +409,7 @@ void ClientGetNodeInfoProc()
                     GetEventCount++;
                     SetLed(LED_SERVER,ON);
                     dprint("STEP: CNS_GET_SERVER_INFO\r\n");
-#ifdef BTM_TRANSMITTER
-                    //result=0; /*不發訊息，避免影響到透傳動作*/
                     result = Cmd_ms_client_get(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, GetPropertyID)->result;
-#else
-                    result = Cmd_ms_client_get(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, GetPropertyID)->result;
-#endif
 
                     if(result){ //error
                     	if(result==0xc03)SetNodeStatus(NS_IVI_UPDATE,ON);
@@ -456,13 +451,11 @@ void ClientGetNodeInfoProc()
 #endif
             case CNS_WAIT_INFO_OK:
                 
-                if(GetNodeStatus(NS_FULL_POWER))
-#ifdef BTM_TRANSMITTER
-                	GetInfoCycle=WAIT_SEC(10);
-#else
+                if(GetNodeStatus(NS_FULL_POWER)){ /*所有設備都使用市電，以較密集的頻率讀取Sensor資訊*/
+                	/*if (ClientSensorClassCount())	GetInfoCycle=WAIT_SEC(10); //降低GET_ALL_SENSOR指令的頻率，讓透傳指令傳得更順
+                	else							GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_FULL_POWER);*/
                 	GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_FULL_POWER);
-#endif
-                else
+                }else
 #ifdef BTM_A308
                 	GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_SLEEPING+10+5);
 #else
@@ -525,8 +518,20 @@ void ClientCheckNodeStatus()
             SetNodeStatus(NS_FULL_POWER,ON);SetLed(LED_GREEN,ON);
         }
     }
-    
 }
+
+int ClientSensorClassCount(int sensorClass){
+	PClientInfo pNodeInfo=ClientInfo;
+	int count=0;
+	for(int loop=0; loop < SERVER_NODE_MAX; loop++){
+		if(pNodeInfo->ServerID != 0){
+			if(pNodeInfo->SensorInfo.Header.SensorClass==sensorClass) count++;
+		}
+		pNodeInfo++;
+	}
+	return count;
+}
+
 
 //
 //
@@ -595,7 +600,7 @@ ClientMbsResult ClientModbusResponse();
 
 uchar SendDataDelay;
 
-#ifdef BTM_TRANSMITTER
+#if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
 	uint8 trans_prepare_response_count=0;
 #endif
 //
@@ -614,8 +619,19 @@ void ClientFromHostProc()
             break;
         case CHS_CHECK_RX_EVENT: 
         	if(GetNodeStatus(NS_USART_RX_EVENT) == TRUE)
-#ifdef BTM_TRANSMITTER
+#if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
         	{
+        		btId=UsartGetBuff(USART_ID_RX)[0];
+        		pClientInfo = GetServerInfoPos(btId);
+        		if (pClientInfo && pClientInfo->SensorInfo.Header.SensorClass && pClientInfo->SensorInfo.Header.SensorClass!=SENSOR_CUSTOM_SERIAL){ /*非透傳設備，以Skynet方式處理Modbus指令*/
+
+        			dprint("Old Skynet ID:%d(%d) Protocal proccess.\r\n",btId,pClientInfo->SensorInfo.Header.SensorClass);
+        			ToNextStage(CHS_CHECK_MODBUS);
+        			break;
+        		}
+
+        		/*透傳方式處理*/
+        		dprint("Transparent Transmitter proccess. ID:%d\r\n",btId);
         		ToNextStage(CHS_SEND_TO_CLIENT);
         		trans_seq++;
         		rec_flag=0;
@@ -697,7 +713,7 @@ void ClientFromHostProc()
             else ToNextStage(CHS_MODBUS_ERROR);
 
             break;
-#ifdef BTM_TRANSMITTER
+#if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
         case CHS_SEND_TO_CLIENT:
 CLIENT_SEND_DATA_TO_SERVER:
 
@@ -788,7 +804,7 @@ void ClientSeriesEvent(msg_ms_client_series_status_evt *pEvent){
 		A308ClientSeriesEvent(pEvent);
 		break;
 #endif
-#ifdef BTM_TRANSMITTER
+#if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
 	case CUSTOM_SERIAL_DATA:
 		property_len=pEvent->sensor_data.len;
 		property_data=pEvent->sensor_data.data;

@@ -127,6 +127,7 @@ typedef struct _BtAppData_
     uint8	BaudrateIndex;
     uint8 	Rs485ServerDelayBeforeSleep;
     uint16	Rs485ClientBuffTimeoutMs;
+    uint16	ProtocolGen;
 
 }_BtAppData,*PBtAppData;
 

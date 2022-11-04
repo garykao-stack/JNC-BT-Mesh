@@ -83,8 +83,10 @@
 #define JNC_BT_MESH             1		//for JNC BT Mesh (預設版本)
 //#define BT_MESH_G6              1		//for BT Mesh Control G6
 //#define ULTRA_SOUND_SKYNET      1		//xxxx
-//#define BTM_TRANSMITTER		1		//BTM / RS485 transmitter
+//#define BTM_TRANSMITTER		1		//BTM / RS485 transmitter (已合併到JNC_BT_MESH,不需要特別定義)
 //#define BTM_A308				1		//A308 Customized. Read All data from modbus, transmite data with several BTM responses.
+
+
 
 /*------------------------ Basic Option ------------------------*/
 /*NODE_DISCONNECT_DETECT_COUNT : Server斷線判斷次數 ，預設為0
@@ -112,7 +114,15 @@
 #define SPACMARK
 #endif
 
-#ifdef BTM_A308
+#if defined(JNC_BT_MESH)
+ #define FW_VER              128
+  #define HW_VER              110
+  #define DEVICE_NAME         "JNC-BT-Mesh"SPACMARK
+  #define MANUFACTORY_NAME    "JNC"
+  #define NODE_DATA_ID        0xA5A5
+  #define MODEL_NAME          "BTM001"
+
+#elif defined(BTM_A308)
   #define FW_VER              103
   #define HW_VER              100
   #define DEVICE_NAME         "A308 BT Transmitter"SPACMARK
@@ -135,13 +145,7 @@
   #define MANUFACTORY_NAME    "JNC"
   #define NODE_DATA_ID        0xA5A5
   #define MODEL_NAME          "G6S-BT"
-#elif defined(JNC_BT_MESH)
-  #define FW_VER              128
-  #define HW_VER              110
-  #define DEVICE_NAME         "JNC-BT-Mesh"SPACMARK
-  #define MANUFACTORY_NAME    "JNC"
-  #define NODE_DATA_ID        0xA5A5
-  #define MODEL_NAME          "BTM001"
+
 #elif defined(ULTRA_SOUND_SKYNET)
   #define FW_VER              102
   #define HW_VER              110
@@ -151,7 +155,7 @@
   #define MODEL_NAME          "BTM-UD"
 #endif
 
-#define BTM_PROTOCOL_GEN	2
+#define BTM_PROTOCOL_GEN	3
 
 
 #ifndef _GLOBAL_H_

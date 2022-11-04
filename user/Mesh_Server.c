@@ -202,9 +202,9 @@ void ServerNodeTask()
 #ifdef BTM_A308
     A308_ModbusAction();
 #endif
-#ifdef BTM_TRANSMITTER
-    ServerSerialTransProc();
-#endif
+//#ifdef BTM_TRANSMITTER
+    if (pSensorHeader->SensorClass==SENSOR_CUSTOM_SERIAL) ServerSerialTransProc();
+//#endif
     ServerGetInfoProc();
     NodeIviUpdateProc();
 }
@@ -572,7 +572,9 @@ void ServerGetInfoProc()
             		ToWaitingStage(SNS_GET_INFO,0);
             	}
 #else
+
             	ToWaitingStage(SNS_GET_INFO,GetDeviceInfoDelay);
+            	dprint("*** wait for %d(ms)\r\n",GetDeviceInfoDelay*10);
 #endif
                 break;
 
@@ -637,10 +639,11 @@ void ServerGetInfoProc()
                     	CountErr = 0;
 #ifdef BTM_A308
                     	cd_sleep_ms=30*15*1000;
-#elif defined(BTM_TRANSMITTER)
-                    	cd_sleep_ms=pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep*1000L;
 #else
-                    	cd_sleep_ms=4000;
+                    	if(pSensorHeader->SensorClass==SENSOR_CUSTOM_SERIAL)
+                    		cd_sleep_ms=pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep*1000L;
+                    	else
+                    		cd_sleep_ms=4000; /*Relay模式下，等待指定時間後再進入休眠 ，避免發送出資訊後沒辦法中繼其他設備的通訊*/
 #endif
                         //TraceDec1("TIMER_WAIT_SEND_INFO",TIMER_WAIT_SEND_INFO);
                       }
@@ -682,12 +685,11 @@ void ServerGetInfoProc()
                      //else if(pMeshNodeData->SensorClass==SENSOR_A308M)	ToWaitingStage(SNS_WAIT_A308_CMD,WAIT_SEC(30*15));
                      //else ToWaitingStage(SNS_WAIT_A308_CMD,WAIT_SEC(30*15));
                      else ToWaitingStage(SNS_WAIT_SEND_INFO_ACK,WAIT_SEC(2));
-#elif defined(BTM_TRANSMITTER)
-                     else ToWaitingStage(SNS_PRE_SLEEPING,WAIT_MS(cd_sleep_ms));
-
 #else
                      else{
-                    	 if(pMeshNodeData->RelayEnabled){ /*Relay啟動時，發送完設備資訊後不直接進入休眠，讓後端的Server有機會把資料傳完*/
+                    	 /*	1. Relay啟動時，發送完設備資訊後不直接進入休眠，讓後端的Server有機會把資料傳完
+                    	  	2. 啟用透傳模式時，發送完設備資訊後亦不直接進入休眠，空出指定時間處理透傳指令            	  */
+                    	 if(pMeshNodeData->RelayEnabled || pSensorHeader->SensorClass==SENSOR_CUSTOM_SERIAL){
                     		 ToWaitingStage(SNS_PRE_SLEEPING,WAIT_MS(cd_sleep_ms));
                     	 }else
                     		 ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
@@ -994,10 +996,15 @@ bool GetSkynetCo2Info()
     GetSkynetInfo();
     SetNodeInfoSize(_SkynetCo2);
     SetNodeClass(SENSOR_SKYNET_CO2);
+    //GetDeviceInfoDelay=6000;
     PUCHAR p_buff = UsartGetBuff(USART_ID_RX);
     if(ServerSendModbusCmd((PUCHAR)CmdGetCo2,7) == TRUE){
         p_sensor->Co2 = WordSwap(*((PUINT16)&p_buff[3])); 
-      }else{ret_code = FALSE;}
+        dprint("====> CO2: %d\r\n",p_sensor->Co2);
+      }else{
+    	  ret_code = FALSE;
+    	dprint("====> CO2: Read Faild.\r\n");
+      }
     ret_code = TRUE;   
     return ret_code;
 }
@@ -1679,6 +1686,7 @@ uint16 Server_ResponseSetting(uint8 *in,uint8 len){
    set->BaudrateIndex=pMeshNodeData->BaudRate;
    set->Rs485ClientBuffTimeoutMs=pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs;
    set->Rs485ServerDelayBeforeSleep=pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep;
+   set->ProtocolGen=BTM_PROTOCOL_GEN;
 
 
    /*停止回應廣播指令 in[0] 秒*/
@@ -1816,8 +1824,8 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
 				memcpy(TransData,ext->data+1,TransArrayLength);
 
 				SetNodeStatus(NS_TRANS_SERIAL_DATA,ON);
-				printf("Set Node Sataus: NS_TRANS_SERIAL_DATA\r\n");
-				//dprint("Set Node Sataus: NS_TRANS_SERIAL_DATA\r\n");
+				//printf("Set Node Sataus: NS_TRANS_SERIAL_DATA\r\n");
+				dprint("Set Node Sataus: NS_TRANS_SERIAL_DATA\r\n");
 				return;
 			}else{
 				dprint("request uart data len is over(%d/%d)\r\n",ext->len,USART_TX_BUFF_SIZE);
@@ -1933,6 +1941,7 @@ uint16  SensorClassChange(uint16 class,uint8 status)
         case SENSOR_AGB_POWER: return 4;
         case SENSOR_VELOCITY: return 5;
         case SENSOR_JYGD15: return 6;
+        case SENSOR_CUSTOM_SERIAL: return 7;
         default: return 1;
         }
         //TraceDec1("To Utility",ret_code);
@@ -1944,6 +1953,7 @@ uint16  SensorClassChange(uint16 class,uint8 status)
         case 4: return SENSOR_AGB_POWER;
         case 5: return SENSOR_VELOCITY;
         case 6: return SENSOR_JYGD15;
+        case 7: return SENSOR_CUSTOM_SERIAL;
         default :return 1;
         }
 		/*if(class == 2) ret_code = SENSOR_PZEM;
@@ -2038,6 +2048,7 @@ void EvtSetGettingRequestProc(PCmdPacket pCmdEvent)
                    BtSetupData.BaudrateIndex=pMeshNodeData->BaudRate;
                    BtSetupData.Rs485ClientBuffTimeoutMs=pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs;
                    BtSetupData.Rs485ServerDelayBeforeSleep=pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep;
+                   BtSetupData.ProtocolGen=BTM_PROTOCOL_GEN;
                    break;
            };
     result=Cmd_ms_setup_server_send_setting_status(SENSOR_ELEMENT,pEvent->client_address, pEvent->appkey_index, NO_FLAGS,

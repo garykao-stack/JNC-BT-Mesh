@@ -71,9 +71,9 @@ void gecko_bgapi_classes_init(void)
   
 }
 
-const char* SensorClassStr[7]=
+const char* SensorClassStr[]=
 {
-    "NO Sensor","Auto Scan","PZEM","Visual Sensor","DC600","FTM94","BTM-G6"
+    "NO Sensor","Auto Scan","PZEM","Visual Sensor","DC600","FTM94","BTM-G6","BTM485"
 };
 extern void DebugShowSetting();
 extern uint16 IndexToBaudrate(uint8);
@@ -124,7 +124,7 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
     		"Working Timer = %d sec\r\n"
     		"Temp-Gain = %0.2f, Temp-Offset = %0.2f\r\n"
     		"RH-Gain   = %0.2f, RH-Offset   = %0.2f\r\n"
-#ifdef BTM_TRANSMITTER
+#if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
     		"RS485 Client Buff Trigger Timeout = %d ms\r\n"
     		"RS485 Server Sleep After Response = %d sec\r\n"
 #endif
@@ -139,7 +139,7 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
 			pAdjValue->TempOffset,
 			pAdjValue->HumGain,
 			pAdjValue->HumOffset
-#ifdef BTM_TRANSMITTER
+#if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
 			,pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs,
 			pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep
 #endif

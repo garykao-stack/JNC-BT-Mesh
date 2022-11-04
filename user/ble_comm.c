@@ -647,7 +647,7 @@ void SetForceFullPowerTime(uchar status)
 
 int16 PowerTest;
 extern uint16 ActMotoSpeed;
-#ifdef BTM_TRANSMITTER
+#if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH) /*偵錯訊息函數定義*/
 extern void MbsTransShowBuffInfo();
 #endif
 
@@ -678,7 +678,7 @@ uint32 EvtSysExternalSignalProc(PCmdPacket pEvent)
         SetForceFullPowerTime(ON);
     }else if(ext_signal == PB1_PRESS_ON){//Trace("PB1_PRESS_ON");
     	dprint("--- PB1 ON\r\n");
-#ifdef BTM_TRANSMITTER
+#if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH) /*顯示透傳偵錯訊息*/
     	//for test
     	//TestIvUpdate();
     	//SetNodeStatus(NS_IVI_UPDATE,ON);

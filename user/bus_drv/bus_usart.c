@@ -52,14 +52,16 @@ void UsartInit(void)
     GPIO_PinModeSet(USART_PORT, USART_PIN_TX, gpioModePushPull, 1); //TX
     GPIO_PinModeSet(USART_PORT, USART_PIN_RX, gpioModeInputPull, 1);    //RX
 
-#ifdef BTM_TRANSMITTER
-    usart_init.baudrate = UsartBaudrate[pMeshNodeData->BaudRate];
-#else
-    if(NodeRole == NR_CLIENT)
+//#ifdef BTM_TRANSMITTER /*Baudrate依使用者設定來決定是否採用自訂Baudrate(不需要由定義決定)*/
+    //usart_init.baudrate = UsartBaudrate[pMeshNodeData->BaudRate];
+//#else
+
+
+    if(NodeRole == NR_CLIENT || pMeshNodeData->SensorClass==SENSOR_CUSTOM_SERIAL)
         usart_init.baudrate = UsartBaudrate[pMeshNodeData->BaudRate];   //setup baudrate
     else
         usart_init.baudrate = UsartBaudrate[USART_BAUDRATE_DEFAULT];   //setup baudrate
-#endif
+//#endif
     USART_InitAsync(USART, &usart_init);   // Initialize USART asynchronous mode and route pins
     
     USART->ROUTELOC0 = USART_LOCATION;
@@ -76,7 +78,7 @@ void UsartInit(void)
 void UsartBaudrateChange(){
 /*
 	USART_InitAsync_TypeDef usart_init = USART_INITASYNC_DEFAULT;
-#ifdef BTM_TRANSMITTER
+#ifdef BTM_TRANSMITTER //當Baudrate變更時立即採用(目前沒有作用)
     usart_init.baudrate = UsartBaudrate[pMeshNodeData->BaudRate];
 #else
     if(NodeRole == NR_CLIENT)

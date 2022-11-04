@@ -64,8 +64,8 @@ uchar CheckRs485Device(int16 connectTryCount)
 
 #ifdef BT_MESH_G6
        pMeshNodeData->SensorClass = SENSOR_BTM_G6;
-#elif defined(BTM_TRANSMITTER)
-       pMeshNodeData->SensorClass = SENSOR_CUSTOM_SERIAL;
+/*#elif defined(BTM_TRANSMITTER) //預計改為可設定，非由定義決定
+       pMeshNodeData->SensorClass = SENSOR_CUSTOM_SERIAL;*/
 #endif
 
 #if defined(BTM_A308) && A308_SIMULATION
@@ -106,13 +106,13 @@ uchar CheckRs485Device(int16 connectTryCount)
     	 SetNodeStatus(NS_SERVER_RS485_ENABLE,ON);
     	 rs485_dev = SENSOR_JYGD15; goto Check485_End;
     }
-#ifdef BTM_TRANSMITTER
+//#ifdef BTM_TRANSMITTER /*偵測設定結果，預計拿掉定義判斷即可*/
     else if(pMeshNodeData->SensorClass == SENSOR_CUSTOM_SERIAL){
     	pFunSensor = GetCustomSerial;GetDeviceInfoDelay = 5;
         SetNodeStatus(NS_SERVER_RS485_ENABLE,ON);
         rs485_dev = SENSOR_CUSTOM_SERIAL; goto Check485_End;
     }
-#elif defined(BTM_A308) && A308_SIMULATION
+#if defined(BTM_A308) && A308_SIMULATION
     else if(pMeshNodeData->SensorClass == SENSOR_A308M){
     	pFunSensor = GetA308mInfo;GetDeviceInfoDelay = 80;
 		SetNodeStatus(NS_SERVER_RS485_ENABLE,OFF);
