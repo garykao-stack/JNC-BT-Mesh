@@ -30,10 +30,10 @@ uchar   NodeRole;       // 0: server, 1: client, 2:Friend, 3: LPN
 _NodeEventInfo  NodeEventInfo;
 PNodeEventInfo  pNodeEventInfo;
 //uint16  GetInfoCycle=WAIT_SEC(TIMER_GET_INFO_SLEEPING);
-uint16  GetInfoCycle;
+uint32  GetInfoCycle;
 uchar   UsartRxCount;   // Receive data from Rx bytes
 PFunSensor pFunSensor=0;
-
+uint32 keepAliveBeforeSleepMs=0;
 
 
 NodeStageInfo NodeStageInfoTbl[NODE_STAGE_INFO_NUM]=
@@ -151,7 +151,7 @@ void SetSleepingTimer(uchar status)
     
     if(status == ON)
         {// sleeping on
-        sleeping_timer = (TIMER_SERVER_SLEEPING*1000 - TIMER_SERVER_SENS_INFO)-(uint32)GetDeviceInfoDelay;;
+        sleeping_timer = (TIMER_SERVER_SLEEPING*1000-keepAliveBeforeSleepMs - TIMER_SERVER_SENS_INFO)-(uint32)GetDeviceInfoDelay;
         if (sleeping_timer<0)sleeping_timer=1000; /*當休眠時間<0,至少休眠一秒，如GetDeviceInfoDelay未變更，應該不會發生此狀況*/
         dprint("sleep for sleeping_timer %d(ms)\r\n",sleeping_timer);
         SetEventTaskTimer(TD_NODE_WAKE_UP,      sleeping_timer, TIMER_EVENT_ONCE);

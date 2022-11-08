@@ -53,7 +53,6 @@ void BleCommInit()
 #endif    
     
      
-    
     if(buttton_status == KEY_NODE_SETUP) {Trace("KEY_NODE_SETUP 1");
         NodeRole = NR_SETUP;
     } 
@@ -662,6 +661,7 @@ uint32 EvtSysExternalSignalProc(PCmdPacket pEvent)
 {
     uint32 ret_code=TRUE;
     uint32 ext_signal;
+    uint16 result;
     ext_signal = pEvent->data.evt_system_external_signal.extsignals;
 #ifndef  BT_MESH_G6
 
@@ -678,14 +678,18 @@ uint32 EvtSysExternalSignalProc(PCmdPacket pEvent)
         SetForceFullPowerTime(ON);
     }else if(ext_signal == PB1_PRESS_ON){//Trace("PB1_PRESS_ON");
     	dprint("--- PB1 ON\r\n");
+    	//uint16 model_id,uint16 elem_index,uint16 server_address,uint16 appkey_index,uint8 type
+    	//Cmd_mg_client_get();
+    	//result=Cmd_ms_client_get(SENSOR_ELEMENT, PUBLISH_ADDRESS, IGNORED, 0xA5, NODE_GET_ALL_SENSOR)->result;
+		//dprint("---- BTN: GET_ALL_SENSOR, Result:0x%x\r\n",result);
 #if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH) /*顯示透傳偵錯訊息*/
     	//for test
     	//TestIvUpdate();
     	//SetNodeStatus(NS_IVI_UPDATE,ON);
     	/*result=Cmd_mt_set_element_seqnum(PRIMARY_ELEM, 0xffffff)->result; //set sequence num = 0
     	dprint("Cmd_mt_set_element_seqnum:result:0x%X\r\n",result);*/
-    	ShowSqueNum();
-    	MbsTransShowBuffInfo();
+    	//ShowSqueNum();
+    	//MbsTransShowBuffInfo();
 #endif
         }
 #else 

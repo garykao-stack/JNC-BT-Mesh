@@ -338,7 +338,8 @@ void ClientGetInfoActionNow()
 #define max(a,b) ((a) > (b) ? (a) : (b))
 
 #if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
-#define DELAY_BEFORE_SLEEP_SEC (max((int)pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep-TIMER_CLI_WAIT_INFO,0))
+#define DELAY_BEFORE_SLEEP_SEC (pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep)
+//(max((int)pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep-TIMER_CLI_WAIT_INFO,0))
 #else
 #define DELAY_BEFORE_SLEEP_SEC 0
 #endif
@@ -375,11 +376,12 @@ void ClientGetNodeInfoProc()
                    ToNextStage(CNS_WAIT_SET_INFO); 
                   }
                 break;
-            case CNS_PRE_SEVER_INFO: 
+            case CNS_PRE_SEVER_INFO: /*所有Server進入休眠，等待Server喚醒*/
                 //SetLed(LED_SERVER,OFF);
                 //SetNodeStatus(NS_GET_INFO_ACT,OFF);
             	if(CheckWaitTimeOut()){
-            		if(!GetNodeStatus(NS_FULL_POWER) || DELAY_BEFORE_SLEEP_SEC>0)	ServerIsAwake=false;
+            		//if(!GetNodeStatus(NS_FULL_POWER) || DELAY_BEFORE_SLEEP_SEC>0)	ServerIsAwake=false; //透傳工作時間展延已含在Server的休眠期間內這裡不需要判斷是否有設定延時間
+            		if(!GetNodeStatus(NS_FULL_POWER))	ServerIsAwake=false;
             		//dprint("CNS_PRE_SEVER_INFO: set ServerIsAwake=%d\r\n",ServerIsAwake);
 					if(RespServerNode == 0) {ToWaitingStage(CNS_WAIT_SET_INFO,100);}
 					else {
@@ -452,15 +454,16 @@ void ClientGetNodeInfoProc()
             case CNS_WAIT_INFO_OK:
                 
                 if(GetNodeStatus(NS_FULL_POWER)){ /*所有設備都使用市電，以較密集的頻率讀取Sensor資訊*/
-                	/*if (ClientSensorClassCount())	GetInfoCycle=WAIT_SEC(10); //降低GET_ALL_SENSOR指令的頻率，讓透傳指令傳得更順
-                	else							GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_FULL_POWER);*/
-                	GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_FULL_POWER);
-                }else
+                	if (ClientSensorClassCount(SENSOR_CUSTOM_SERIAL))	GetInfoCycle=WAIT_SEC(TIMER_GET_INFO_SLEEPING);//WAIT_SEC(10); //降低GET_ALL_SENSOR指令的頻率，讓透傳指令傳得更順
+                	else												GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_FULL_POWER);
+                	//GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_FULL_POWER);
+                }else{
 #ifdef BTM_A308
                 	GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_SLEEPING+10+5);
 #else
-                	GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_SLEEPING);
+                	GetInfoCycle = WAIT_SEC(max((int32)TIMER_GET_INFO_SLEEPING-(int32)pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep,0));
 #endif
+                }
                 ToNextStage(CNS_GET_INFO_END); 
                 break;
 
@@ -618,6 +621,7 @@ void ClientFromHostProc()
             ToNextStage(CHS_CHECK_RX_EVENT);
             break;
         case CHS_CHECK_RX_EVENT: 
+        	if(UsartGetRxCounter()) trans_prepare_response_count=0; /*接收到任何Rx訊息就取消回傳暫存值的動作，避免接下來的指令發生回應錯位的問題*/
         	if(GetNodeStatus(NS_USART_RX_EVENT) == TRUE)
 #if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
         	{

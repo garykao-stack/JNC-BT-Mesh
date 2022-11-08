@@ -209,6 +209,9 @@ void ServerNodeTask()
     NodeIviUpdateProc();
 }
 
+extern uint32 keepAliveBeforeSleepMs;
+
+
 uint32_t cd_sleep_ms=0;
 uint32 IgnoreBroadcastCmdMs=0;
 uint8 trans_retry_ms=0;
@@ -642,8 +645,12 @@ void ServerGetInfoProc()
 #else
                     	if(pSensorHeader->SensorClass==SENSOR_CUSTOM_SERIAL)
                     		cd_sleep_ms=pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep*1000L;
-                    	else
+                    	else if(pMeshNodeData->RelayEnabled)
                     		cd_sleep_ms=4000; /*Relay模式下，等待指定時間後再進入休眠 ，避免發送出資訊後沒辦法中繼其他設備的通訊*/
+                    	else
+                    		cd_sleep_ms=0;
+                    	keepAliveBeforeSleepMs=cd_sleep_ms;
+
 #endif
                         //TraceDec1("TIMER_WAIT_SEND_INFO",TIMER_WAIT_SEND_INFO);
                       }
@@ -693,6 +700,7 @@ void ServerGetInfoProc()
                     		 ToWaitingStage(SNS_PRE_SLEEPING,WAIT_MS(cd_sleep_ms));
                     	 }else
                     		 ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
+                    	 dprint("keep alive before sleep:%d(ms)\r\n",pStageInfo->Timer*10);
                      }
 #endif
 

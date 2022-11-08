@@ -32,7 +32,7 @@
 typedef struct _NodeStageInfo
 {
     uchar   Stage;
-    uint16  Timer;
+    uint32  Timer;
 }NodeStageInfo,*PNodeStageInfo;
 
 typedef struct _NodeHeader_
@@ -536,7 +536,7 @@ extern uchar    NodeRole;
 extern PNodeStageInfo pStageInfo;
 extern PNodeEventInfo  pNodeEventInfo;
 extern uchar CountErr;
-extern uint16 GetInfoCycle;
+extern uint32 GetInfoCycle;
 extern uchar   UsartRxCount;   // Receive data from Rx bytes
 #include "Mesh_Client.h"
 #include "Mesh_Server.h"
