@@ -115,7 +115,7 @@
 #endif
 
 #if defined(JNC_BT_MESH)
- #define FW_VER              129
+ #define FW_VER              130
   #define HW_VER              110
   #define DEVICE_NAME         "JNC-BT-Mesh"SPACMARK
   #define MANUFACTORY_NAME    "JNC"
@@ -139,7 +139,7 @@
   #define MODEL_NAME          "BTM485"
 
 #elif defined(BT_MESH_G6)
-  #define FW_VER              102
+  #define FW_VER              103
   #define HW_VER              100
   #define DEVICE_NAME         "G6S-BT"SPACMARK
   #define MANUFACTORY_NAME    "JNC"

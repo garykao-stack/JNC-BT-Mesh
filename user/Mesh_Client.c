@@ -603,8 +603,45 @@ ClientMbsResult ClientModbusResponse();
 
 uchar SendDataDelay;
 
-#if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
+#if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH) || defined(BT_MESH_G6)
 	uint8 trans_prepare_response_count=0;
+
+void ResponseClientInfo(){
+	uint8 *rx=UsartGetBuff(USART_ID_RX);
+	uint8 *tx=UsartGetBuff(USART_ID_TX);
+	uint16 st=(((uint16)rx[2])<<8) +rx[3];
+	uint16 count=(((uint16)rx[4])<<8) +rx[5];
+
+	tx[0]=rx[0];
+	if (rx[1]!=4 || count>((USART_TX_BUFF_SIZE-5)/2)){ /*不支援的指令 or 超出回應長度*/
+		tx[1]=0x10|rx[1];
+		tx[2]=0;
+		tx[3]=0;
+		MbsSend(tx,4);
+	}
+
+	tx[0]=rx[0];
+	tx[1]=rx[1];
+	tx[2]=count*2;
+	for(int i=0;i<count;i++){
+		/*Client自身電量*/
+		if (st+i==pMeshNodeData->MeshNodeID){
+			tx[3+i*2]=0;
+			tx[4+i*2]=GetBatteryPower();
+			continue;
+		}
+		/*Server電量*/
+		pClientInfo = GetServerInfoPos(st+i);
+		if(pClientInfo && pClientInfo->SensorInfo.Header.SensorClass){
+			tx[3+i*2]=pClientInfo->SensorInfo.Header.BatteryPower>>8;
+			tx[4+i*2]=pClientInfo->SensorInfo.Header.BatteryPower&0xff;
+		}else{
+			tx[3+i*2]=0;
+			tx[4+i*2]=0;
+		}
+	}
+	MbsSend(tx,3+count*2);
+}
 #endif
 //
 // Handle Client, Host message
@@ -626,6 +663,13 @@ void ClientFromHostProc()
 #if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
         	{
         		btId=UsartGetBuff(USART_ID_RX)[0];
+        		if (btId==pMeshNodeData->MeshNodeID){
+        			ResponseClientInfo();
+        			UsartResetRxTx(USART_ID_RX);
+					SetNodeStatus(NS_USART_RX_EVENT,OFF);
+					ToWaitingStage(CHS_CHECK_RX_EVENT,WAIT_MS(0));
+        			break;
+        		}
         		pClientInfo = GetServerInfoPos(btId);
         		if (pClientInfo && pClientInfo->SensorInfo.Header.SensorClass && pClientInfo->SensorInfo.Header.SensorClass!=SENSOR_CUSTOM_SERIAL){ /*非透傳設備，以Skynet方式處理Modbus指令*/
 
