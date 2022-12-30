@@ -128,7 +128,7 @@ typedef struct _BtAppData_
     uint8 	Rs485ServerDelayBeforeSleep;
     uint16	Rs485ClientBuffTimeoutMs;
     uint16	ProtocolGen;
-
+    uint16  RebootForRs485IdelSecnods;
 }_BtAppData,*PBtAppData;
 
 #define CLASS_TO_UTILITY    0

@@ -34,6 +34,7 @@ typedef struct
   uint16    FilterTime2,FilterAllTime2;  // Hour
   uchar     G6Status,G6ActPercent;
   uchar     SegPPercent[6]; // for segment power percent
+  uint16 	RebootForRs485IdelSecnods;
 
 } _Mesh_Node_Data,*_PMesh_Node_Data;
 

@@ -41,6 +41,7 @@ _ClientInfo ClientInfo[SERVER_NODE_MAX+1];
 PClientInfo pClientInfo=ClientInfo;
 _PModbusCmdF4  pModbusCmd;
 _ModbusToHost ModbusToHostCmd;
+uint16 RebootCountdown;
 
 #if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
 extern void MbsTransmitterInit();
@@ -59,6 +60,8 @@ void ClientNodeInit()
     ToNextStage(NODE_STAGE_INIT);
     UsartClientProc();
     ClientFromHostProc();
+    if (pMeshNodeData->RebootForRs485IdelSecnods==0xffff) pMeshNodeData->RebootForRs485IdelSecnods=0;
+    if(pMeshNodeData->RebootForRs485IdelSecnods) RebootCountdown=pMeshNodeData->RebootForRs485IdelSecnods;
 #if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
     MbsTransmitterInit();
 #endif
@@ -79,6 +82,7 @@ void ClientNodeTask()
     else if(GetNodeStatus(NS_USART_RX_EVENT) == TRUE) 
         {UsartClientProc();ClientFromHostProc();UsartClientProc();ClientFromHostProc(); }*/
 
+
     ClientGetNodeInfoProc();
     UsartClientProc();
 
@@ -87,6 +91,8 @@ void ClientNodeTask()
     ClientSetNodeInfoProc();
 //#endif
     NodeIviUpdateProc();
+    //printf("reboot countdown %d/%d",RebootCountdown,pMeshNodeData->RebootForRs485IdelSecnods);
+    if(pMeshNodeData->RebootForRs485IdelSecnods && !RebootCountdown) Cmd_sys_reset(0);
 }
 //
 //
@@ -581,15 +587,16 @@ uint8 trans_seq=0;
 uint8 rec_flag=0;
 #define TIMER_REDUCE_BY_10MS(t) do{if(t>0)t=t-((t>=10)?10:t);}while(0)
 #define TIMER_IS_TIMEROUT(t) (t==0)
-/*uint16_t cntTick=0;
-uint32_t cntSecond=0;*/
+static uint16_t cntTick=0;
+//static uint32_t cntSecond=0;
 void ClientTimer_10ms(){
 	TIMER_REDUCE_BY_10MS(trans_wait_ms);
-	/*if(++cntTick>100){
+	if(++cntTick>100){
 		cntTick=0;
-		cntSecond++;
-		dprint("Time Second:%d\r\n",cntSecond);
-	}*/
+		//cntSecond++;
+		//dprint("Time Second:%d\r\n",cntSecond);
+		if(pMeshNodeData->RebootForRs485IdelSecnods && RebootCountdown) RebootCountdown--;
+	}
 
 }
 
@@ -614,10 +621,11 @@ void ResponseClientInfo(){
 
 	tx[0]=rx[0];
 	if (rx[1]!=4 || count>((USART_TX_BUFF_SIZE-5)/2)){ /*不支援的指令 or 超出回應長度*/
-		tx[1]=0x10|rx[1];
+		tx[1]=0x80|rx[1];
 		tx[2]=0;
 		tx[3]=0;
 		MbsSend(tx,4);
+		return;
 	}
 
 	tx[0]=rx[0];
@@ -662,15 +670,22 @@ void ClientFromHostProc()
         	if(GetNodeStatus(NS_USART_RX_EVENT) == TRUE)
 #if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
         	{
+        		if(pMeshNodeData->RebootForRs485IdelSecnods ) RebootCountdown=pMeshNodeData->RebootForRs485IdelSecnods;/*收到RX訊息，重置重啟計數*/
         		btId=UsartGetBuff(USART_ID_RX)[0];
-        		if (btId==pMeshNodeData->MeshNodeID){
+        		if (btId==pMeshNodeData->MeshNodeID){/*Client自身ID，回傳電池電量*/
         			ResponseClientInfo();
+#if DPRINT
+					dprint("receive RX: ");
+					for (int i=0;i<UsartGetRxCounter();i++)	dprint(" %02x",UsartGetBuff(USART_ID_RX)[i]);
+					dprint("\r\n");
+#endif
         			UsartResetRxTx(USART_ID_RX);
 					SetNodeStatus(NS_USART_RX_EVENT,OFF);
 					ToWaitingStage(CHS_CHECK_RX_EVENT,WAIT_MS(0));
+
         			break;
         		}
-        		pClientInfo = GetServerInfoPos(btId);
+        		pClientInfo = GetServerInfoPos(btId); /*是否有Server在線上，有的話以Skynet方式回傳內容*/
         		if (pClientInfo && pClientInfo->SensorInfo.Header.SensorClass && pClientInfo->SensorInfo.Header.SensorClass!=SENSOR_CUSTOM_SERIAL){ /*非透傳設備，以Skynet方式處理Modbus指令*/
 
         			dprint("Old Skynet ID:%d(%d) Protocal proccess.\r\n",btId,pClientInfo->SensorInfo.Header.SensorClass);
@@ -816,11 +831,11 @@ CLIENT_SEND_DATA_TO_SERVER:
             ToNextStage(CHS_SEND_DATA_END);   //default
             break;
         case CHS_SEND_DATA_END:
+        	UsartResetRxTx(USART_ID_RX);
             SetNodeStatus(NS_USART_RX_EVENT,OFF);
             ToNextStage(CHS_CHECK_RX_EVENT);   //default
             break;
         case CHS_MODBUS_ERROR: 
-            UsartResetRxTx(USART_ID_RX);
             ToNextStage(CHS_SEND_DATA_END);   //default
             break;
             

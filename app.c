@@ -122,6 +122,7 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
     		"baudrate:%d\r\n"
     		"Sensor Class = %s\r\n"
     		"Working Timer = %d sec\r\n"
+    		"RebootForRs485IdelSecnods= %d sec\r\n"
     		"Temp-Gain = %0.2f, Temp-Offset = %0.2f\r\n"
     		"RH-Gain   = %0.2f, RH-Offset   = %0.2f\r\n"
 #if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
@@ -135,6 +136,7 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
 			IndexToBaudrate(pMeshNodeData->BaudRate),
 			SensorClassStr[sensor_index],
 			TIMER_GET_INFO_SLEEPING,
+			pMeshNodeData->RebootForRs485IdelSecnods,
 			pAdjValue->TempGain,
 			pAdjValue->TempOffset,
 			pAdjValue->HumGain,

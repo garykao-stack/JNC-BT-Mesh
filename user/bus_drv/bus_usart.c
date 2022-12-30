@@ -168,13 +168,14 @@ void UsartClientProc()
 			dprint("\r\n");*/
 			if(CheckUsartRxCmd()){
 				UsartSetStage(USART_STAGE_RX_END);
+				SetNodeStatus(NS_USART_RX_EVENT,ON);
 			}else{
 				dprint("RX Check Error\r\n");// cmd error
 				UsartSetStatus(USART_RX_CRC_ERROR,ON);
-				//UsartSetStage(USART_STAGE_RX_CLEAN);
 				UsartSetStage(USART_STAGE_RX_END);
+				UsartSetStage(USART_STAGE_RX_CLEAN);
 			}
-			SetNodeStatus(NS_USART_RX_EVENT,ON);
+
 		}
 	}
 
@@ -391,6 +392,7 @@ void UsartSetStage(uchar stage)
                 break;
             case USART_STAGE_TX_END: //Trace("USART_STAGE_TX_END");
                 TCounterTx = TIMER_ENDING;
+                CounterTx=0;
                 pTxBuff = TxBuff;   ///initial Tx buffer;  for BUg                
                 Rs485Rx(); // switch RS485 to receive status
                 USART_IntClear(USART, USART_IFS_RXUF);

@@ -931,7 +931,7 @@ bool GetBtmMeshInfo()
 
  p_sensor->WorkingTime = pMeshNodeData->WorkingTimer; //60;
  p_sensor->BtmClass = pMeshNodeData->SensorClass; //0x01;
-
+ p_sensor->RebootForRs485IdelSecnods=pMeshNodeData->RebootForRs485IdelSecnods;
  return ret_code; 
 }
 
@@ -957,6 +957,7 @@ uint16 ResponseBtmMeshInfo(){
 
 	 p_sensor->WorkingTime = pMeshNodeData->WorkingTimer; //60;
 	 p_sensor->BtmClass = pMeshNodeData->SensorClass; //0x01;
+	 p_sensor->RebootForRs485IdelSecnods=pMeshNodeData->RebootForRs485IdelSecnods;
 
 	 return Cmd_ms_server_send_status(SENSOR_ELEMENT, pNodeEventInfo->ClientAddr,pNodeEventInfo->AppkeyIndex,
 	 	                                             NO_FLAGS, info.NodeInfoSize+3, (PUCHAR)&info)->result;
@@ -1695,6 +1696,7 @@ uint16 Server_ResponseSetting(uint8 *in,uint8 len){
    set->Rs485ClientBuffTimeoutMs=pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs;
    set->Rs485ServerDelayBeforeSleep=pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep;
    set->ProtocolGen=BTM_PROTOCOL_GEN;
+   set->RebootForRs485IdelSecnods=pMeshNodeData->RebootForRs485IdelSecnods;
 
 
    /*停止回應廣播指令 in[0] 秒*/
@@ -1739,6 +1741,7 @@ uint16 Server_ReceiveSetting(uint8 *data,uint8 len){
     NODE_DATA_UPDATE(pMeshNodeData->BaudRate,set->BaudrateIndex,req_reboot=1);
     NODE_DATA_UPDATE(pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs,set->Rs485ClientBuffTimeoutMs,);
     NODE_DATA_UPDATE(pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep,set->Rs485ServerDelayBeforeSleep,);
+    NODE_DATA_UPDATE(pMeshNodeData->RebootForRs485IdelSecnods,set->RebootForRs485IdelSecnods,);
 
     WriteNodeData();
     dprint("*** Server_ReceiveSetting\r\n");
@@ -2009,7 +2012,7 @@ void EvtSetSettingRequestProc(PCmdPacket pCmdEvent)
                 NODE_DATA_UPDATE(pMeshNodeData->BaudRate,set->BaudrateIndex,);
                 NODE_DATA_UPDATE(pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs,set->Rs485ClientBuffTimeoutMs,);
                 NODE_DATA_UPDATE(pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep,set->Rs485ServerDelayBeforeSleep,);
-
+                NODE_DATA_UPDATE(pMeshNodeData->RebootForRs485IdelSecnods,set->RebootForRs485IdelSecnods,);
                 break;
   
             default: ret_ack=ACK_ERROR; 
@@ -2057,6 +2060,7 @@ void EvtSetGettingRequestProc(PCmdPacket pCmdEvent)
                    BtSetupData.Rs485ClientBuffTimeoutMs=pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs;
                    BtSetupData.Rs485ServerDelayBeforeSleep=pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep;
                    BtSetupData.ProtocolGen=BTM_PROTOCOL_GEN;
+                   BtSetupData.RebootForRs485IdelSecnods=pMeshNodeData->RebootForRs485IdelSecnods;
                    break;
            };
     result=Cmd_ms_setup_server_send_setting_status(SENSOR_ELEMENT,pEvent->client_address, pEvent->appkey_index, NO_FLAGS,

@@ -225,7 +225,8 @@ typedef struct _BtMeshInfo_
     int16   RhGain,RhOffset;        // RH Gain & Offset
     uint16  WorkingTime;            // >5 and <3600 sec
     uint16  BtmClass;               //1 : for JNC Sensor(Auto Scan) 2 : PZEM 3 : Visual Sensor 4 : AGB Motor Control(恆達)
-    
+    uint16  RebootForRs485IdelSecnods;				// Reboot after RS485 is IDEL for (n) seconds, 0 & 0xffff means Disabled.
+
 }_BtMeshInfo,*PBtMeshInfo;
 
 
