@@ -1,0 +1,27 @@
+#ifndef CLIENT_MODBUS_H
+#define CLIENT_MODBUS_H
+int16 ClientModbusProc();
+
+#define MBS_MODELNAME0 0
+#define MBS_MODELNAME1 1
+#define MBS_MODELNAME2 2
+#define MBS_VERSION 3
+#define MBS_MESH_ID 4
+#define MBS_BAUDRATE 5
+#define MBS_SLEEPTIME 6
+#define MBS_REBOOT_IDEL_TIME 7
+#define MBS_KEEPALIVE_BEFORE_SLEEP 8
+#define MBS_BUFF_TIMEOUT 9
+#define MBS_TEMP_GAIN_L 10
+#define MBS_TEMP_GAIN_H 11
+#define MBS_HUM_GAIN_L 12
+#define MBS_HUM_GAIN_H 13
+#define MBS_TEMP_OFFSET_L 14
+#define MBS_TIME_OFFSET_H 15
+#define MBS_HUM_OFFSET_L 16
+#define MBS_HUM_OFFSET_H 17
+#define MBS_RESET_CMD_RSP_COUNT 0xff00
+#define MSS_RSP_TEST_SEC 0xff01
+#define MBS_REBOOT 0xffff
+
+#endif

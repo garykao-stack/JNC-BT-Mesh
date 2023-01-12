@@ -25,6 +25,7 @@
 #include "mesh_sensor.h"
 #include "Mesh_Node.h"
 #include "Mesh_Client.h"
+#include "ClientModbus.h"bracast
 
 #ifdef BTM_A308
 #include "A308_Server.h"
@@ -36,7 +37,8 @@ uint16  ActServerAddr = PUBLISH_ADDRESS;
 uint16  GetPropertyID = NODE_GET_ALL_SENSOR;
 
 ///////////////////////////////////////////////////////////////
-
+uint32 ServerResponseCounter[SERVER_NODE_MAX+1];
+uint32 ClientBroadcastCounter=0;
 _ClientInfo ClientInfo[SERVER_NODE_MAX+1];
 PClientInfo pClientInfo=ClientInfo;
 _PModbusCmdF4  pModbusCmd;
@@ -51,6 +53,9 @@ extern int MbsTransmitterPrepareBuff(PUCHAR buff, int max_count);
 extern void SetSourceBtId(uint8 mbsId, uint8 btId);
 extern uint8 GetSourceBtId(uint8 mbsId);
 #endif
+
+void ClearServerResponseCounter();
+
 void ClientNodeInit()
 {
 
@@ -65,9 +70,16 @@ void ClientNodeInit()
 #if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
     MbsTransmitterInit();
 #endif
+    ClearServerResponseCounter();
 
 
 }
+
+void ClearServerResponseCounter(){
+	ClientBroadcastCounter=0;
+	memset(ServerResponseCounter,0,sizeof(ServerResponseCounter));
+}
+
 
 uint16 test1;
 
@@ -251,6 +263,28 @@ uint16 GetProperityID()
     return properity;
 }
 
+uint16_t trans_wait_ms=0;
+int8_t trans_retry=0;
+uint8 trans_seq=0;
+uint8 rec_flag=0;
+#define TIMER_REDUCE_BY_10MS(t) do{if(t>0)t=t-((t>=10)?10:t);}while(0)
+#define TIMER_IS_TIMEROUT(t) (t==0)
+static uint16_t cntTick=0;
+uint32 ClientResponseTestMs=0;
+bool ClientResponseTestMode=false;
+//static uint32_t cntSecond=0;
+void ClientTimer_10ms(){
+	TIMER_REDUCE_BY_10MS(trans_wait_ms);
+	if(ClientResponseTestMode)TIMER_REDUCE_BY_10MS(ClientResponseTestMs);
+	if(++cntTick>100){
+		cntTick=0;
+		//cntSecond++;
+		//dprint("Time Second:%d\r\n",cntSecond);
+		if(pMeshNodeData->RebootForRs485IdelSecnods && RebootCountdown) RebootCountdown--;
+	}
+
+}
+
 //
 // to set device info
 //
@@ -354,6 +388,7 @@ bool ServerIsAwake=true;
 void ClientGetNodeInfoProc()
 {
     pStageInfo = GetNodeStageInfo(CLIENT_GET_NODE_INFO_PROC);
+    uint32 ext;
     //dprint("State:%d\r\n",ActiveStage());
     switch(ActiveStage())
         {
@@ -417,7 +452,13 @@ void ClientGetNodeInfoProc()
                     GetEventCount++;
                     SetLed(LED_SERVER,ON);
                     dprint("STEP: CNS_GET_SERVER_INFO\r\n");
-                    result = Cmd_ms_client_get(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, GetPropertyID)->result;
+
+                    if (ClientResponseTestMs||ClientResponseTestMode){
+                    	if (!ClientResponseTestMs) ClientResponseTestMode=false;
+                    	ext=ClientResponseTestMs;
+                    	Cmd_ms_client_get_column(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, NODE_GET_ALL_SENSOR_GEN2,2,(uint8*)&ext)->result;
+                    }else
+                    	result = Cmd_ms_client_get(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, GetPropertyID)->result;
 
                     if(result){ //error
                     	if(result==0xc03)SetNodeStatus(NS_IVI_UPDATE,ON);
@@ -428,6 +469,7 @@ void ClientGetNodeInfoProc()
                     }else{ //successed
                     	dprint("SEND_GET_ALL Succeed\r\n");
                     	//TraceOk("Get Info");
+                    	ClientBroadcastCounter++;
 						CountErr = 0; RespServerNode = 0;
 						ToWaitingStage(CNS_WAIT_INFO,WAIT_SEC(TIMER_CLI_WAIT_INFO));
                     }
@@ -459,7 +501,7 @@ void ClientGetNodeInfoProc()
 #endif
             case CNS_WAIT_INFO_OK:
                 
-                if(GetNodeStatus(NS_FULL_POWER)){ /*所有設備都使用市電，以較密集的頻率讀取Sensor資訊*/
+            	if(GetNodeStatus(NS_FULL_POWER)){ /*所有設備都使用市電，以較密集的頻率讀取Sensor資訊*/
                 	if (ClientSensorClassCount(SENSOR_CUSTOM_SERIAL))	GetInfoCycle=WAIT_SEC(TIMER_GET_INFO_SLEEPING);//WAIT_SEC(10); //降低GET_ALL_SENSOR指令的頻率，讓透傳指令傳得更順
                 	else												GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_FULL_POWER);
                 	//GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_FULL_POWER);
@@ -478,7 +520,8 @@ void ClientGetNodeInfoProc()
                 SetLed(LED_SERVER,OFF);
                 SetNodeStatus(NS_GET_INFO_ACT,OFF);
                 ServerIsAwake=true;
-                ToWaitingStage(CNS_PRE_SEVER_INFO,WAIT_SEC(DELAY_BEFORE_SLEEP_SEC));
+                if(ClientResponseTestMs)	ToWaitingStage(CNS_GET_SEVER_INFO,0);/*測試模式，直接發送下一個指令*/
+                else	ToWaitingStage(CNS_PRE_SEVER_INFO,WAIT_SEC(DELAY_BEFORE_SLEEP_SEC));
                 break;
             case CNS_GET_INFO_END:
                 ShowAllNodeInfo();
@@ -486,7 +529,8 @@ void ClientGetNodeInfoProc()
                 SetLed(LED_SERVER,OFF);
                 SetNodeStatus(NS_GET_INFO_ACT,OFF);
                 ServerIsAwake=true;
-                ToWaitingStage(CNS_PRE_SEVER_INFO,WAIT_SEC(DELAY_BEFORE_SLEEP_SEC));
+                if(ClientResponseTestMs)	ToWaitingStage(CNS_GET_SEVER_INFO,0);/*測試模式，直接發送下一個指令*/
+                else	ToWaitingStage(CNS_PRE_SEVER_INFO,WAIT_SEC(DELAY_BEFORE_SLEEP_SEC));
                 dprint("keep awake for %d(SEC)\r\n",DELAY_BEFORE_SLEEP_SEC);
                 break;
             default: TraceErr1("ClientGetNodeInfoProc",ActiveStage()); break;
@@ -507,12 +551,11 @@ void ClientCheckNodeStatus()
 		if(pNodeInfo->ServerID != 0){
 			if(pNodeInfo->Count == 0){
 				dprint("\r\n***** Node No Response *****ID:%d\r\n",pNodeInfo->ServerID);
-				memset(pNodeInfo,0,sizeof(_ClientInfo));
+				//memset(pNodeInfo,0,sizeof(_ClientInfo));
 				pNodeInfo->Status |= SERVER_NO_RESPONSE;
-			}else{
-				if(pNodeInfo->Count) pNodeInfo->Count--;
-				if((pNodeInfo->SensorInfo.Header.Status & SERVER_FULL_POWER) == 0)
-				  power_flag = OFF;
+			}else if(pNodeInfo->Count>0){
+				pNodeInfo->Count--;
+				if((pNodeInfo->SensorInfo.Header.Status & SERVER_FULL_POWER) == 0)power_flag = OFF;
 			}
 		}
         pNodeInfo++;
@@ -581,24 +624,7 @@ uint16 CheckModbusCmd()
 }
 
 
-uint16_t trans_wait_ms=0;
-int8_t trans_retry=0;
-uint8 trans_seq=0;
-uint8 rec_flag=0;
-#define TIMER_REDUCE_BY_10MS(t) do{if(t>0)t=t-((t>=10)?10:t);}while(0)
-#define TIMER_IS_TIMEROUT(t) (t==0)
-static uint16_t cntTick=0;
-//static uint32_t cntSecond=0;
-void ClientTimer_10ms(){
-	TIMER_REDUCE_BY_10MS(trans_wait_ms);
-	if(++cntTick>100){
-		cntTick=0;
-		//cntSecond++;
-		//dprint("Time Second:%d\r\n",cntSecond);
-		if(pMeshNodeData->RebootForRs485IdelSecnods && RebootCountdown) RebootCountdown--;
-	}
 
-}
 
 typedef enum{
 	CMR_DONE=0,
@@ -611,45 +637,7 @@ ClientMbsResult ClientModbusResponse();
 uchar SendDataDelay;
 
 #if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH) || defined(BT_MESH_G6)
-	uint8 trans_prepare_response_count=0;
-
-void ResponseClientInfo(){
-	uint8 *rx=UsartGetBuff(USART_ID_RX);
-	uint8 *tx=UsartGetBuff(USART_ID_TX);
-	uint16 st=(((uint16)rx[2])<<8) +rx[3];
-	uint16 count=(((uint16)rx[4])<<8) +rx[5];
-
-	tx[0]=rx[0];
-	if (rx[1]!=4 || count>((USART_TX_BUFF_SIZE-5)/2)){ /*不支援的指令 or 超出回應長度*/
-		tx[1]=0x80|rx[1];
-		tx[2]=0;
-		tx[3]=0;
-		MbsSend(tx,4);
-		return;
-	}
-
-	tx[0]=rx[0];
-	tx[1]=rx[1];
-	tx[2]=count*2;
-	for(int i=0;i<count;i++){
-		/*Client自身電量*/
-		if (st+i==pMeshNodeData->MeshNodeID){
-			tx[3+i*2]=0;
-			tx[4+i*2]=GetBatteryPower();
-			continue;
-		}
-		/*Server電量*/
-		pClientInfo = GetServerInfoPos(st+i);
-		if(pClientInfo && pClientInfo->SensorInfo.Header.SensorClass){
-			tx[3+i*2]=pClientInfo->SensorInfo.Header.BatteryPower>>8;
-			tx[4+i*2]=pClientInfo->SensorInfo.Header.BatteryPower&0xff;
-		}else{
-			tx[3+i*2]=0;
-			tx[4+i*2]=0;
-		}
-	}
-	MbsSend(tx,3+count*2);
-}
+uint8 trans_prepare_response_count=0;
 #endif
 //
 // Handle Client, Host message
@@ -673,7 +661,7 @@ void ClientFromHostProc()
         		if(pMeshNodeData->RebootForRs485IdelSecnods ) RebootCountdown=pMeshNodeData->RebootForRs485IdelSecnods;/*收到RX訊息，重置重啟計數*/
         		btId=UsartGetBuff(USART_ID_RX)[0];
         		if (btId==pMeshNodeData->MeshNodeID){/*Client自身ID，回傳電池電量*/
-        			ResponseClientInfo();
+        			ClientModbusProc();
 #if DPRINT
 					dprint("receive RX: ");
 					for (int i=0;i<UsartGetRxCounter();i++)	dprint(" %02x",UsartGetBuff(USART_ID_RX)[i]);
@@ -687,10 +675,14 @@ void ClientFromHostProc()
         		}
         		pClientInfo = GetServerInfoPos(btId); /*是否有Server在線上，有的話以Skynet方式回傳內容*/
         		if (pClientInfo && pClientInfo->SensorInfo.Header.SensorClass && pClientInfo->SensorInfo.Header.SensorClass!=SENSOR_CUSTOM_SERIAL){ /*非透傳設備，以Skynet方式處理Modbus指令*/
-
-        			dprint("Old Skynet ID:%d(%d) Protocal proccess.\r\n",btId,pClientInfo->SensorInfo.Header.SensorClass);
-        			ToNextStage(CHS_CHECK_MODBUS);
-        			break;
+        			if (pClientInfo->Status & SERVER_NO_RESPONSE){
+        				dprint("Old Skynet ID:%d(%d) is disconnected.\r\n",btId,pClientInfo->SensorInfo.Header.SensorClass);
+        				ToNextStage(CHS_MODBUS_ERROR); /*該Server斷線中，不回應訊息*/
+        			}else{
+						dprint("Old Skynet ID:%d(%d) Protocal proccess.\r\n",btId,pClientInfo->SensorInfo.Header.SensorClass);
+						ToNextStage(CHS_CHECK_MODBUS);
+        			}
+					break;
         		}
 
         		/*透傳方式處理*/
@@ -780,7 +772,9 @@ void ClientFromHostProc()
         case CHS_SEND_TO_CLIENT:
 CLIENT_SEND_DATA_TO_SERVER:
 
-			if(ServerIsAwake){
+			if(	ServerIsAwake &&    /*Server還未進入休眠*/
+				!ClientResponseTestMs /*當處於回應測試模式時，為避免透傳指令干擾到測試指令，暫時停止轉發Modbus命令*/
+			){
 				if(TIMER_IS_TIMEROUT(trans_wait_ms)){
 
 					*(UsartGetBuff(USART_ID_RX)-1)=trans_seq;
@@ -798,7 +792,7 @@ CLIENT_SEND_DATA_TO_SERVER:
 						dprint("command transfer error! try:%d\r\n",trans_retry);
 					}
 				}
-			}else{
+			}else{ /*當Server處於休眠模式 or 目前為回應測試模式時直接回傳暫存器的值*/
 				//dprint("server is sleeing\r\n");
 				MbsTransmitterRecordCmd(UsartGetBuff(USART_ID_RX),UsartGetRxCounter(),false);
 				trans_prepare_response_count=MbsTransmitterPrepareBuff(UsartGetBuff(USART_ID_TX),USART_TX_BUFF_SIZE);
@@ -946,9 +940,52 @@ void ClientSeriesEvent(msg_ms_client_series_status_evt *pEvent){
 	}
 }
 
+void ResetAliveCount(PClientInfo pClientInfo){
+#if (NODE_DISCONNECT_DETECT_COUNT==0)
+    if(COUNT_NODE_DETECTED > 50) pClientInfo->Count = 50;
+    else if(COUNT_NODE_DETECTED < 4) pClientInfo->Count = 4;
+    else pClientInfo->Count = COUNT_NODE_DETECTED;
+#else
+    pClientInfo->Count=NODE_DISCONNECT_DETECT_COUNT;
+#endif
+}
+
 void ClientColumnEvent(msg_ms_client_column_status_evt *pEvent){
+	uint8_t *p_sensor_data = pEvent->sensor_data.data;
+	mesh_device_properties_t property_id;
+	uint8_t *property_data;
+	uint8_t property_len;
+	if((pClientInfo = GetServerInfoPos(pEvent->server_address))== NULL) return;
+	int16 idxServer=((uint8*)pClientInfo-(uint8*)ClientInfo)/sizeof(_ClientInfo);
+	TraceDec1("Node ID-2", pEvent->server_address);
+	dprint("Event Client(0x%02x) from:%d, elem:%d, flag:%d, len:%d\r\n",pEvent->client_address,pEvent->server_address,pEvent->elem_index,pEvent->flags,data_len);
 
 
+	//Reset Timer
+	GetNodeStageInfo(CLIENT_GET_NODE_INFO_PROC)->Timer = WAIT_SEC(TIMER_CLI_WAIT_INFO);
+	RespServerNode++;
+	pClientInfo->ServerID = pEvent->server_address;
+	pClientInfo->Status &= !SERVER_NO_RESPONSE;
+	ServerResponseCounter[idxServer]++;
+	pNodeEventInfo->ElemIndex   = pEvent->appkey_index;
+	pNodeEventInfo->ClientAddr  = pEvent->client_address;
+	pNodeEventInfo->ServerAddr  = pEvent->server_address;
+	pNodeEventInfo->AppkeyIndex = pEvent->appkey_index;
+	pNodeEventInfo->Flags       = pEvent->flags;
+	//pNodeEventInfo->PropertyID  = pEvent->property_id;
+
+	switch(pEvent->property_id){
+	case NODE_GET_ALL_SENSOR: case NODE_GET_ALL_SENSOR_GEN2:
+		if(ClientResponseTestMs) ClientResponseTestMode=true;
+		property_id = (mesh_device_properties_t)(p_sensor_data[0] + (p_sensor_data[1] << 8));
+		property_data=&p_sensor_data[PROPERTY_HEADER_SIZE];
+		uint8_t property_len = p_sensor_data[PROPERTY_ID_SIZE];
+		memcpy(&(pClientInfo->SensorInfo),property_data,property_len);
+		dprint("** Received Info Class:%d, Battery Power:%d\r\n",pClientInfo->SensorInfo.Header.SensorClass,pClientInfo->SensorInfo.Header.BatteryPower);
+		GetPropertyID = NODE_GET_ALL_SENSOR;  // recover data
+		break;
+	}
+	ResetAliveCount(pClientInfo);
 }
 
 
@@ -958,9 +995,11 @@ void ClientPropertyEvent(msg_ms_client_status_evt *pEvent)
     uint8_t data_len = pEvent->sensor_data.len;
     uint8_t pos = 0;
     mesh_device_properties_t property_id;
+
     //PClientNodeInfo p_node_info;
     if((pClientInfo = GetServerInfoPos(pEvent->server_address))== NULL) 
            {return;}
+    int16 idxServer=((uint8*)pClientInfo-(uint8*)ClientInfo)/sizeof(_ClientInfo);
     TraceDec1("Node ID-2", pEvent->server_address);
     dprint("Event Client(0x%02x) from:%d, elem:%d, flag:%d, len:%d\r\n",pEvent->client_address,pEvent->server_address,pEvent->elem_index,pEvent->flags,data_len);
 
@@ -972,6 +1011,7 @@ void ClientPropertyEvent(msg_ms_client_status_evt *pEvent)
     RespServerNode++;
     pClientInfo->ServerID = pEvent->server_address;
     pClientInfo->Status &= !SERVER_NO_RESPONSE;
+    ServerResponseCounter[idxServer]++;
     
     pNodeEventInfo->ElemIndex   = pEvent->appkey_index;
     pNodeEventInfo->ClientAddr  = pEvent->client_address;
@@ -1038,14 +1078,15 @@ void ClientPropertyEvent(msg_ms_client_status_evt *pEvent)
                
         };
 
-
+    ResetAliveCount(pClientInfo);
+/*
 #if (NODE_DISCONNECT_DETECT_COUNT==0)
     if(COUNT_NODE_DETECTED > 50) pClientInfo->Count = 50;
     else if(COUNT_NODE_DETECTED < 4) pClientInfo->Count = 4;
     else pClientInfo->Count = COUNT_NODE_DETECTED;
 #else
     pClientInfo->Count=NODE_DISCONNECT_DETECT_COUNT;
-#endif
+#endif*/
 }
 
 

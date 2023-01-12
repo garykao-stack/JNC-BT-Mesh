@@ -155,7 +155,7 @@
   #define MODEL_NAME          "BTM-UD"
 #endif
 
-#define BTM_PROTOCOL_GEN	3
+#define BTM_PROTOCOL_GEN	4
 
 
 #ifndef _GLOBAL_H_

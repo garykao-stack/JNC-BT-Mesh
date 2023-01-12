@@ -214,12 +214,14 @@ extern uint32 keepAliveBeforeSleepMs;
 
 uint32_t cd_sleep_ms=0;
 uint32 IgnoreBroadcastCmdMs=0;
+uint32 ServerResponseTestMs=0;
 uint8 trans_retry_ms=0;
 #define TIMER_REDUCE_BY_10MS(t) do{if(t>0)t=t-((t>=10)?10:t);}while(0)
 #define TIMER_IS_TIMEROUT(t) (t==0)
 void ServerTimer_10ms(){
 	TIMER_REDUCE_BY_10MS(cd_sleep_ms);
 	TIMER_REDUCE_BY_10MS(IgnoreBroadcastCmdMs);
+	TIMER_REDUCE_BY_10MS(ServerResponseTestMs);
 	TIMER_REDUCE_BY_10MS(trans_retry_ms);
 }
 
@@ -763,7 +765,7 @@ void ServerGetInfoProc()
             	}else if(GetNodeStatus(NS_A308_GET_INFO)){
 					ToNextStage(SNS_SEND_A308_INFO);
 				}else if(CheckWaitTimeOut()){
-                     if(GetNodeStatus(NS_FULL_POWER) == ON || GetNodeStatus(NS_FORCE_FULL_POWER) == ON || IgnoreBroadcastCmdMs){ /*在App設定模式下不進入休眠*/
+                     if(GetNodeStatus(NS_FULL_POWER) == ON || GetNodeStatus(NS_FORCE_FULL_POWER) == ON || IgnoreBroadcastCmdMs||ServerResponseTestMs){ /*在App設定模式下不進入休眠*/
                     	 dprint("*** Full Power Mode ***\r\n");
                     	 SetLedStatus(LED_STATUS_SLEEP); ToNextStage(SNS_WAKE_UP);
                      }else{
@@ -1644,8 +1646,13 @@ uint16 SendInfoToClient()
         //ServerInfo.ProperityID = NODE_GET_ALL_SENSOR;
         //ServerInfo.ProperityID = pNodeEventInfo->PropertyID;
         ServerInfo.ProperityID = NODE_GET_ALL_SENSOR_GEN2;
-        result = Cmd_ms_server_send_status(SENSOR_ELEMENT, pNodeEventInfo->ClientAddr,pNodeEventInfo->AppkeyIndex,
+        if(ServerResponseTestMs){
+        	result = Cmd_ms_server_send_column_status(SENSOR_ELEMENT, pNodeEventInfo->ClientAddr,pNodeEventInfo->AppkeyIndex,
+        	                                            NO_FLAGS,NODE_GET_ALL_SENSOR_GEN2, send_size, (PUCHAR)&ServerInfo)->result;
+        }else{
+        	result = Cmd_ms_server_send_status(SENSOR_ELEMENT, pNodeEventInfo->ClientAddr,pNodeEventInfo->AppkeyIndex,
                                             NO_FLAGS, send_size, (PUCHAR)&ServerInfo)->result;
+        }
       if(result) {
     	dprint("!!!Cmd_ms_server_send_status, dest addr:%d, len:%d, ERROR:0x%x\r\n",pNodeEventInfo->ClientAddr,send_size,result);
         //ret_code = FALSE;
@@ -1699,8 +1706,7 @@ uint16 Server_ResponseSetting(uint8 *in,uint8 len){
    set->RebootForRs485IdelSecnods=pMeshNodeData->RebootForRs485IdelSecnods;
 
 
-   /*停止回應廣播指令 in[0] 秒*/
-   if (len>=1){
+   if (len>=1){/*停止回應廣播指令 in[0] 秒*/
 	   IgnoreBroadcastCmdMs=in[0]*1000;
 	   dprint("Response Setting: Ignore Broadcast Request for %.1f sec\r\n",IgnoreBroadcastCmdMs/1000.0);
    }
@@ -1850,6 +1856,11 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
 			return;
 		}else if(pEvent->property_id==NODE_SENSOR_SETUP_SET){
 			Server_ReceiveSetting(ext->data,ext->len);
+			*pNodeEventInfo=tmpNodeEvtInfo;
+			return;
+		}else if(pEvent->property_id == NODE_GET_ALL_SENSOR_GEN2){
+			SetNodeStatus(NS_GET_INFO_ACT,ON);
+			if (ext->len>=2) ServerResponseTestMs=(ext->data[0]+ext->data[1]*0x100)*1000;
 			*pNodeEventInfo=tmpNodeEvtInfo;
 			return;
 		}

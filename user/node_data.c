@@ -56,12 +56,13 @@ void MeshNodeDataReset()
     pMeshNodeData->TxPower = TX_POWER_HI;
     pMeshNodeData->SleepingTimer=TIMER_NODE_SLEEPING;
     pMeshNodeData->WorkingTimer = TIMER_DEFAULT_WORKING;
+    pMeshNodeData->RebootForRs485IdelSecnods=0;
     pAdjValue->TempGain = temp_gain;
     pAdjValue->HumGain = hum_gain;
     pAdjValue->TempOffset = temp_offset;
     pAdjValue->HumOffset = hum_offset;    
     pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs=300;
-    pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep=3*60;
+    pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep=10;
     // Printf("TempGain=%f hum_gain=%f temp_offset=%f hum_offset=%f ",temp_gain,hum_gain,temp_offset,hum_offset);
     BtmG6Reset();
     WriteNodeData();
@@ -77,12 +78,13 @@ void MeshNodeSetupReset()
     pMeshNodeData->SensorClass = SENSOR_AUTO_SCAN; 
     pMeshNodeData->BaudRate = USART_BAUDRATE_DEFAULT; //for 9600
     pMeshNodeData->WorkingTimer = TIMER_DEFAULT_WORKING;
+    pMeshNodeData->RebootForRs485IdelSecnods=0;
     pAdjValue->TempGain = 1.0;
     pAdjValue->TempOffset = 0.0;
     pAdjValue->HumGain = 1.0;
     pAdjValue->HumOffset = 0.0;    
     pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs=300;
-    pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep=3*60;
+    pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep=10;
     WriteNodeData();
    
 }
