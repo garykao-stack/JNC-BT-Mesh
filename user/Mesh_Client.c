@@ -456,7 +456,7 @@ void ClientGetNodeInfoProc()
                     if (ClientResponseTestMs||ClientResponseTestMode){
                     	if (!ClientResponseTestMs) ClientResponseTestMode=false;
                     	ext=ClientResponseTestMs;
-                    	Cmd_ms_client_get_column(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, NODE_GET_ALL_SENSOR_GEN2,2,(uint8*)&ext)->result;
+                    	result=Cmd_ms_client_get_column(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, NODE_GET_ALL_SENSOR_GEN2,2,(uint8*)&ext)->result;
                     }else
                     	result = Cmd_ms_client_get(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, GetPropertyID)->result;
 

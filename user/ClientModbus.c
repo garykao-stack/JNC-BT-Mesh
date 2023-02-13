@@ -69,6 +69,7 @@ void FromWordL(float *dest,uint16 value){
 #define AdjChanged 2
 
 extern uint32 ClientResponseTestMs;
+extern bool ClientResponseTestMode;
 
 /*設定值*/
 uint16 GetMemoryRegister(uint16 loc){
@@ -113,7 +114,7 @@ int SetMemoryRegister(uint16 loc, uint16 value){
 	case MBS_HUM_OFFSET_H: FromWordH(pAdjValue->HumOffset,value); return AdjChanged;
 	case MBS_RESET_CMD_RSP_COUNT: if(value==0x3636) ClearServerResponseCounter(); return NoDataChanged;
 	case MBS_REBOOT: if(value==0x3636) SetEventTaskTimer(TD_SYS_SETUP_RESET,1000,TIMER_EVENT_ONCE); // system reset; return NoDataChanged;
-	case MSS_RSP_TEST_SEC: if(value)ClearServerResponseCounter(); ClientResponseTestMs=value*1000; return NoDataChanged;
+	case MSS_RSP_TEST_SEC: if(value)ClearServerResponseCounter(); ClientResponseTestMs=value*1000;ClientResponseTestMode=false; return NoDataChanged;
 	default: return NoDataChanged;
 	}
 }
@@ -123,10 +124,11 @@ int SetCoilRegister(uint16 loc, bool value){
 	case MSS_RSP_TEST_SEC:
 		if (value){
 			ClearServerResponseCounter();
-			ClientResponseTestMs=60*1000;
+			ClientResponseTestMs=3*60*1000;
 		}else{
 			ClientResponseTestMs=0;
 		}
+		ClientResponseTestMode=false;
 		return NoDataChanged;
 		break;
 	}
@@ -192,7 +194,7 @@ int16 ClientModbusProc(){
 		memcpy(tx,rx,2);
 		tx[2]=(count+7)/8;
 		memset(tx+3,0,tx[2]);
-		for (int i=0;i<count;i++) tx[3+(i/8)]|=GetCoilRegister(st+count)?0x01<<(i%8):0;
+		for (int i=0;i<count;i++) tx[3+(i/8)]|=GetCoilRegister(st+i)?0x01<<(i%8):0;
 		MbsSend(tx,3+tx[2]);
 		break;
 	case 5:
