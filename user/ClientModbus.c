@@ -204,7 +204,7 @@ int16 ClientModbusProc(){
 		break;
 	case 0xf: //func=15
 		if (UsartGetRxCounter()!=(9+((count+7)/8))) return ResponseModbusError(rx,tx);/*命令長度不符*/
-		for(int i=0;i<count;i++) changed|=SetCoilRegister(st+i,(rx[7+(i/8)]>>(i%8))==1);
+		for(int i=0;i<count;i++) changed|=SetCoilRegister(st+i,((rx[7+(i/8)]>>(i%8))&1)==1);
 		MbsSend(rx,6);
 		break;
 	default:

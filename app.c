@@ -186,7 +186,8 @@ void ServerNodeTask();
 void ClientNodeTask();
 void BtMeshSetupTask();
 
-
+extern void UsartClientProc();
+//int cntMainLoop=0;
 
 void appMain(gecko_configuration_t *pConfig)
 {
@@ -197,6 +198,7 @@ void appMain(gecko_configuration_t *pConfig)
 
     while(1)
     {
+    	//cntMainLoop++;
 		// Event pointer for handling events
 
 		// If there are no events pending then the next call to gecko_wait_event()
@@ -217,7 +219,7 @@ void appMain(gecko_configuration_t *pConfig)
 
 
 		//dprint("Node Role:%d\r\n",NodeRole);
-
+		UsartClientProc();
 		if(NodeRole == NR_CLIENT)
 			ClientNodeTask();
 		else if(NodeRole == NR_SERVER || NodeRole == NR_SETUP_SERVER)

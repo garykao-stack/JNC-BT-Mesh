@@ -189,7 +189,7 @@ void ServerSerialTransProc();
 //  10ms for one time
 void ServerNodeTask()
 {
-	UsartClientProc();
+	//UsartClientProc(); /*移到app.c*/
 	if(GetNodeStatus(NS_SERVER_RS485_ENABLE))
 		ServerSetNodeProc();
 
@@ -2108,7 +2108,7 @@ void BtMeshSetupInit()
 
 void BtMeshSetupTask()
 {
-    UsartClientProc(); 
+    //UsartClientProc(); /*移到app.c*/
     MeshNodeSetupProc();
 }
 

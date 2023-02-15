@@ -25,7 +25,7 @@
 #include "mesh_sensor.h"
 #include "Mesh_Node.h"
 #include "Mesh_Client.h"
-#include "ClientModbus.h"bracast
+#include "ClientModbus.h"
 
 #ifdef BTM_A308
 #include "A308_Server.h"
@@ -63,8 +63,8 @@ void ClientNodeInit()
     UsartRxCount = 8;   //from Host cmd bytes
     Rs485Rx();
     ToNextStage(NODE_STAGE_INIT);
-    UsartClientProc();
-    ClientFromHostProc();
+    //UsartClientProc();
+    //ClientFromHostProc();
     if (pMeshNodeData->RebootForRs485IdelSecnods==0xffff) pMeshNodeData->RebootForRs485IdelSecnods=0;
     if(pMeshNodeData->RebootForRs485IdelSecnods) RebootCountdown=pMeshNodeData->RebootForRs485IdelSecnods;
 #if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
@@ -86,17 +86,9 @@ uint16 test1;
 uint16 rx_ccount;
 void ClientNodeTask()
 {
-    /*uchar rx_count = UsartGetRxCounter();
-    if(rx_count >= 7 && GetNodeStatus(NS_USART_RX_EVENT) != TRUE)
-        {Delay_ms(3);
-         UsartClientProc(); UsartClientProc();
-        }
-    else if(GetNodeStatus(NS_USART_RX_EVENT) == TRUE) 
-        {UsartClientProc();ClientFromHostProc();UsartClientProc();ClientFromHostProc(); }*/
-
 
     ClientGetNodeInfoProc();
-    UsartClientProc();
+    //UsartClientProc(); /*移到app.c*/
 
     ClientFromHostProc();
 //#ifndef BTM_TRANSMITTER
@@ -273,13 +265,16 @@ static uint16_t cntTick=0;
 uint32 ClientResponseTestMs=0;
 bool ClientResponseTestMode=false;
 //static uint32_t cntSecond=0;
+//extern int cntMainLoop;
 void ClientTimer_10ms(){
 	TIMER_REDUCE_BY_10MS(trans_wait_ms);
 	if(ClientResponseTestMode)TIMER_REDUCE_BY_10MS(ClientResponseTestMs);
 	if(++cntTick>100){
 		cntTick=0;
+		//printf("loop:%d\r\n",cntMainLoop);
+		//cntMainLoop=0;
 		//cntSecond++;
-		//dprint("Time Second:%d\r\n",cntSecond);
+		//printf("Time Second:%d\r\n",cntSecond);
 		if(pMeshNodeData->RebootForRs485IdelSecnods && RebootCountdown) RebootCountdown--;
 	}
 
@@ -470,6 +465,10 @@ void ClientGetNodeInfoProc()
                     	dprint("SEND_GET_ALL Succeed\r\n");
                     	//TraceOk("Get Info");
                     	ClientBroadcastCounter++;
+                    	if(ClientBroadcastCounter>300){
+                    		ClearServerResponseCounter();
+                    		ClientBroadcastCounter=1;
+                    	}
 						CountErr = 0; RespServerNode = 0;
 						ToWaitingStage(CNS_WAIT_INFO,WAIT_SEC(TIMER_CLI_WAIT_INFO));
                     }

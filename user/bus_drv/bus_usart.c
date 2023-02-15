@@ -170,10 +170,11 @@ void UsartClientProc()
 				UsartSetStage(USART_STAGE_RX_END);
 				SetNodeStatus(NS_USART_RX_EVENT,ON);
 			}else{
-				dprint("RX Check Error\r\n");// cmd error
-				UsartSetStatus(USART_RX_CRC_ERROR,ON);
+				//printf("RX Check Error\r\n");// cmd error
+				//UsartSetStatus(USART_RX_CRC_ERROR,ON);
 				UsartSetStage(USART_STAGE_RX_END);
 				UsartSetStage(USART_STAGE_RX_CLEAN);
+				UsartResetRxTx(USART_ID_RX);
 			}
 
 		}
@@ -297,9 +298,10 @@ void UsartClientProc()
 
 int MbsRxTimeout=0;
 int MbsTxTimeout=0;
-#define MBS_REC_TIME_OUT_MS 50
+#define MBS_REC_TIME_OUT_MS 40
 #define MBS_TIMER_MS 10
 #define MBS_REC_TIMEOUT_COUNT (MBS_REC_TIME_OUT_MS/MBS_TIMER_MS)
+
 
 void Modbus_Timer()
 {
@@ -327,6 +329,7 @@ void USART2_RX_IRQHandler(void)
   uint32_t flags;
   flags = USART_IntGet(USART);
   USART_IntClear(USART, flags);
+  if(Modbus_IsReceived())UsartResetRxTx(USART_ID_RX);
    if((CounterRx < USART_RX_BUFF_SIZE)){
 	   MbsRxTimeout=0;
         *pRxBuff++ = USART_RxDataGet(USART);//USART_Rx(USART);
@@ -334,6 +337,7 @@ void USART2_RX_IRQHandler(void)
         SetLedStatus(LED_UART_RX_ON);
     } else {
     	USART_Rx(USART);   // clean RX buffer Rx
+    	UsartResetRxTx(USART_ID_RX);
     }
 }
 
@@ -423,7 +427,7 @@ void UsartResetRxTx(uchar tx_rx)
         }
     else if(tx_rx == USART_ID_RX)
         {
-            pRxBuff = RxBuff; CounterRx = 0; TCounterRx = 0;
+            pRxBuff = RxBuff; CounterRx = 0; TCounterRx = 0;MbsRxTimeout=0;
             UsartSetStatus(USART_RX_ING|USART_RX_END|USART_RX_CRC_ERROR,OFF);
             UsartSetStatus(USART_RX_WAITING,ON);
             memset(pRxBuff,0,USART_RX_BUFF_SIZE);
@@ -433,7 +437,7 @@ void UsartResetRxTx(uchar tx_rx)
         }
     else if(tx_rx == USART_ID_TX_RX)
         {
-            pTxBuff = TxBuff; CounterTx = 0; pRxBuff = RxBuff; CounterRx = 0;
+            pTxBuff = TxBuff; CounterTx = 0; pRxBuff = RxBuff; CounterRx = 0;MbsRxTimeout=0;
             TCounterTx=TCounterRx=0;
             UsartStatus = USART_FREE;
             SetNodeStatus(NS_USART_RX_EVENT,OFF);
