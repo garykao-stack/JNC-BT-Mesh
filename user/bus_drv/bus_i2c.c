@@ -6,6 +6,7 @@
 
 #include "eeprom.h"
 #include "si7013.h"
+#include "SHT3x.h"
 
 #define TEST_BUFF_SIZE  1
 
@@ -26,8 +27,16 @@ void I2CInit()
     Delay_ms(50);
  
 #endif //HAL_I2CSENSOR_ENABLE
-    GetTempature();
-    GetHumidity();
+
+    //Peter Test
+    printf("Peter Test \r\n");
+    #ifdef SensorIsSHT3x
+        SHT3x_Measure(I2C0,SHT3x_ADDR,NULL,NULL);
+    #endif
+    #ifdef SensorIsSi7021
+        GetTempature();
+        GetHumidity();
+    #endif
     
     BatteryPower=100; TraceDec1("BatteryPower",BatteryPower);
 }
@@ -188,7 +197,7 @@ int16 GetTempature()
       tempature = RET_VALUE_ERROR;
     }
     
-    Printf("Tempature 1 ==> %3.1f -C\r\n",(float)tempature/10);
+    printf("Tempature 1 ==> %3.1f -C\r\n",(float)tempature/10);
     return (int16)tempature;
     //return -100;
 }

@@ -6,6 +6,7 @@
 #include "Mesh_Node.h"
 #include "BUS_RS485.h"
 #include "si7013.h"
+#include "SHT3x.h"
 #include "G6_BT_Mesh.h"
 
 
@@ -119,10 +120,15 @@ uchar CheckRs485Device(int16 connectTryCount)
 		rs485_dev = SENSOR_A308M; goto Check485_End;
     }
 #endif
-
+    //Peter Test 
+    #ifdef SensorIsSi7021
     if(Si7013_Detect(I2C0, SI7021_ADDR, NULL) == TRUE)
-      {
-    	//dprint("!!! Si7013_Detected !!!\r\n");
+    #endif
+    #ifdef SensorIsSHT3x
+    if(SHT3x_Measure(I2C0,SHT3x_ADDR,NULL,NULL) == TRUE)
+    #endif
+    {
+    //dprint("!!! Si7013_Detected !!!\r\n");
         if(CheckUltraSound() == TRUE){
             GetUltraSoundInfo();
             pMeshNodeData->SensorClass = SENSOR_ULTRA_SOUND;rs485_dev = SENSOR_ULTRA_SOUND;  goto Assigned;
@@ -132,8 +138,8 @@ uchar CheckRs485Device(int16 connectTryCount)
         }
         else{ 
             pMeshNodeData->SensorClass = SENSOR_SKYNET_CO2;rs485_dev = SENSOR_SKYNET_CO2;  goto Assigned;
-        }       
-      }
+    }       
+    }
     else if(CheckCDMCo2()){
     	dprint("!!! Si7013 is not existed !!!\r\n");
     	pMeshNodeData->SensorClass = SENSOR_SKYNET_CO2;rs485_dev = SENSOR_SKYNET_CO2;  goto Assigned;

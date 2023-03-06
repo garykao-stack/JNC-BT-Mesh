@@ -115,12 +115,19 @@
 #endif
 
 #if defined(JNC_BT_MESH)
- #define FW_VER              132
+ #define FW_VER              133
   #define HW_VER              110
   #define DEVICE_NAME         "JNC-BT-Mesh"SPACMARK
   #define MANUFACTORY_NAME    "JNC"
   #define NODE_DATA_ID        0xA5A5
   #define MODEL_NAME          "BTM001"
+
+  // #define SensorIsSi7021
+  #define SensorIsSHT3x
+
+  #if (defined(SensorIsSi7021) && defined(SensorIsSHT3x))
+    #error Only one product definition can be selected !!
+  #endif
 
 #elif defined(BTM_A308)
   #define FW_VER              103

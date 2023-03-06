@@ -110,7 +110,8 @@ bool MeshNodeModelInit()
        { SensorClientNodeInit(); 
         }
     else
-       { SensorServerNodeInit();
+       { 
+        SensorServerNodeInit();
          //SetServerAllModel();
         }
     return ret_code;

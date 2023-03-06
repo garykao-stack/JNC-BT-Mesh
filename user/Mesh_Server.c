@@ -989,7 +989,7 @@ bool GetSkynetInfo()
         AdjTempRh(&temp,&Humidity); 
          p_sensor->Tempature = temp;
          p_sensor->Humidity  = Humidity;
-         dprint("temp: %d, hum:%d\r\n",p_sensor->Tempature,p_sensor->Humidity);
+        //  printf("temp: %d, hum:%d\r\n",p_sensor->Tempature,p_sensor->Humidity);
         }
     else {ret_code = FALSE;}
     ret_code = TRUE; 

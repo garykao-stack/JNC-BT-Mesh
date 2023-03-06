@@ -181,6 +181,8 @@ void SensorServerNodeInit(void)
     // Initialize the People Count Sensor
     set_people_count(0);
     // Initialize the Temperature Sensor
+
+    //Peter Test
     init_temperature_sensor();
    // NodeSleeping(ON); NodeProxy(OFF);// while(1);
 }
@@ -230,13 +232,13 @@ void EvtServerGetRequestProc(   PCmdPacket pCmdEvent)
     if((pEvent->property_id == PRESENT_AMBIENT_TEMPERATURE) || (pEvent->property_id == 0))
     {
         temperature_8_t temperature = get_temperature();
-        Printf("temperature 3: %d\r\n", temperature);
+        printf("temperature 3: %d\r\n", temperature);
         len += mesh_sensor_data_to_buf(PRESENT_AMBIENT_TEMPERATURE, &sensor_data[len], (uint8_t *)&temperature);
     }
    if((pEvent->property_id == JNC_TEMP_RH) || (pEvent->property_id == 0))
     {
         uint32 temp_rh = GetTempAndRh();
-        Trace1("Temp and Humidity", temp_rh);
+        printf("Temp and Humidity", temp_rh);
         len += mesh_sensor_data_to_buf(JNC_TEMP_RH, &sensor_data[len], (uint8_t *)&temp_rh);
     }
 /*   

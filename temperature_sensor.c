@@ -21,6 +21,7 @@
 #include "temperature_sensor.h"
 #include "display_interface.h"
 #include "si7013.h"
+#include "SHT3x.h"
 
 #ifdef ENABLE_LOGGING
 #define log(...) printf(__VA_ARGS__)
@@ -62,13 +63,17 @@ void display_temperature(void)
 void init_temperature_sensor()
 {
 #ifdef FEATURE_I2C_SENSOR
+  #ifdef SensorIsSi7021
   bool status = Si7013_Detect(I2C0, SI7021_ADDR, NULL);
+  get_temperature();
+  #endif
+  #ifdef SensorIsSHT3x
+  bool status = SHT3x_Measure(I2C0,SHT3x_ADDR,NULL,NULL);
+  #endif
   if (!status) {
     printf("Si7021 disconnect Error\r\n");
   }
 #endif
-  get_temperature();
-
 }
 
 /*******************************************************************************
@@ -78,7 +83,7 @@ void init_temperature_sensor()
  ******************************************************************************/
 temperature_8_t get_temperature(void)
 {
-  int32_t tempData = 0;
+  
 #ifndef FEATURE_I2C_SENSOR
   static int32_t DummyValue = 0l;
 
@@ -88,21 +93,38 @@ temperature_8_t get_temperature(void)
   tempData = (((tempData * 2) + 499) / 1000);
   temperature = (temperature_8_t)tempData;
 #else
-  uint32_t tempRH = 0;
 
-  /* Sensor relative humidity and temperature measurement returns 0 on success, nonzero otherwise */
-  if (Si7013_MeasureRHAndTemp(I2C0, SI7021_ADDR, &tempRH, &tempData) != 0) {
-    temperature = VALUE_IS_NOT_KNOWN;
-  } else if ((tempData > 63500) || (tempData < -64000)) {
-    temperature = VALUE_IS_NOT_KNOWN;
-  } else {
+  // #ifdef SensorIsSHT3x
+  //   float tempData = 0;
+  //   float tempRH = 0;
 
-    tempData = (((tempData * 2) + 499) / 1000);
-    temperature = (temperature_8_t)tempData;
-  }
+  //   /* Sensor relative humidity and temperature measurement returns 0 on success, nonzero otherwise */
+  //   if (SHT3x_Measure(I2C0, SHT3x_ADDR, &tempRH, &tempData) == FALSE)
+  //   {
+  //     temperature = VALUE_IS_NOT_KNOWN;
+  //   }
+  // #endif
+  // #ifdef SensorIsSi7021
+    int32_t tempData = 0;
+    uint32_t tempRH = 0;
+
+    /* Sensor relative humidity and temperature measurement returns 0 on success, nonzero otherwise */
+    if (Si7013_MeasureRHAndTemp(I2C0, SI7021_ADDR, &tempRH, &tempData) != 0)
+    {
+      temperature = VALUE_IS_NOT_KNOWN;
+    } else if ((tempData > 63500) || (tempData < -64000)) {
+      temperature = VALUE_IS_NOT_KNOWN;
+    } else {
+
+      tempData = (((tempData * 2) + 499) / 1000);
+      temperature = (temperature_8_t)tempData;
+    }
+    //TraceDec1("temperature12",temperature);
+    display_temperature();
+  // #endif
+  
 #endif
-  //TraceDec1("temperature12",temperature);
-  display_temperature();
+  
   return temperature;
 }
 
@@ -148,39 +170,46 @@ uint16 GetTempAndRH(int16 *Temp, uint16 *humidity)
 {
     uint32  tempRH = 0; 
     int32_t tempData = 0;
+    float F_TempValue = 0;
+    float F_RHValue = 0;
 
     uint16 ret_code=0;
+
     
+    #ifdef SensorIsSi7021
     if(Si7013_MeasureRHAndTemp(I2C0, SI7021_ADDR, &tempRH, &tempData) != 0) 
-        {//TraceDec2("GetTempRH 1",tempData,tempRH);
-        ret_code = VALUE_IS_NOT_KNOWN;
-        }
+      {//TraceDec2("GetTempRH 1",tempData,tempRH);
+      ret_code = VALUE_IS_NOT_KNOWN;
+      }
     else if ((tempData > 63500) || (tempData < -64000))
-        {//TraceDec2("GetTempRH 2",tempData,tempRH);
-        ret_code = VALUE_IS_NOT_KNOWN;
-        }
+      {//TraceDec2("GetTempRH 2",tempData,tempRH);
+      ret_code = VALUE_IS_NOT_KNOWN;
+      }
     else if ((tempRH > 100000))
-        {//TraceDec2("GetTempRH 3",tempData,tempRH);
-         tempRH = 100000;   
-        }    
+      {//TraceDec2("GetTempRH 3",tempData,tempRH);
+        tempRH = 100000;   
+      }    
     else if((tempRH == 0) && (tempData == 0))
-        {//TraceDec2("GetTempRH 4",tempData,tempRH);
-        ret_code = VALUE_IS_NOT_KNOWN;;
-        }
-
-
-    
+      {//TraceDec2("GetTempRH 4",tempData,tempRH);
+      ret_code = VALUE_IS_NOT_KNOWN;;
+      }
     if(ret_code != VALUE_IS_NOT_KNOWN)
-        {//TraceDec2("GetTempRH Ok",tempData,tempRH);
-        tempRH /=100; if(tempRH >= 1000) tempRH = 1000;
-        *humidity =tempRH;
-        tempData /=100; if(tempData < 800) *Temp = tempData;
-        //TraceDec3("Temp&Humi 3", tempRH, tempData,*Temp);
-        }
+      {//TraceDec2("GetTempRH Ok",tempData,tempRH);
+      tempRH /=100; if(tempRH >= 1000) tempRH = 1000;
+      *humidity =tempRH;
+      tempData /=100; if(tempData < 800) *Temp = tempData;
+      //TraceDec3("Temp&Humi 3", tempRH, tempData,*Temp);
+      }
     else 
-        {
-         ret_code = VALUE_IS_NOT_KNOWN;
-        }
+      {
+        ret_code = VALUE_IS_NOT_KNOWN;
+      }
+    #endif
+    #ifdef SensorIsSHT3x
+        SHT3x_Measure(I2C0,SHT3x_ADDR,&F_RHValue,&F_TempValue);
+        *Temp     = (int16)(F_TempValue*10);
+        *humidity = (uint16)(F_RHValue*10);
+    #endif
 
     return ret_code;
 }

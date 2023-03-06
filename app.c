@@ -102,6 +102,8 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
     UDELAY_Calibrate();
     led_init();  
     button_init();
+
+    // 以下兩個函式都有溫濕度讀取
     DeviceInit();
     BleCommInit();
     
