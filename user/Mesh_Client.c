@@ -662,9 +662,11 @@ void ClientFromHostProc()
         		if (btId==pMeshNodeData->MeshNodeID){/*Client自身ID，回傳電池電量*/
         			ClientModbusProc();
 #if DPRINT
-					dprint("receive RX: ");
-					for (int i=0;i<UsartGetRxCounter();i++)	dprint(" %02x",UsartGetBuff(USART_ID_RX)[i]);
-					dprint("\r\n");
+        			if(UsartGetRxCounter()){
+						dprint("receive RX(%d): ",UsartGetRxCounter());
+						for (int i=0;i<UsartGetRxCounter();i++)	dprint(" %02x",UsartGetBuff(USART_ID_RX)[i]);
+						dprint("\r\n");
+        			}
 #endif
         			UsartResetRxTx(USART_ID_RX);
 					SetNodeStatus(NS_USART_RX_EVENT,OFF);
@@ -957,7 +959,7 @@ void ClientColumnEvent(msg_ms_client_column_status_evt *pEvent){
 	if((pClientInfo = GetServerInfoPos(pEvent->server_address))== NULL) return;
 	int16 idxServer=((uint8*)pClientInfo-(uint8*)ClientInfo)/sizeof(_ClientInfo);
 	TraceDec1("Node ID-2", pEvent->server_address);
-	dprint("Event Client(0x%02x) from:%d, elem:%d, flag:%d, len:%d\r\n",pEvent->client_address,pEvent->server_address,pEvent->elem_index,pEvent->flags,data_len);
+	dprint("Event Client(0x%02x) from:%d, elem:%d, flag:%d, len:%d\r\n",pEvent->client_address,pEvent->server_address,pEvent->elem_index,pEvent->flags,pEvent->sensor_data.len);
 
 
 	//Reset Timer

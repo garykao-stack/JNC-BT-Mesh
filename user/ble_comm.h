@@ -28,7 +28,7 @@ typedef struct _EventFun_
 
 #define TIMER_CLK_FREQ ((uint32_t)32768) ///< Timer Frequency used
 /// Convert miliseconds to timer ticks
-#define TIMER_MS_2_TICKS(ms) ((TIMER_CLK_FREQ * (uint32)ms) / 1000)
+#define TIMER_MS_2_TICKS(ms) ((uint32)(TIMER_CLK_FREQ/1000.0 * ms)) //((TIMER_CLK_FREQ * (uint32)ms) / 1000)
 /// Time equal 0 removes the scheduled timer with the same handle
 
 #define TIMER_EVENT(ms) ((TIMER_CLK_FREQ * (ms)) / 1000)    //richard add
