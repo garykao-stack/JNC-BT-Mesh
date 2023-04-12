@@ -24,7 +24,7 @@ uint16 GetAiRegister(uint16 loc){
 	if(loc==pMeshNodeData->MeshNodeID) return GetBatteryPower(); /*Client自身電量*/
 	else if(loc<=0xff) { /*Server電量*/
 		pServer=GetServerInfoPos(loc);
-		if(pServer && pServer->SensorInfo.Header.SensorClass) return pClientInfo->SensorInfo.Header.BatteryPower;
+		if(pServer && pServer->SensorInfo.Header.SensorClass) return pServer->SensorInfo.Header.BatteryPower;
 		return 0xffff;
 	}else if(loc<=0x1ff){ /*計算回應百分比*/
 		id=loc-0x100;
