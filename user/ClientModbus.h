@@ -20,6 +20,7 @@ int16 ClientModbusProc();
 #define MBS_TIME_OFFSET_H 15
 #define MBS_HUM_OFFSET_L 16
 #define MBS_HUM_OFFSET_H 17
+#define MBS_REBOOT_MINUTES 18
 #define MBS_RESET_CMD_RSP_COUNT 0xff00
 #define MSS_RSP_TEST_SEC 0xff01
 #define MBS_REBOOT 0xffff

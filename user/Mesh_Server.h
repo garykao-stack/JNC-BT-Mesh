@@ -129,6 +129,7 @@ typedef struct _BtAppData_
     uint16	Rs485ClientBuffTimeoutMs;
     uint16	ProtocolGen;
     uint16  RebootForRs485IdelSecnods;
+    int16 RebootMinutes;
 }_BtAppData,*PBtAppData;
 
 #define CLASS_TO_UTILITY    0

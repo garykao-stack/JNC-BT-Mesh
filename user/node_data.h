@@ -35,7 +35,8 @@ typedef struct
   uchar     G6Status,G6ActPercent;
   uchar     SegPPercent[6]; // for segment power percent
   uint16 	RebootForRs485IdelSecnods;
-
+  // ^^^^ 53Byte
+  int16		RebootMinutes;
 } _Mesh_Node_Data,*_PMesh_Node_Data;
 
 // Mesh Node Status

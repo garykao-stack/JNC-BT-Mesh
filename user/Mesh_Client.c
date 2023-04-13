@@ -44,6 +44,7 @@ PClientInfo pClientInfo=ClientInfo;
 _PModbusCmdF4  pModbusCmd;
 _ModbusToHost ModbusToHostCmd;
 uint16 RebootCountdown;
+int32 BootingSeconds=0;
 
 #if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
 extern void MbsTransmitterInit();
@@ -67,6 +68,7 @@ void ClientNodeInit()
     //ClientFromHostProc();
     if (pMeshNodeData->RebootForRs485IdelSecnods==0xffff) pMeshNodeData->RebootForRs485IdelSecnods=0;
     if(pMeshNodeData->RebootForRs485IdelSecnods) RebootCountdown=pMeshNodeData->RebootForRs485IdelSecnods;
+    BootingSeconds=0;
 #if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
     MbsTransmitterInit();
 #endif
@@ -97,6 +99,7 @@ void ClientNodeTask()
     NodeIviUpdateProc();
     //printf("reboot countdown %d/%d",RebootCountdown,pMeshNodeData->RebootForRs485IdelSecnods);
     if(pMeshNodeData->RebootForRs485IdelSecnods && !RebootCountdown) Cmd_sys_reset(0);
+
 }
 //
 //
@@ -276,6 +279,7 @@ void ClientTimer_10ms(){
 		//cntSecond++;
 		//printf("Time Second:%d\r\n",cntSecond);
 		if(pMeshNodeData->RebootForRs485IdelSecnods && RebootCountdown) RebootCountdown--;
+		BootingSeconds++;
 	}
 
 }
@@ -436,6 +440,10 @@ void ClientGetNodeInfoProc()
                     ToNextStage(CNS_GET_SEVER_INFO);
                 break;
             case CNS_GET_SEVER_INFO: 
+
+            	/*有設定重啟時間且時間條件已達成，重啟
+            	 * 在廣播指令前重啟可避免重啟後若Server還在睡眠中沒有回應會判斷成斷線*/
+            	if((pMeshNodeData->RebootMinutes>0) && ((BootingSeconds/60)>=pMeshNodeData->RebootMinutes)) Cmd_sys_reset(0);
 
                 if(CountErr > 3) ToNextStage(CNS_GET_INFO_ERR); // err: go to sleeping
 

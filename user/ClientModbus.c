@@ -82,6 +82,7 @@ uint16 GetMemoryRegister(uint16 loc){
 	case MBS_BAUDRATE: return pMeshNodeData->BaudRate;
 	case MBS_SLEEPTIME: return pMeshNodeData->WorkingTimer;
 	case MBS_REBOOT_IDEL_TIME: return pMeshNodeData->RebootForRs485IdelSecnods;
+	case MBS_REBOOT_MINUTES: return pMeshNodeData->RebootMinutes;
 	case MBS_KEEPALIVE_BEFORE_SLEEP: return pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep;
 	case MBS_BUFF_TIMEOUT: return pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs;
 	case MBS_TEMP_GAIN_L: return ToWORD(pAdjValue->TempGain)&0xffff;
@@ -102,6 +103,7 @@ int SetMemoryRegister(uint16 loc, uint16 value){
 	case MBS_BAUDRATE: pMeshNodeData->BaudRate=value; return NodeDataChanged;
 	case MBS_SLEEPTIME: pMeshNodeData->WorkingTimer=value; return NodeDataChanged;
 	case MBS_REBOOT_IDEL_TIME: pMeshNodeData->RebootForRs485IdelSecnods=value; return NodeDataChanged;
+	case MBS_REBOOT_MINUTES: pMeshNodeData->RebootMinutes=value;return NodeDataChanged;
 	case MBS_KEEPALIVE_BEFORE_SLEEP: pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep=value; return AdjChanged;
 	case MBS_BUFF_TIMEOUT: pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs=value; return AdjChanged;
 	case MBS_TEMP_GAIN_L: FromWordL(pAdjValue->TempGain,value); return AdjChanged;
