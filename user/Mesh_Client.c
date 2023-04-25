@@ -425,19 +425,24 @@ void ClientGetNodeInfoProc()
             		//dprint("CNS_PRE_SEVER_INFO: set ServerIsAwake=%d\r\n",ServerIsAwake);
 					if(RespServerNode == 0) {ToWaitingStage(CNS_WAIT_SET_INFO,100);}
 					else {
-						dprint("*** Wait %.1f(Sec) for next time.\r\n",GetInfoCycle/100.0);
-						ToWaitingStage(CNS_WAIT_SET_INFO,max((int16)GetInfoCycle-(int16)WAIT_SEC(TIMER_CLI_WAIT_INFO),0));
+						dprint("*** Wait %.1f(Sec)(%d) for next time.\r\n",GetInfoCycle/100.0,(int32)GetInfoCycle-(int32)WAIT_SEC(TIMER_CLI_WAIT_INFO));
+						ToWaitingStage(CNS_WAIT_SET_INFO,max((int32)GetInfoCycle-(int32)WAIT_SEC(TIMER_CLI_WAIT_INFO),0));
 					}
             	}
                 break;
             case CNS_WAIT_SET_INFO: 
 
-                if(GetNodeStatus(NS_LINKING) ==ON) break;
+                if(GetNodeStatus(NS_LINKING) ==ON){
+                	dprint("NS_LINKING > ON\r\n");
+                	break;
+                }
                 if(CheckWaitTimeOut()){
+                	dprint("to CNS_GET_SEVER_INFO\r\n");
                      ToNextStage(CNS_GET_SEVER_INFO);
-                    }
-                else if(GetNodeStatus(NS_SET_NODE_ACT) != TRUE)
+                }else if(GetNodeStatus(NS_SET_NODE_ACT) != TRUE){
+                	dprint("NS_SET_NODE_ACT >O N\r\n");
                     ToNextStage(CNS_GET_SEVER_INFO);
+                }
                 break;
             case CNS_GET_SEVER_INFO: 
 
@@ -562,7 +567,10 @@ void ClientCheckNodeStatus()
 				pNodeInfo->Status |= SERVER_NO_RESPONSE;
 			}else if(pNodeInfo->Count>0){
 				pNodeInfo->Count--;
-				if((pNodeInfo->SensorInfo.Header.Status & SERVER_FULL_POWER) == 0)power_flag = OFF;
+				if((pNodeInfo->SensorInfo.Header.Status & SERVER_FULL_POWER) == 0){
+					//dprint("************* pNodeInfo->SensorInfo.Header.Status:0x%0x\r\n ************************",pNodeInfo->SensorInfo.Header.Status);
+					power_flag = OFF;
+				}
 			}
 		}
         pNodeInfo++;
@@ -661,9 +669,11 @@ void ClientFromHostProc()
             ToNextStage(CHS_CHECK_RX_EVENT);
             break;
         case CHS_CHECK_RX_EVENT: 
+#if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH) || defined(BT_MESH_G6)
         	if(UsartGetRxCounter()) trans_prepare_response_count=0; /*接收到任何Rx訊息就取消回傳暫存值的動作，避免接下來的指令發生回應錯位的問題*/
+#endif
         	if(GetNodeStatus(NS_USART_RX_EVENT) == TRUE)
-#if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
+//#if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
         	{
         		if(pMeshNodeData->RebootForRs485IdelSecnods ) RebootCountdown=pMeshNodeData->RebootForRs485IdelSecnods;/*收到RX訊息，重置重啟計數*/
         		btId=UsartGetBuff(USART_ID_RX)[0];
@@ -682,18 +692,34 @@ void ClientFromHostProc()
 
         			break;
         		}
+
+
         		pClientInfo = GetServerInfoPos(btId); /*是否有Server在線上，有的話以Skynet方式回傳內容*/
         		if (pClientInfo && pClientInfo->SensorInfo.Header.SensorClass && pClientInfo->SensorInfo.Header.SensorClass!=SENSOR_CUSTOM_SERIAL){ /*非透傳設備，以Skynet方式處理Modbus指令*/
         			if (pClientInfo->Status & SERVER_NO_RESPONSE){
         				dprint("Old Skynet ID:%d(%d) is disconnected.\r\n",btId,pClientInfo->SensorInfo.Header.SensorClass);
         				ToNextStage(CHS_MODBUS_ERROR); /*該Server斷線中，不回應訊息*/
         			}else{
-						dprint("Old Skynet ID:%d(%d) Protocal proccess.\r\n",btId,pClientInfo->SensorInfo.Header.SensorClass);
-						ToNextStage(CHS_CHECK_MODBUS);
+        				switch(ClientModbusResponse(pClientInfo)){
+						case CMR_DONE:
+							UsartResetRxTx(USART_ID_RX);
+							SetNodeStatus(NS_USART_RX_EVENT,OFF);
+							ToWaitingStage(CHS_CHECK_RX_EVENT,WAIT_MS(0));
+							break;
+						case CMR_NONE: /*不在ClientModbusResponse()函式的處理範圍中，採用原先的方式*/
+							dprint("Old Skynet ID:%d(%d) Protocal proccess.\r\n",btId,pClientInfo->SensorInfo.Header.SensorClass);
+							ToNextStage(CHS_CHECK_MODBUS);
+							break;
+						default: //case CMR_ERROR:
+							ToNextStage(CHS_MODBUS_ERROR);
+						}
+						//dprint("Old Skynet ID:%d(%d) Protocal proccess.\r\n",btId,pClientInfo->SensorInfo.Header.SensorClass);
+						//ToNextStage(CHS_CHECK_MODBUS);
         			}
 					break;
         		}
 
+#if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
         		/*透傳方式處理*/
         		dprint("Transparent Transmitter proccess. ID:%d\r\n",btId);
         		ToNextStage(CHS_SEND_TO_CLIENT);
@@ -704,7 +730,14 @@ void ClientFromHostProc()
         		trans_prepare_response_count=0; /*取消回傳暫存數值*/
         		//dprint("rx process: ServerIsAwake=%d\r\n",ServerIsAwake);
         		goto CLIENT_SEND_DATA_TO_SERVER;
-        	}else if(trans_prepare_response_count>0 && CheckWaitTimeOut()){ /*發送到Server的指令未回應，將預備好的回應內容回應到485*/
+#else /*無透傳功能*/
+        		UsartResetRxTx(USART_ID_RX);
+				SetNodeStatus(NS_USART_RX_EVENT,OFF);
+				ToWaitingStage(CHS_CHECK_RX_EVENT,WAIT_MS(0));
+#endif
+        	}
+#if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH) || defined(BT_MESH_G6)
+        	else if(trans_prepare_response_count>0 && CheckWaitTimeOut()){ /*發送到Server的指令未回應，將預備好的回應內容回應到485*/
         		if(!UsartTxIsBusy() && !UsartRxIsBusy()){
 					btId=GetSourceBtId(UsartGetBuff(USART_ID_TX)[0]);
 					if (btId){
@@ -718,20 +751,10 @@ void ClientFromHostProc()
         		}
         		trans_prepare_response_count=0;
         	}
-/*#elif 1
-        	{
-				if(GetNodeStatus(USART_RX_CRC_ERROR)){ //CRC錯誤，重置接收參數
-					UsartResetRxTx(USART_ID_RX);
-					SetNodeStatus(NS_USART_RX_EVENT,OFF);
-					ToNextStage(CHS_CHECK_RX_EVENT);
-				}
-				else switch(ClientModbusResponse()){
-					case CMR_DONE: ToNextStage(CHS_WAIT_TX_FINISHED); break;
-					case CMR_ERROR: ToNextStage(CHS_MODBUS_ERROR); break;
-					default:  ToNextStage(CHS_CHECK_MODBUS);
-				}
-        	}*/
-#elif defined(BTM_A308)
+#endif
+
+#if 0
+//#elif defined(BTM_A308)
 			{
 
         		if(GetNodeStatus(USART_RX_CRC_ERROR)){ /*CRC錯誤，重置接收參數*/
@@ -751,13 +774,10 @@ void ClientFromHostProc()
 						ToNextStage(CHS_CHECK_MODBUS);
 					}
 				}
-				/*else if(ClientModbusResponse())
-						ToNextStage(CHS_WAIT_TX_FINISHED);
-				else
-					ToNextStage(CHS_MODBUS_ERROR);*/
 			}
-#else
-            	ToNextStage(CHS_CHECK_MODBUS); //ToNextStage(CHS_PREPARE_DATA);   //default
+//#else
+            ToNextStage(CHS_CHECK_MODBUS); //ToNextStage(CHS_PREPARE_DATA);   //default
+//#endif
 #endif
             break;
 
@@ -1060,7 +1080,7 @@ void ClientPropertyEvent(msg_ms_client_status_evt *pEvent)
                     case NODE_GET_INFO_FULL_POWER_ON: 
                     case NODE_GET_INFO_FULL_POWER_OFF:
                         memcpy(&(pClientInfo->SensorInfo),property_data,property_len);
-                        dprint("** Received Info Class:%d, Battery Power:%d\r\n",pClientInfo->SensorInfo.Header.SensorClass,pClientInfo->SensorInfo.Header.BatteryPower);
+                        dprint("** Received Info Class:%d, Battery Power:%d, State:0x%x\r\n",pClientInfo->SensorInfo.Header.SensorClass,pClientInfo->SensorInfo.Header.BatteryPower,pClientInfo->SensorInfo.Header.Status);
 #ifdef BTM_A308
                         if(property_id==NODE_GET_ALL_SENSOR || property_id==NODE_GET_ALL_SENSOR_GEN2) {
                         	result=Cmd_ms_client_get(SENSOR_ELEMENT, pNodeEventInfo->ServerAddr, IGNORED, 0xA5, PROP_SERVER_ACK)->result;
@@ -1929,7 +1949,7 @@ bool ClientVelocity(PVelocity p_info)
 
 
 
-ClientMbsResult ClientModbusResponse(){
+ClientMbsResult ClientModbusResponse(PClientInfo server){
 	uint16 (*getValueFunc)(uint16 loc);
 	UCHAR *rx=UsartGetBuff(USART_ID_RX);
 	UCHAR *tx=UsartGetBuff(USART_ID_TX);
@@ -1941,8 +1961,9 @@ ClientMbsResult ClientModbusResponse(){
 	if((fun==3||fun==4) && len>127 )return MbsResponseError(rx[0],rx[1],0x02)?CMR_DONE:CMR_ERROR; /* location error*/
 
 
-	if((pClientInfo = GetServerInfoPos(rx[0]))== NULL) return CMR_ERROR;
-	switch(pClientInfo->SensorInfo.Header.SensorClass){
+	//if((pClientInfo = GetServerInfoPos(rx[0]))== NULL) return CMR_ERROR;
+	//switch(pClientInfo->SensorInfo.Header.SensorClass){
+	switch(server->SensorInfo.Header.SensorClass){
 #ifdef BTM_A308
 	case SENSOR_A308M:
 		return A308_Client_Modbus_Response()?CMR_DONE:CMR_ERROR;

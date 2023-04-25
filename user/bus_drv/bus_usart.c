@@ -56,11 +56,14 @@ void UsartInit(void)
     //usart_init.baudrate = UsartBaudrate[pMeshNodeData->BaudRate];
 //#else
 
-
-    if(NodeRole == NR_CLIENT || pMeshNodeData->SensorClass==SENSOR_CUSTOM_SERIAL)
+#ifdef BTM_A308
+    usart_init.baudrate = UsartBaudrate[pMeshNodeData->BaudRate];   //setup baudrate
+#else
+    if(NodeRole == NR_CLIENT || pMeshNodeData->SensorClass==SENSOR_CUSTOM_SERIAL || pMeshNodeData->SensorClass==SENSOR_A308M )
         usart_init.baudrate = UsartBaudrate[pMeshNodeData->BaudRate];   //setup baudrate
     else
         usart_init.baudrate = UsartBaudrate[USART_BAUDRATE_DEFAULT];   //setup baudrate
+#endif
 //#endif
     USART_InitAsync(USART, &usart_init);   // Initialize USART asynchronous mode and route pins
     

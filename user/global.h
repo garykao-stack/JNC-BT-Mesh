@@ -74,19 +74,25 @@
 
 */
 
+
+//for G6-DAC7760
+// version: 1.00
 /*=============================================================
  *						Product Select
  *-------------------------------------------------------------*/
-//for G6-DAC7760
-// version: 1.00
-
-#define JNC_BT_MESH             1		//for JNC BT Mesh (預設版本)
+//#define JNC_BT_MESH             1		//for JNC BT Mesh (預設版本)
 //#define BT_MESH_G6              1		//for BT Mesh Control G6
 //#define ULTRA_SOUND_SKYNET      1		//xxxx
 //#define BTM_TRANSMITTER		1		//BTM / RS485 transmitter (已合併到JNC_BT_MESH,不需要特別定義)
-//#define BTM_A308				1		//A308 Customized. Read All data from modbus, transmite data with several BTM responses.
+#define BTM_A308				1		//A308 Customized. Read All data from modbus, transmite data with several BTM responses.
 
+/*---------------- Temperature Snsor Selection -----------------*/
+#define SensorIsSi7021
+//#define SensorIsSHT3x
 
+#if (defined(SensorIsSi7021) && defined(SensorIsSHT3x))
+#error Only one product definition can be selected !!
+#endif
 
 /*------------------------ Basic Option ------------------------*/
 /*NODE_DISCONNECT_DETECT_COUNT : Server斷線判斷次數 ，預設為0
@@ -115,22 +121,15 @@
 #endif
 
 #if defined(JNC_BT_MESH)
- #define FW_VER              135
+ #define FW_VER              136
   #define HW_VER              110
   #define DEVICE_NAME         "JNC-BT-Mesh"SPACMARK
   #define MANUFACTORY_NAME    "JNC"
   #define NODE_DATA_ID        0xA5A5
   #define MODEL_NAME          "BTM001"
 
-   #define SensorIsSi7021
-  //#define SensorIsSHT3x
-
-  #if (defined(SensorIsSi7021) && defined(SensorIsSHT3x))
-    #error Only one product definition can be selected !!
-  #endif
-
 #elif defined(BTM_A308)
-  #define FW_VER              103
+  #define FW_VER              136
   #define HW_VER              100
   #define DEVICE_NAME         "A308 BT Transmitter"SPACMARK
   #define MANUFACTORY_NAME    "JNC"

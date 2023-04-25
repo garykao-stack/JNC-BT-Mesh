@@ -45,6 +45,7 @@ typedef struct _NodeHeader_
 #define SERVER_NO_RESPONSE          BIT0    //server node no response
 #define SERVER_FULL_POWER           BIT1    //server full power that can not sleeping
 #define SERVER_A308_STANDBY			BIT2
+#define SERVER_A308_SOURCE_ERR		BIT3
 
 typedef struct _Si7021Info_
 {

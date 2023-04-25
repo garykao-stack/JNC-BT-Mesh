@@ -5,7 +5,11 @@
 #include "node_data.h"
 #include "ClientModbus.h"
 
-#if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH) || defined(BT_MESH_G6)
+#if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH) || defined(BT_MESH_G6) || defined(BTM_A308)
+
+#ifdef BTM_A308
+	extern int8 A308_TableExist(uint8 id);
+#endif
 
 extern PClientInfo pClientInfo;
 extern uchar GetBatteryPower();
@@ -45,6 +49,18 @@ uint16 GetAiRegister(uint16 loc){
 			}
 		}
 		return ((loc-0x200)%2)?(lCount>>16):(lCount&0xffff);
+	}else if(loc<=0x4ff){
+		id=loc-0x400;
+
+		pServer=GetServerInfoPos(id);
+		//dprint("Mbs Req id:%d, stat:0x%x, sn:%d server:x0%x\r\n",id,pServer->SensorInfo.Header.Status,A308_TableExist(id),pServer);
+		if(!pServer) return 3; 														/* 3: Server不存在        */
+		else if(pServer->SensorInfo.Header.Status&SERVER_A308_SOURCE_ERR) return 2; /* 2: A308 讀取錯誤       */
+#ifdef BTM_A308
+		else if(!A308_TableExist(id)) return 1; 									/* 1: BT讀取中                   */
+#endif
+		else return 0; 																/* 0: 成功                              */
+
 	}
 	return 0;
 }
