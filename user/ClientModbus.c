@@ -51,7 +51,6 @@ uint16 GetAiRegister(uint16 loc){
 		return ((loc-0x200)%2)?(lCount>>16):(lCount&0xffff);
 	}else if(loc<=0x4ff){
 		id=loc-0x400;
-
 		pServer=GetExistingServerInfoPos(id);
 		dprint("Mbs Req id:%d, stat:0x%x, server:x0%x\r\n",id,pServer->SensorInfo.Header.Status,pServer);
 		if(!pServer) return 3; 														/* 3: Server不存在        */
@@ -61,6 +60,10 @@ uint16 GetAiRegister(uint16 loc){
 #endif
 		else return 0; 																/* 0: 成功                              */
 
+	}else if(loc<=0x5ff){
+		id=loc-0x400;
+		pServer=GetExistingServerInfoPos(id);
+		return pServer?pServer->SensorInfo.Header.SensorClass:0;
 	}
 	return 0;
 }
