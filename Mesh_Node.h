@@ -372,8 +372,6 @@ typedef struct _NodeEventInfo_
 #define SENSOR_CUSTOM_SERIAL 0xff
 
 
-
-
 //can not auto scan
 
 #define SENSOR_NO_SCAN       53

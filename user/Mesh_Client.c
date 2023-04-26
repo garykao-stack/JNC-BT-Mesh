@@ -101,9 +101,24 @@ void ClientNodeTask()
     if(pMeshNodeData->RebootForRs485IdelSecnods && !RebootCountdown) Cmd_sys_reset(0);
 
 }
-//
-//
-//
+
+PClientInfo GetExistingServerInfoPos(uint16 node_addr){
+	PClientInfo p_client_info=ClientInfo;
+	int16 loop;
+	for(loop=0; loop<SERVER_NODE_MAX; loop++){
+		if(p_client_info->ServerID == node_addr ) return p_client_info;
+		p_client_info++;
+	}
+	return NULL;
+}
+
+PClientInfo GetServerInfoPos(uint16 node_addr){
+	PClientInfo ret_code=GetExistingServerInfoPos(node_addr);
+	if (ret_code) return ret_code;
+	return GetExistingServerInfoPos(0);
+}
+
+/*
 PClientInfo GetServerInfoPos(uint16 node_addr)
 {
     PClientInfo ret_code=NULL;
@@ -131,7 +146,7 @@ PClientInfo GetServerInfoPos(uint16 node_addr)
             p_client_info++;
         }
     return ret_code;
-}
+}*/
 
 PClientInfo FindNextServerInfo(uint8 class, PClientInfo pClient){
 	if (pClient==0){

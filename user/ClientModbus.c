@@ -27,22 +27,22 @@ uint16 GetAiRegister(uint16 loc){
     uint32 lCount=0;
 	if(loc==pMeshNodeData->MeshNodeID) return GetBatteryPower(); /*Client自身電量*/
 	else if(loc<=0xff) { /*Server電量*/
-		pServer=GetServerInfoPos(loc);
+		pServer=GetExistingServerInfoPos(loc);
 		if(pServer && pServer->SensorInfo.Header.SensorClass) return pServer->SensorInfo.Header.BatteryPower;
 		return 0xffff;
 	}else if(loc<=0x1ff){ /*計算回應百分比*/
 		id=loc-0x100;
 		if (ClientBroadcastCounter==0) return 0;
-		pServer=GetServerInfoPos(id);
+		pServer=GetExistingServerInfoPos(id);
 		if(pServer){
 			idx=((uint8*)pServer-(uint8*)ClientInfo)/sizeof(_ClientInfo);
 			return (uint16)((double)ServerResponseCounter[idx]/(double)ClientBroadcastCounter*100);
-		}else return 0xffff;
+		}else return 0;
 	}else if(loc<=0x3ff){ /*命令/回應計數*/
 		id=(loc-0x200)/2;
 		if (id==0) lCount=ClientBroadcastCounter; /*命令次數*/
 		else{
-			pServer=GetServerInfoPos(id);
+			pServer=GetExistingServerInfoPos(id);
 			if (pServer){ /*回應次數*/
 				idx=((uint8*)pServer-(uint8*)ClientInfo)/sizeof(_ClientInfo);
 				lCount=ServerResponseCounter[idx];
@@ -52,8 +52,8 @@ uint16 GetAiRegister(uint16 loc){
 	}else if(loc<=0x4ff){
 		id=loc-0x400;
 
-		pServer=GetServerInfoPos(id);
-		//dprint("Mbs Req id:%d, stat:0x%x, sn:%d server:x0%x\r\n",id,pServer->SensorInfo.Header.Status,A308_TableExist(id),pServer);
+		pServer=GetExistingServerInfoPos(id);
+		dprint("Mbs Req id:%d, stat:0x%x, server:x0%x\r\n",id,pServer->SensorInfo.Header.Status,pServer);
 		if(!pServer) return 3; 														/* 3: Server不存在        */
 		else if(pServer->SensorInfo.Header.Status&SERVER_A308_SOURCE_ERR) return 2; /* 2: A308 讀取錯誤       */
 #ifdef BTM_A308
