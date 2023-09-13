@@ -50,6 +50,9 @@ typedef struct _Si7021Info_
 {
     int16   Tempature;      // -40°C ~ 85°C
     uint16  Humidity;       // 0% ~ 100%
+
+    float   fTempature;     // -40°C ~ 85°C
+    float   fHumidity;      // 0% ~ 100%
 }_Si7021Info,*PSi7021Info;
 
 typedef struct _PT485Info_
@@ -214,8 +217,24 @@ typedef struct _SkynetCo2_
 {
     int16   Tempature;      // -40°C ~ 85°C
     uint16  Humidity;       // 0% ~ 100%
+    float   fTempature;     // -40°C ~ 85°C
+    float   fHumidity;      // 0% ~ 100%
     uint16  Co2;
+    float   fCo2;
 }_SkynetCo2,*PSkynetCo2;
+
+typedef struct _SkynetPm25_
+{
+    uint16  PM25;           // for PM2.5
+    float   fPM25;          // for float PM2.5
+    float   fPM10;          // for float PM10
+}_SkynetPm25,*PSkynetPm25;
+
+typedef struct _SkynetTvoc_
+{
+    uint16  TVOC;           // for TVOC
+    float   fTVOC;          // for float TVOC
+}_SkynetTvoc,*PSkynetTvoc;
 
 typedef struct _BtMeshInfo_
 {
@@ -284,6 +303,8 @@ union{
         _Velocity   Velocity;
         _BtmG6      BtmG6;
         _JYGD15Info	JYGD15Info;
+        _SkynetPm25  SkynetPm25;
+        _SkynetTvoc  SkynetTvoc;
         
      };
 }_SensorInfo,*PSensorInfo;
@@ -368,6 +389,8 @@ typedef struct _NodeEventInfo_
 #define SENSOR_BTM_G6        19     // for G6 Control
 #define SENSOR_VELOCITY      20     // for G6 Control
 #define SENSOR_JYGD15		 21		/*風速風量變送器*/
+#define SENSOR_SKYNET_PM25   22     // Skynet PM25
+#define SENSOR_SKYNET_TVOC   23     // Skynet TVOC
 #define SENSOR_CUSTOM_SERIAL 0xff
 
 

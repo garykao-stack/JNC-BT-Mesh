@@ -77,6 +77,15 @@ typedef struct
 #define MODBUS_ADDR_AIP_POWER       0x0004  // for AIP Power/Watt
 
 
+// --- JNC modbus address ---
+#define JNC_MODBUS_BATTERY          0x0022  //for battery
+#define JNC_MODBUS_TEMP             0x0080  //for temperture
+#define JNC_MODBUS_RH               0x0082  //for RH
+#define JNC_MODBUS_CO2              0x0084  //for Co2
+#define JNC_MODBUS_PM25             0x0086  //for PMSA003 PM2.5
+#define JNC_MODBUS_PM10             0x0090  //for PMSA003 PM10
+#define JNC_MODBUS_TVOC             0x008C  //for SGPxx TVOC
+// --------------------------
 
 
 // Client Node Stage ==> CNS_XXXX
@@ -124,8 +133,10 @@ typedef struct
 #define BATTERY_POWER           0x0308  //for 
 
 #define SENSOR_CO2              0x0300  //for Co2
+#define SENSOR_PM25             0x0301  //for PMSA003 Pm25
 #define SI7021_TEMP             0x0302  //for SI7021
 #define SI7021_RH               0x0303  //for SI7021
+#define SENSOR_TVOC             0x0304  //for SGPxx TVOC
 
 
 #define PT485_TEMP              SI7021_TEMP  //for AIP
@@ -318,6 +329,8 @@ bool ClientOemSensor(POemSensor p_info);
 bool ClientIAQS(PIaqsInfo p_info);
 bool ClientCW9(PCw9Info p_info);
 bool ClientSkynetCo2(PSkynetCo2 p_info);
+bool ClientSkynetPm25(PSkynetPm25 p_info);
+bool ClientSkynetTvoc(PSkynetTvoc p_info);
 bool ClientBtmG6(PBtmG6 p_info);
 bool ClientVelocity(PVelocity p_info);
 bool ClientJYGD15(_JYGD15Info *info);

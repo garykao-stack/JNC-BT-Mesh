@@ -28,6 +28,8 @@
 
 #include "BQ3200.h"
 #include "mesh_sensor.h"
+#include "PMSA003.h"
+#include "SGPxx.h"
 
 #if STATE_CHANGE_DEBUG
 #define STATE_CHANGE_PRINT DEBUG_FUNCTION
@@ -142,7 +144,8 @@ const uchar Fun3Addr03[MODBUS_CMD_NUM] ={0x01, 0x03, 0x00, 0x03, 0x00, 0x01, 0x7
 const uchar Fun3Addr0A[MODBUS_CMD_NUM] ={0x01, 0x03, 0x00, 0x0A, 0x00, 0x01, 0xA4, 0x08};
 const uchar CmdPzemValue[MODBUS_CMD_NUM] ={0x01, 0x04, 0x00, 0x00, 0x00, 0x0A, 0x70, 0x0D};
 
-const uchar CmdGetCo2[7] ={0xFE, 0x44, 0x00, 0x08, 0x02, 0x9F, 0x25};
+const uchar CmdGetCo2[7] ={0xFE, 0x44, 0x00, 0x08, 0x02, 0x9F, 0x25};   //獲取CDM7160 CO2數據
+const uchar CmdGetPm25[7] ={0x42, 0x4d, 0xe2, 0x00, 0x00, 0x01, 0x71};  //取得攀藤PM2.5數據
 
 /*轉傳指令*/
 uchar TransData[USART_TX_BUFF_SIZE];
@@ -990,6 +993,8 @@ bool GetSkynetInfo()
         AdjTempRh(&temp,&Humidity); 
          p_sensor->Tempature = temp;
          p_sensor->Humidity  = Humidity;
+         p_sensor->fTempature = (float)p_sensor->Tempature / 10;
+         p_sensor->fHumidity = (float)p_sensor->Humidity / 10;
         //  printf("temp: %d, hum:%d\r\n",p_sensor->Tempature,p_sensor->Humidity);
         }
     else {ret_code = FALSE;}
@@ -1012,6 +1017,7 @@ bool GetSkynetCo2Info()
     PUCHAR p_buff = UsartGetBuff(USART_ID_RX);
     if(ServerSendModbusCmd((PUCHAR)CmdGetCo2,7) == TRUE){
         p_sensor->Co2 = WordSwap(*((PUINT16)&p_buff[3])); 
+        p_sensor->fCo2 = p_sensor->Co2;
         dprint("====> CO2: %d\r\n",p_sensor->Co2);
       }else{
     	  ret_code = FALSE;
@@ -1021,8 +1027,54 @@ bool GetSkynetCo2Info()
     return ret_code;
 }
 
+// --- PM2.5 PMSA003 ---
+bool ServerSendPM25Cmd(PUCHAR cmd,uchar len)
+{
+    bool ret_code = TRUE;
+    UsartTxSendCmd(cmd,len); 
+    Delay_ms(10); Rs485Rx(); Delay_ms(150); Rs485Tx(); // must to check crc error
+    ret_code = CheckPM25Valid(UsartGetBuff(USART_ID_RX), UsartGetRxCounter());
 
+    if(!ret_code) TraceErr1("ServerSendModbusCmd 1",UsartGetRxCounter());
+    
+    return ret_code;
+}
 
+bool GetSkynetPm25Info() {
+    bool ret_code = TRUE;
+    PSkynetPm25 p_sensor = &ServerInfo.SensorInfo.SkynetPm25;
+    SetNodeInfoSize(_SkynetPm25);
+    SetNodeClass(SENSOR_SKYNET_PM25);
+    // GetDeviceInfoDelay=6000;
+    PUCHAR p_buff = UsartGetBuff(USART_ID_RX);
+    if (ServerSendPM25Cmd((PUCHAR)CmdGetPm25, 7) == TRUE) {
+        CalculatePMSA003Value((uint8_t*)UsartGetBuff(USART_ID_RX), UsartGetRxCounter());
+        p_sensor->fPM25 = GetPMSA003Value_PM25();
+        p_sensor->PM25 = p_sensor->fPM25 * 10;
+        p_sensor->fPM10 = GetPMSA003Value_PM10();
+        dprint("====> PM25: %d\r\n", p_sensor->PM25);
+    } else {
+        ret_code = FALSE;
+        dprint("====> PM25: Read Faild.\r\n");
+    }
+    return ret_code;
+}
+
+bool GetSkynetTvocInfo()
+{
+    bool ret_code = TRUE;
+    uint16 tvoc;
+    PSkynetTvoc p_sensor = &ServerInfo.SensorInfo.SkynetTvoc;
+    SetNodeInfoSize(_SkynetTvoc);
+    SetNodeClass(SENSOR_SKYNET_TVOC);
+    if (SGPxx_GetTvoc(&tvoc)) {
+        p_sensor->TVOC = tvoc;
+        p_sensor->fTVOC = (float)p_sensor->TVOC / 1000;
+    } else {
+        ret_code = FALSE;
+    }
+    return ret_code;
+}
 
 //
 //

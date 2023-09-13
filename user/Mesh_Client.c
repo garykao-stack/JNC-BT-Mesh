@@ -1180,6 +1180,8 @@ bool ClientPrepareToHost()
             case SENSOR_BTM_G6:     ret_code = ClientBtmG6(&pClientInfo->SensorInfo.BtmG6);			break;
             case SENSOR_VELOCITY:   ret_code = ClientVelocity(&pClientInfo->SensorInfo.Velocity);	break;
             case SENSOR_JYGD15:	ret_code = ClientJYGD15(&pClientInfo->SensorInfo.JYGD15Info);	break;
+            case SENSOR_SKYNET_PM25: ret_code = ClientSkynetPm25(&pClientInfo->SensorInfo.SkynetPm25);	break;
+            case SENSOR_SKYNET_TVOC: ret_code = ClientSkynetTvoc(&pClientInfo->SensorInfo.SkynetTvoc);	break;
             case OTHER_MODBUS_CMD:  ret_code = ClientOtherModbusCmd();                				break;
             default:  ret_code=FALSE;
                 break;
@@ -1258,27 +1260,31 @@ bool ClientJYGD15(_JYGD15Info *info){
 //
 bool ClientSkynet(PSi7021Info p_info)
 {
-    bool ret_code=TRUE;
-    uint16 start_addr,total_reg;
+    bool ret_code = TRUE;
+    uint16 start_addr, total_reg;
     ModbusToHostCmd.ModbusID = pModbusCmd->ModbusID;
     ModbusToHostCmd.FunCode = pModbusCmd->FunCode;
     ModbusToHostCmd.ByteNum = 2;
-    start_addr  = WordSwap(pModbusCmd->StartAddr); // Trace16_1(start_addr);
+    start_addr = WordSwap(pModbusCmd->StartAddr);  // Trace16_1(start_addr);
     total_reg = WordSwap(pModbusCmd->TotalReg);    // Trace16_1(total_reg);
 
-    if(start_addr == SI7021_TEMP){
-        ModbusToHostCmd.Data[0] =  WordSwap(p_info->Tempature);
-      }
-    else if(start_addr == SI7021_RH ){
-        ModbusToHostCmd.Data[0] =  WordSwap(p_info->Humidity);
-      }
-    else if(start_addr == BATTERY_POWER ){
+    if (start_addr == JNC_MODBUS_TEMP) {
+        ModbusToHostCmd.ByteNum = 4;
+        ModbusToHostCmd.Data[0] = f_to_u16L(p_info->fTempature);
+        ModbusToHostCmd.Data[1] = f_to_u16H(p_info->fTempature);
+    } else if (start_addr == JNC_MODBUS_RH) {
+        ModbusToHostCmd.ByteNum = 4;
+        ModbusToHostCmd.Data[0] = f_to_u16L(p_info->fHumidity);
+        ModbusToHostCmd.Data[1] = f_to_u16H(p_info->fHumidity);
+    } else if (start_addr == SI7021_TEMP) {
+        ModbusToHostCmd.Data[0] = WordSwap(p_info->Tempature);
+    } else if (start_addr == SI7021_RH) {
+        ModbusToHostCmd.Data[0] = WordSwap(p_info->Humidity);
+    } else if ((start_addr == BATTERY_POWER) || (start_addr == JNC_MODBUS_BATTERY)) {
         ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
-      }
-    else{ 
-        ret_code=FALSE;
-        }
-
+    } else {
+        ret_code = FALSE;
+    }
 
     return ret_code;
 }
@@ -1289,36 +1295,94 @@ bool ClientSkynet(PSi7021Info p_info)
 //
 bool ClientSkynetCo2(PSkynetCo2 p_info)
 {
-    bool ret_code=TRUE;
-    uint16 start_addr,total_reg;
+    bool ret_code = TRUE;
+    uint16 start_addr, total_reg;
     ModbusToHostCmd.ModbusID = pModbusCmd->ModbusID;
     ModbusToHostCmd.FunCode = pModbusCmd->FunCode;
     ModbusToHostCmd.ByteNum = 2;
-    start_addr  = WordSwap(pModbusCmd->StartAddr); 
-    total_reg = WordSwap(pModbusCmd->TotalReg);    
+    start_addr = WordSwap(pModbusCmd->StartAddr);
+    total_reg = WordSwap(pModbusCmd->TotalReg);
 
-    if(start_addr == SI7021_TEMP){
-        ModbusToHostCmd.Data[0] =  WordSwap(p_info->Tempature);
-      }
-    else if(start_addr == SI7021_RH ){
-        ModbusToHostCmd.Data[0] =  WordSwap(p_info->Humidity);
-      }
-    else if(start_addr == SENSOR_CO2 ){
-        ModbusToHostCmd.Data[0] =  WordSwap(p_info->Co2);
-      }
-    else if(start_addr == BATTERY_POWER ){
+    if (start_addr == JNC_MODBUS_TEMP) {
+        ModbusToHostCmd.ByteNum = 4;
+        ModbusToHostCmd.Data[0] = f_to_u16L(p_info->fTempature);
+        ModbusToHostCmd.Data[1] = f_to_u16H(p_info->fTempature);
+    } else if (start_addr == JNC_MODBUS_RH) {
+        ModbusToHostCmd.ByteNum = 4;
+        ModbusToHostCmd.Data[0] = f_to_u16L(p_info->fHumidity);
+        ModbusToHostCmd.Data[1] = f_to_u16H(p_info->fHumidity);
+    } else if (start_addr == JNC_MODBUS_CO2) {
+        ModbusToHostCmd.ByteNum = 4;
+        ModbusToHostCmd.Data[0] = f_to_u16L(p_info->fCo2);
+        ModbusToHostCmd.Data[1] = f_to_u16H(p_info->fCo2);
+    } else if (start_addr == SI7021_TEMP) {
+        ModbusToHostCmd.Data[0] = WordSwap(p_info->Tempature);
+    } else if (start_addr == SI7021_RH) {
+        ModbusToHostCmd.Data[0] = WordSwap(p_info->Humidity);
+    } else if (start_addr == SENSOR_CO2) {
+        ModbusToHostCmd.Data[0] = WordSwap(p_info->Co2);
+    } else if ((start_addr == BATTERY_POWER) || (start_addr == JNC_MODBUS_BATTERY)) {
         ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
-      }
-    else{
-        ret_code=FALSE;
-        }
-
+    } else {
+        ret_code = FALSE;
+    }
 
     return ret_code;
 }
 
+bool ClientSkynetPm25(PSkynetPm25 p_info)
+{
+    bool ret_code = TRUE;
+    uint16 start_addr, total_reg;
+    ModbusToHostCmd.ModbusID = pModbusCmd->ModbusID;
+    ModbusToHostCmd.FunCode = pModbusCmd->FunCode;
+    ModbusToHostCmd.ByteNum = 2;
+    start_addr = WordSwap(pModbusCmd->StartAddr);
+    total_reg = WordSwap(pModbusCmd->TotalReg);
 
+    if (start_addr == JNC_MODBUS_PM25) {
+        ModbusToHostCmd.ByteNum = 4;
+        ModbusToHostCmd.Data[0] = f_to_u16L(p_info->fPM25);
+        ModbusToHostCmd.Data[1] = f_to_u16H(p_info->fPM25);
+    } else if (start_addr == JNC_MODBUS_PM10) {
+        ModbusToHostCmd.ByteNum = 4;
+        ModbusToHostCmd.Data[0] = f_to_u16L(p_info->fPM10);
+        ModbusToHostCmd.Data[1] = f_to_u16H(p_info->fPM10);
+    } else if (start_addr == SENSOR_PM25) {
+        ModbusToHostCmd.Data[0] = WordSwap(p_info->PM25);
+    } else if ((start_addr == BATTERY_POWER) || (start_addr == JNC_MODBUS_BATTERY)) {
+        ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
+    } else {
+        ret_code = FALSE;
+    }
 
+    return ret_code;
+}
+
+bool ClientSkynetTvoc(PSkynetTvoc p_info)
+{
+    bool ret_code = TRUE;
+    uint16 start_addr, total_reg;
+    ModbusToHostCmd.ModbusID = pModbusCmd->ModbusID;
+    ModbusToHostCmd.FunCode = pModbusCmd->FunCode;
+    ModbusToHostCmd.ByteNum = 2;
+    start_addr = WordSwap(pModbusCmd->StartAddr);
+    total_reg = WordSwap(pModbusCmd->TotalReg);
+
+    if (start_addr == JNC_MODBUS_TVOC) {
+        ModbusToHostCmd.ByteNum = 4;
+        ModbusToHostCmd.Data[0] = f_to_u16L(p_info->fTVOC);
+        ModbusToHostCmd.Data[1] = f_to_u16H(p_info->fTVOC);
+    } else if (start_addr == SENSOR_TVOC) {
+        ModbusToHostCmd.Data[0] = WordSwap(p_info->TVOC);
+    } else if ((start_addr == BATTERY_POWER) || (start_addr == JNC_MODBUS_BATTERY)) {
+        ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
+    } else {
+        ret_code = FALSE;
+    }
+
+    return ret_code;
+}
 
 //
 //

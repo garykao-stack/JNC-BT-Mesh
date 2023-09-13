@@ -115,13 +115,14 @@
 #endif
 
 #if defined(JNC_BT_MESH)
- #define FW_VER              135
+ #define FW_VER              136
   #define HW_VER              110
   #define DEVICE_NAME         "JNC-BT-Mesh"SPACMARK
   #define MANUFACTORY_NAME    "JNC"
   #define NODE_DATA_ID        0xA5A5
   #define MODEL_NAME          "BTM001"
 
+  // skynet_co2, skynet_pm25, skynet_tvoc choose either one.
    #define SensorIsSi7021
   //#define SensorIsSHT3x
 
@@ -323,6 +324,9 @@ void DWordSwap(PUCHAR p_value);
 void DWordSwapN(PUCHAR p_value, uint16 num);
 
 void WordSwapBuff(PUINT16 pBuff,uchar size);
+
+extern uint16_t f_to_u16L(float f);
+extern uint16_t f_to_u16H(float f);
 
 void JtagStatus(uchar status);
 uint16 TwoValueDiff(uint16 value_a, uint16 value_b);

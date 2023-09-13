@@ -1,3 +1,9 @@
+### ALL DEVICE v1.36  #
+#### 20230912 (珊) #
+1. skynet 增加可以讀取 PM2.5 Sensor PM2.5,PM10 (PMSA003.c 和 PMSA003.h)。
+2. skynet 增加可以讀取 TVOC Sensor (SGPxx.c 和 SGPxx.h)。
+3. skynet 修正 BATTERY/TEMP/RH/CO2/PM25/TVOC modbus address 及資料類型等改成統一 modbus 表，原本的暫時保留。
+
 ### ALL DEVICE V1.35 #
 #### 20230413 (曾) #
 1. 增加Client重啟時間，會依設定時間(分)重啟

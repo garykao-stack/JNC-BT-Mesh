@@ -8,6 +8,7 @@
 #include "si7013.h"
 #include "SHT3x.h"
 #include "G6_BT_Mesh.h"
+#include "SGPxx.h"
 
 
 void Rs485Init()
@@ -133,16 +134,22 @@ uchar CheckRs485Device(int16 connectTryCount)
             GetUltraSoundInfo();
             pMeshNodeData->SensorClass = SENSOR_ULTRA_SOUND;rs485_dev = SENSOR_ULTRA_SOUND;  goto Assigned;
         }
-        if(CheckCDMCo2() != TRUE){
-            pMeshNodeData->SensorClass = SENSOR_SI7021;rs485_dev = SENSOR_SI7021;  goto Assigned;
+        if(CheckCDMCo2() == TRUE){
+            pMeshNodeData->SensorClass = SENSOR_SKYNET_CO2;rs485_dev = SENSOR_SKYNET_CO2;  goto Assigned;
         }
         else{ 
-            pMeshNodeData->SensorClass = SENSOR_SKYNET_CO2;rs485_dev = SENSOR_SKYNET_CO2;  goto Assigned;
-    }       
+            pMeshNodeData->SensorClass = SENSOR_SI7021;rs485_dev = SENSOR_SI7021;  goto Assigned;
+        }       
     }
     else if(CheckCDMCo2()){
     	dprint("!!! Si7013 is not existed !!!\r\n");
     	pMeshNodeData->SensorClass = SENSOR_SKYNET_CO2;rs485_dev = SENSOR_SKYNET_CO2;  goto Assigned;
+    }
+    else if(CheckCDMPm25()){
+    	pMeshNodeData->SensorClass = SENSOR_SKYNET_PM25;rs485_dev = SENSOR_SKYNET_PM25;  goto Assigned;
+    }
+    else if(CheckCDMTvoc()){
+    	pMeshNodeData->SensorClass = SENSOR_SKYNET_TVOC;rs485_dev = SENSOR_SKYNET_TVOC;  goto Assigned;
     }
   
     if(CheckRs485Connect(connectTryCount) == FALSE)
@@ -198,6 +205,8 @@ Assigned:
     else if(rs485_dev == SENSOR_IAQS)   {pFunSensor = GetIaqsInfo; GetDeviceInfoDelay = 2;}
     else if(rs485_dev == SENSOR_CW9 )   {pFunSensor = GetCw9Info; GetDeviceInfoDelay = 2;}
     else if(rs485_dev == SENSOR_SKYNET_CO2) {pFunSensor = GetSkynetCo2Info; GetDeviceInfoDelay = 2;}
+    else if(rs485_dev == SENSOR_SKYNET_PM25) {pFunSensor = GetSkynetPm25Info; GetDeviceInfoDelay = 2;}
+    else if(rs485_dev == SENSOR_SKYNET_TVOC) {pFunSensor = GetSkynetTvocInfo; GetDeviceInfoDelay = 2;}
     else if(rs485_dev == SENSOR_BTM_G6)     {pFunSensor = GetBtmG6Info; GetDeviceInfoDelay = 2;}
     else if(rs485_dev == SENSOR_VELOCITY)   {pFunSensor = GetVelocityInfo; GetDeviceInfoDelay = 2;}
     else {TraceErr("Sensor Check");} // 
@@ -383,7 +392,7 @@ uchar ScanRs485Device()
 bool CheckCDMCo2()
 {
     bool ret_code = FALSE;
-    uchar device_name[6]={0xFE, 0x64, 0x0F, 0x00, 0x75, 0xE3}; //to get PT485 model name
+    uchar device_name[6]={0xFE, 0x64, 0x0F, 0x00, 0x75, 0xE3};  //關閉CDM7160長期自動校正
     CHECK_RS485_CMD(device_name,sizeof(device_name));
     if(UsartGetRxCounter() != 0){
          if(memcmp(device_name,UsartGetBuff(USART_ID_RX),sizeof(device_name)) == 0)
@@ -392,6 +401,35 @@ bool CheckCDMCo2()
          else TraceErr("CDMCo2 Disconnect 1");
         }
     UsartResetRxTx(USART_ID_TX_RX);
+
+    return ret_code;
+}
+
+bool CheckCDMPm25()
+{
+    bool ret_code = FALSE;
+    uchar CmdSetPm25Manual[7] = {0x42, 0x4D, 0xE1, 0x00, 0x00, 0x01, 0x70};  //關閉攀藤PM2.5自動模式
+    const uchar CmdReceive[8] = {0x42, 0x4D, 0x00, 0x04, 0xE1, 0x00, 0x01, 0x74};
+    // Set 5 times in a row in case PMSA003 is sending.
+    for (int i = 0; i < 5; i++) {
+         CHECK_RS485_CMD(CmdSetPm25Manual, sizeof(CmdSetPm25Manual));
+         if (UsartGetRxCounter() != 0) {
+            if (memcmp(CmdReceive, UsartGetBuff(USART_ID_RX), sizeof(CmdReceive)) == 0) {
+                return TRUE;
+            } else
+                TraceErr("CDMPm25 Disconnect 1");
+         }
+         UsartResetRxTx(USART_ID_TX_RX);
+    }
+    return ret_code;
+}
+
+bool CheckCDMTvoc()
+{
+    bool ret_code = TRUE;
+    ret_code = SGPxx_IsReady();
+
+    if (!ret_code) TraceErr("TVOC  Disconnect 1");
 
     return ret_code;
 }

@@ -230,6 +230,8 @@ bool GetIaqsInfo();
 bool GetCw9Info();
 bool GetIaqsCw9();
 bool GetSkynetCo2Info();
+bool GetSkynetPm25Info();
+bool GetSkynetTvocInfo();
 bool GetBtmMeshInfo();
 bool GetBtmG6Info();
 bool GetVelocityInfo();

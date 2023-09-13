@@ -85,6 +85,20 @@ void DWordSwapN(PUCHAR p_value, uint16 num)
 }
 
 
+// for float
+uint32_t* f_to_u32(float *f)
+{
+  return (uint32_t*)f;
+}
+uint16_t f_to_u16L(float f)
+{
+  return WordSwap(*f_to_u32(&f) & 0xffff);
+}
+uint16_t f_to_u16H(float f)
+{
+  return WordSwap(*f_to_u32(&f) >> 16);
+}
+
 #define TEMO_OFFSET_VALUE   300
 #define TEMO_MUL_VALUE      3
 
