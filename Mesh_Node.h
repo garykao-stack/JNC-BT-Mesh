@@ -525,6 +525,8 @@ typedef struct _NodeEventInfo_
 #define ActiveStage()               pStageInfo->Stage
 #define ToNextStage(stage)          do{pStageInfo->Stage = stage;STATE_CHANGE_PRINT("==> To Step %s .\r\n",#stage);}while(0)
 #define ToWaitingStage(stage,timer) do{pStageInfo->Stage = stage;STATE_CHANGE_PRINT("==> To Step %s . Wait:%d.\r\n",#stage,timer);pStageInfo->Timer = timer;}while(0)
+#define ActiveWaiting()             (pStageInfo->Timer)
+#define SetWaiting(timer)           do{pStageInfo->Timer = timer;}while(0)
 //#define ToWaitingStage(stage,timer) pStageInfo->Stage = stage; pStageInfo->Timer = timer
 
 //#define ToNextSensorStage(stage) SensorStage = stage
@@ -541,6 +543,7 @@ void MeshNodeInit();
 void SetMeshNodeStage(uint16 stage);
 void SetWaitTimer(uint16 timer);
 bool CheckWaitTimeOut();
+bool CheckPreReadTimer(bool bReset, uint16 time, uint16 uart_time);
 void SetNodeStatus(uint32 status, uchar on_off);
 bool GetNodeStatus(uint32 status);
 PNodeStageInfo GetNodeStageInfo(uchar value);

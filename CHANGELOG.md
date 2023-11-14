@@ -1,3 +1,14 @@
+### ALL DEVICE v1.37  #
+#### 20231114 (珊) #
+1. CO2 sensor 改使用 S8，較穩定。
+2. 修正電池模式從休眠醒來後 CO2, PM2.5, TVOC 讀值異常:
+    - 修正 GetDeviceInfoDelay: 提早醒來等 sensor 穩定。
+    - 增加 PreReadDelay: 時間內每秒讀取一筆，可供後續運算使用。
+    - 增加 syncTime: 工作週期超過 Client 時，跳過等待時間趕快讀，並減少下一次睡眠時間。
+3. 增加可從 app 設定 CO2, PM25, TVOC 的 gain offset:
+    - 溫度 gain offset 借用給 CO2, PM25, TVOC。
+    - 濕度 gain offset 借用給 PM10。
+
 ### ALL DEVICE v1.36  #
 #### 20230912 (珊) #
 1. skynet 增加可以讀取 PM2.5 Sensor PM2.5,PM10 (PMSA003.c 和 PMSA003.h)。

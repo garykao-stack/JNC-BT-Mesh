@@ -120,8 +120,8 @@
 
 typedef struct _BtAppData_
 {
-    int16   TempGain,TempOffset;    // Tempature Gain & Offset  
-    int16   RhGain,RhOffset;        // RH Gain & Offset
+    int16   TempGain,TempOffset;    // Tempature Gain & Offset  // 借用給 CO2, PM25, TVOC 的 gain offset
+    int16   RhGain,RhOffset;        // RH Gain & Offset         // 借用給 PM10 的 gain offset
     uint16  WorkingTimer;            // >5 and <3600 sec
     uint16  BtmClass;               //1 : for JNC Sensor(Auto Scan) 2 : PZEM 3 : Visual Sensor 4 : AGB Motor Control(? ?)
     uint8	BaudrateIndex;
@@ -189,7 +189,9 @@ typedef struct _BtAppData_
 
 extern const uchar AipPowerCtrlCmd[5][8];
 extern const uchar A308MCtrlCmd[4][8];
-extern uint16  GetDeviceInfoDelay;     //Nx10ms
+extern uint16  GetDeviceInfoDelay;  //Nx10ms
+extern uint16  PreReadDelay;        //Nx10ms
+extern uint16  syncTime;            //Nx10ms
 
 
 void ServerNodeInit();
@@ -211,6 +213,8 @@ void EvtSetSettingRequestProc(PCmdPacket pCmdEvent);
 void EvtSetGettingRequestProc(PCmdPacket pCmdEvent);
 
 bool ServerSendModbusCmd(PUCHAR modbus_cmd,uchar len);
+
+uint32 ReInitSkynetSensor();
 
 bool GetSensorInfo();
 bool GetSkynetInfo();

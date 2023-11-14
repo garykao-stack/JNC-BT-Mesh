@@ -116,6 +116,39 @@ bool CheckWaitTimeOut()
     return ret_code;    
 }
 
+/**
+ * @brief 設置或檢查預讀計時器 (pre read timer)。
+ * 預先讀取時間內，每秒讀取一筆 sensor 資料，增加讀值穩定。
+ * @param bReset 重置 pre read timer
+ * @param time bReset true 時，設置 pre read 總時間 (N*10 ms)
+ * @param communicate_time bReset true 時，設置通訊耗時 (N*10 ms)
+ * @return 是否該執行 pre read
+ */
+bool CheckPreReadTimer(bool bReset, uint16 time, uint16 communicate_time)
+{
+  static uint16 t = 0;
+  static uint16 communicate_t = 0;
+  // 初始化 pre read timer
+  if (bReset) {
+    t = time;
+    communicate_t = communicate_time;
+    return true;
+  }
+  
+  // 剩不到 1.5 秒就不執行 pre read
+  if (ActiveWaiting() <= 150)
+    return false;
+
+  bool ret_code = ActiveWaiting() < (t + 100 - communicate_t);
+  if (ret_code) {
+    if (t > 100) // 100: 1000ms
+      t -= (100 - communicate_t);
+    else
+      t = 0;
+  }
+  return ret_code;    
+}
+
 //
 // set up node status
 //
@@ -151,7 +184,10 @@ void SetSleepingTimer(uchar status)
     
     if(status == ON)
         {// sleeping on
-        sleeping_timer = (TIMER_SERVER_SLEEPING*1000-keepAliveBeforeSleepMs - TIMER_SERVER_SENS_INFO)-(uint32)GetDeviceInfoDelay;
+        sleeping_timer = (TIMER_SERVER_SLEEPING*1000-keepAliveBeforeSleepMs - TIMER_SERVER_SENS_INFO)-((uint32)GetDeviceInfoDelay+PreReadDelay+syncTime)*10;
+        if (syncTime > 0)
+            dprint("sync time %d(ms)\r\n",syncTime * 10);
+        syncTime = 0;
         if (sleeping_timer<0)sleeping_timer=1000; /*當休眠時間<0,至少休眠一秒，如GetDeviceInfoDelay未變更，應該不會發生此狀況*/
         dprint("sleep for sleeping_timer %d(ms)\r\n",sleeping_timer);
         SetEventTaskTimer(TD_NODE_WAKE_UP,      sleeping_timer, TIMER_EVENT_ONCE);

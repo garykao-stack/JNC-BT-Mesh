@@ -6,10 +6,10 @@
 #define STATE_CHANGE_DEBUG 1
 
 #if SERVER_NODE_DEBUG
-#undef DEBUG_FUNCTION
-#define DEBUG_FUNCTION dprint
+	#undef DEBUG_FUNCTION
+	#define DEBUG_FUNCTION dprint
 #else
-#define DEBUG_FUNCTION(...)
+	#define DEBUG_FUNCTION(...)
 #endif
 #include "debugprint.h"
 
@@ -44,12 +44,15 @@
 #include "A308_Server.h"
 #endif
 
-
+#define UART_CMD_TIME 18    // N*10 ms // uart 通訊耗時約 173 ms，ServerGetInfoProc() 內會阻塞 ->Timer 計時
+#define I2C_CMD_TIME  6     // N*10 ms // i2c 通訊耗時約 60 ms，ServerGetInfoProc() 內會阻塞 ->Timer 計時
 
 #define TO_CLIENT_BUFF_MAX  32
 uchar   ToClientBuf[TO_CLIENT_BUFF_MAX];
 uchar   ToClientLen;
 uint16  GetDeviceInfoDelay=5;     //Nx10ms ==> 50ms
+uint16  PreReadDelay=0;           //Nx10ms
+uint16  syncTime = 0;             //Nx10ms server 週期大於 client 時的補償
 
 
 _ServerInfo ServerInfo;
@@ -144,7 +147,8 @@ const uchar Fun3Addr03[MODBUS_CMD_NUM] ={0x01, 0x03, 0x00, 0x03, 0x00, 0x01, 0x7
 const uchar Fun3Addr0A[MODBUS_CMD_NUM] ={0x01, 0x03, 0x00, 0x0A, 0x00, 0x01, 0xA4, 0x08};
 const uchar CmdPzemValue[MODBUS_CMD_NUM] ={0x01, 0x04, 0x00, 0x00, 0x00, 0x0A, 0x70, 0x0D};
 
-const uchar CmdGetCo2[7] ={0xFE, 0x44, 0x00, 0x08, 0x02, 0x9F, 0x25};   //獲取CDM7160 CO2數據
+const uchar CmdGetCo2_CDM7160[7] ={0xFE, 0x44, 0x00, 0x08, 0x02, 0x9F, 0x25};       //獲取CDM7160 CO2數據
+const uchar CmdGetCo2_GetS8[8]   ={0xFE, 0x04, 0x00, 0x03, 0x00, 0x01, 0xD5, 0xC5}; //獲取S8 CO2數據
 const uchar CmdGetPm25[7] ={0x42, 0x4d, 0xe2, 0x00, 0x00, 0x01, 0x71};  //取得攀藤PM2.5數據
 
 /*轉傳指令*/
@@ -580,14 +584,24 @@ void ServerGetInfoProc()
             		ToWaitingStage(SNS_GET_INFO,0);
             	}
 #else
-
-            	ToWaitingStage(SNS_GET_INFO,GetDeviceInfoDelay);
-            	dprint("*** wait for %d(ms)\r\n",GetDeviceInfoDelay*10);
+                const uint32 DelayCompensation = ReInitSkynetSensor();
+                const uint32 wait_10ms = GetDeviceInfoDelay + PreReadDelay - DelayCompensation;
+                ToWaitingStage(SNS_GET_INFO, wait_10ms);
+            	dprint("* wait_10ms %d(ms)\r\n",wait_10ms*10);
+            	dprint("*** wait for %d(ms), pre read %d(ms)\r\n",(GetDeviceInfoDelay+PreReadDelay)*10,+PreReadDelay*10);
 #endif
                 break;
 
             case SNS_GET_INFO: 
             	CHECK_FORWARD_DATA;
+
+                // 若收到 GET_ALL_SENSOR 但還沒讀 sensor，跳過等待時間趕快讀。
+            	if(GetNodeStatus(NS_GET_INFO_ACT) && ActiveWaiting() > 2) {
+                    static int cnt = 0;
+                    syncTime = ActiveWaiting() + 20;    // 超時 + 200ms 緩衝
+                    dprint("Force read early! count: %d, %d(ms)\r\n", ++cnt, ActiveWaiting() * 10);
+                    SetWaiting(2);
+                }
 
                 if((GetNodeStatus(NS_SYS_NO_WAITING) == ON) || CheckWaitTimeOut() == TRUE){
                     //Trace("SNS_GET_INFO 1");
@@ -614,6 +628,10 @@ void ServerGetInfoProc()
                 	//Trace1("Get Sensor Stop: 1",pFunSensor);
                         ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
                    }
+                } else if (CheckPreReadTimer(false, 0, 0)) {
+                  // Start pre read
+                  dprint("pre read: ");
+                  pFunSensor();
                 }
                 break;
             case SNS_WAIT_GET_INFO:
@@ -969,12 +987,76 @@ uint16 ResponseBtmMeshInfo(){
 	 	                                             NO_FLAGS, info.NodeInfoSize+3, (PUCHAR)&info)->result;
 }
 
+/**
+ * @brief 若從睡眠模式起來，部分 sensor 需重新初始化並等待 sensor 穩定。
+ * 因通訊會阻塞 ->Timer 計時，應預先扣除通訊延遲。
+ * @return 通訊延遲補償 (N*10 ms)
+ */
+uint32 ReInitSkynetSensor() {
+    if(GetNodeStatus(NS_FULL_POWER))
+        return 0;
+
+    const int init_times = 5; // 先假設初始化 5 次，之後該改成直接計算實際耗時
+    uint16 cmd_time = 0; // 單次通訊耗時。通訊會阻塞 ->Timer 計時，用此值預先扣除
+    
+    switch (pMeshNodeData->SensorClass) {
+        case SENSOR_SKYNET_CO2:
+            CheckCDMCo2();                // init co2
+            GetDeviceInfoDelay = 1500;    // Wait total 35s for stable.
+            PreReadDelay = 2000;
+            cmd_time = UART_CMD_TIME;
+            break;
+        case SENSOR_SKYNET_PM25:
+            CheckCDMPm25();               // init pm2.5
+            GetDeviceInfoDelay = 2000;    // Wait total 30s for stable.
+            PreReadDelay = 1000;
+            cmd_time = UART_CMD_TIME;
+            break;
+        case SENSOR_SKYNET_TVOC:
+            CheckCDMTvoc(true);           // init tvoc
+            GetDeviceInfoDelay = 1500;    // Wait 15s for initial.
+            PreReadDelay = 1000;          // Pre read 10s of data.
+            cmd_time = I2C_CMD_TIME;
+            SGPxx_ResetTvocMax();
+            break;
+        default:
+            PreReadDelay = 0;
+            break;
+    }
+    
+    uint32 DelayCompensation = (init_times + (PreReadDelay / 100)) * cmd_time;  // 延遲補償，扣除初始化耗時、預扣通訊耗時
+    if(DelayCompensation > PreReadDelay)    // 以防萬一，不應該發生
+        DelayCompensation = PreReadDelay;
+    if (PreReadDelay > 0)
+        CheckPreReadTimer(true, PreReadDelay - DelayCompensation, cmd_time); // init timer
+    
+    return DelayCompensation;
+}
 
 Bool AdjTempRh(int16* p_temp,uint16 *p_humidity)
 {
   *p_temp = (int16)(((float)*p_temp)*(pAdjValue->TempGain) + (pAdjValue->TempOffset)*10);
   *p_humidity = (uint16)(((float)*p_humidity)*(pAdjValue->HumGain) + (pAdjValue->HumOffset)*10);
   return TRUE;
+}
+
+bool AdjCo2(uint16 *p_co2)
+{
+  *p_co2 = (uint16)(((float)*p_co2)*(pAdjValue->TempGain) + (pAdjValue->TempOffset));
+  return true;
+}
+
+bool AdjPm25(float *p_pm25, float *p_pm10)
+{
+  *p_pm25 = (((float)*p_pm25)*(pAdjValue->TempGain) + (pAdjValue->TempOffset));
+  *p_pm10 = (((float)*p_pm10)*(pAdjValue->HumGain) + (pAdjValue->HumOffset));
+  return true;
+}
+
+bool AdjTvoc(uint16 *p_tvoc)
+{
+  *p_tvoc = (uint16)(((float)*p_tvoc)*(pAdjValue->TempGain) + (pAdjValue->TempOffset));
+  return true;
 }
 
 
@@ -991,12 +1073,12 @@ bool GetSkynetInfo()
     SetNodeClass(SENSOR_SI7021);
     if(GetTempAndRH(&temp,&Humidity) != VALUE_IS_NOT_KNOWN){//TraceDec2("Si7021=> 1", temp,Humidity);
         AdjTempRh(&temp,&Humidity); 
-         p_sensor->Tempature = temp;
-         p_sensor->Humidity  = Humidity;
-         p_sensor->fTempature = (float)p_sensor->Tempature / 10;
-         p_sensor->fHumidity = (float)p_sensor->Humidity / 10;
-        //  printf("temp: %d, hum:%d\r\n",p_sensor->Tempature,p_sensor->Humidity);
-        }
+        p_sensor->Tempature = temp;
+        p_sensor->Humidity  = Humidity;
+        p_sensor->fTempature = (float)p_sensor->Tempature / 10;
+        p_sensor->fHumidity = (float)p_sensor->Humidity / 10;
+        dprint("====> temp: %d, hum:%d\r\n",p_sensor->Tempature,p_sensor->Humidity);
+    }
     else {ret_code = FALSE;}
     ret_code = TRUE; 
     return ret_code;
@@ -1006,23 +1088,43 @@ bool GetSkynetInfo()
 //
 //
 //
+bool Get_CO2(uint16_t *value) {
+//   uchar device_name[6]={0xFE, 0x64, 0x0F, 0x00, 0x75, 0xE3};  //關閉CDM7160長期自動校正
+  uchar device_name[8]={0xFE, 0x06, 0x00, 0x1F, 0x00, 0x00, 0xAC ,0x03};  //關閉S8自動校正
+  
+  bool ret_code = false;
+
+  PUCHAR p_buff = UsartGetBuff(USART_ID_RX);
+//   if(ServerSendModbusCmd((PUCHAR)CmdGetCo2_CDM7160,sizeof(CmdGetCo2_CDM7160)) == TRUE){
+  if(ServerSendModbusCmd((PUCHAR)CmdGetCo2_GetS8,sizeof(CmdGetCo2_GetS8)) == TRUE){
+      *value = WordSwap(*((PUINT16)&p_buff[3]));
+      ret_code = TRUE;
+  }else{
+      ret_code = FALSE;
+  }
+  UsartResetRxTx(USART_ID_TX_RX);
+
+  return ret_code;
+}
 bool GetSkynetCo2Info()
 {
     bool ret_code = TRUE;
+    uint16 co2 = 0;
     PSkynetCo2 p_sensor = &ServerInfo.SensorInfo.SkynetCo2;
     GetSkynetInfo();
     SetNodeInfoSize(_SkynetCo2);
     SetNodeClass(SENSOR_SKYNET_CO2);
     //GetDeviceInfoDelay=6000;
     PUCHAR p_buff = UsartGetBuff(USART_ID_RX);
-    if(ServerSendModbusCmd((PUCHAR)CmdGetCo2,7) == TRUE){
-        p_sensor->Co2 = WordSwap(*((PUINT16)&p_buff[3])); 
+    if(Get_CO2(&co2)){
+        AdjCo2(&co2);
+        p_sensor->Co2 = co2; 
         p_sensor->fCo2 = p_sensor->Co2;
         dprint("====> CO2: %d\r\n",p_sensor->Co2);
-      }else{
-    	  ret_code = FALSE;
-    	dprint("====> CO2: Read Faild.\r\n");
-      }
+    }else{
+        ret_code = FALSE;
+        dprint("====> CO2: Read Faild.\r\n");
+    }
     ret_code = TRUE;   
     return ret_code;
 }
@@ -1035,7 +1137,7 @@ bool ServerSendPM25Cmd(PUCHAR cmd,uchar len)
     Delay_ms(10); Rs485Rx(); Delay_ms(150); Rs485Tx(); // must to check crc error
     ret_code = CheckPM25Valid(UsartGetBuff(USART_ID_RX), UsartGetRxCounter());
 
-    if(!ret_code) TraceErr1("ServerSendModbusCmd 1",UsartGetRxCounter());
+    if(!ret_code) TraceErr1("ServerSendPM25Cmd 1",UsartGetRxCounter());
     
     return ret_code;
 }
@@ -1047,12 +1149,17 @@ bool GetSkynetPm25Info() {
     SetNodeClass(SENSOR_SKYNET_PM25);
     // GetDeviceInfoDelay=6000;
     PUCHAR p_buff = UsartGetBuff(USART_ID_RX);
+    float pm25 = 0.0;
+    float pm10 = 0.0;
     if (ServerSendPM25Cmd((PUCHAR)CmdGetPm25, 7) == TRUE) {
         CalculatePMSA003Value((uint8_t*)UsartGetBuff(USART_ID_RX), UsartGetRxCounter());
-        p_sensor->fPM25 = GetPMSA003Value_PM25();
+        pm25 = GetPMSA003Value_PM25();
+        pm10 = GetPMSA003Value_PM10();
+        AdjPm25(&pm25, &pm10);
+        p_sensor->fPM25 = pm25;
         p_sensor->PM25 = p_sensor->fPM25 * 10;
-        p_sensor->fPM10 = GetPMSA003Value_PM10();
-        dprint("====> PM25: %d\r\n", p_sensor->PM25);
+        p_sensor->fPM10 = pm10;
+        dprint("====> PM25: %.1f, PM10: %.1f\r\n", p_sensor->fPM25, p_sensor->fPM10);
     } else {
         ret_code = FALSE;
         dprint("====> PM25: Read Faild.\r\n");
@@ -1067,11 +1174,20 @@ bool GetSkynetTvocInfo()
     PSkynetTvoc p_sensor = &ServerInfo.SensorInfo.SkynetTvoc;
     SetNodeInfoSize(_SkynetTvoc);
     SetNodeClass(SENSOR_SKYNET_TVOC);
-    if (SGPxx_GetTvoc(&tvoc)) {
+    if(GetNodeStatus(NS_FULL_POWER)) {
+        ret_code = SGPxx_GetTvoc(&tvoc);
+    } else {
+        // 若從睡眠模式起來，取 pre read 的最大值
+        ret_code = SGPxx_GetTvocMax(&tvoc);
+    }
+
+    if (ret_code) {
+        AdjTvoc(&tvoc);
         p_sensor->TVOC = tvoc;
         p_sensor->fTVOC = (float)p_sensor->TVOC / 1000;
+        dprint("====> TVOC: %d\r\n", p_sensor->TVOC);
     } else {
-        ret_code = FALSE;
+        dprint("====> TVOC: Read Faild.\r\n");
     }
     return ret_code;
 }

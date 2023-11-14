@@ -2,6 +2,7 @@
 #define __SGPXX_H__
 
 #include <stdbool.h>
+#include <stdint.h>
 #include "em_device.h"
 
 typedef enum
@@ -26,7 +27,7 @@ typedef enum    //Address 0x58
 //BMP280 Command
 typedef enum
 {
-  SGPxx_Iaq_Init_msb            = 0x20,
+  SGPxx_Iaq_Init_msb            = 0x20, // Take 15s to initial. Has to be sent after every power-up or soft reset.
   SGPxx_Iaq_Init_lsb            = 0x03,
   SGPxx_measure_iaq_msb         = 0x20,
   SGPxx_measure_iaq_lsb         = 0x08,
@@ -51,7 +52,10 @@ typedef enum
 // extern int SGPxx_VOC_Value;
 // extern void SGPxx_Load(void);
 
-extern bool SGPxx_IsReady();
+extern bool SGPxx_IsReady(bool bReset);
 extern bool SGPxx_GetTvoc(uint16_t *value);
+extern void SGPxx_ResetTvocMax();
+extern bool SGPxx_GetTvocMax(uint16_t *value);
+
 
 #endif

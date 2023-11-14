@@ -19,6 +19,8 @@ uint8_t SGPxx_VOCData[2],SGPxx_CO2Data[2];
 uint8_t SGPxx_VOCCRC,SGPxx_CO2CRC;
 uint16_t SGPxx_VOC_Value;
 
+uint16_t max_value = 0;
+
 bool bValue = false;
 
 // void SGPxxSensor_Start(void)
@@ -233,17 +235,19 @@ void SGPxx_Load(void)
   }
 }
 
-bool SGPxx_IsReady() {
+bool SGPxx_IsReady(bool bReset) {
+  if(bReset)
+    SGPxx_MeasureMode = SGPxx_IDLE;
+
   if (SGPxx_MeasureMode == SGPxx_Measure)
     return true;
 
   for (int i = 0; i < 10; i++) {
     SGPxx_Load();
-
     if (SGPxx_MeasureMode == SGPxx_Measure)
       return true;
 
-Delay_ms(10);
+    Delay_ms(10);
   }
 
   return SGPxx_MeasureMode == SGPxx_Measure;
@@ -256,11 +260,26 @@ bool SGPxx_GetTvoc(uint16_t *value) {
     SGPxx_Load();
     if (bValue)
       break;
-      Delay_ms(10);
+    Delay_ms(10);
   }
 
-  if (bValue)
+  if (bValue) {
     *value = SGPxx_VOC_Value;
+    max_value = MAX(max_value, SGPxx_VOC_Value);
+    // dprint("====> TVOC: %d\r\n", SGPxx_VOC_Value);
+  }
 
   return bValue;
+}
+
+void SGPxx_ResetTvocMax() {
+  max_value = 0;
+}
+
+bool SGPxx_GetTvocMax(uint16_t *value) {
+  if (SGPxx_GetTvoc(value)) {
+    *value = max_value;
+    return true;
+  }
+  return false;
 }

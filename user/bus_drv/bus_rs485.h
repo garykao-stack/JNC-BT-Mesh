@@ -41,7 +41,7 @@ bool CheckUltraSound();
 bool CheckA6D6();
 bool CheckCDMCo2();
 bool CheckCDMPm25();
-bool CheckCDMTvoc();
+bool CheckCDMTvoc(bool bReset);
 bool CheckBtmG6();
 bool GetCustomSerial();
 

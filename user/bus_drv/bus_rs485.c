@@ -148,7 +148,7 @@ uchar CheckRs485Device(int16 connectTryCount)
     else if(CheckCDMPm25()){
     	pMeshNodeData->SensorClass = SENSOR_SKYNET_PM25;rs485_dev = SENSOR_SKYNET_PM25;  goto Assigned;
     }
-    else if(CheckCDMTvoc()){
+    else if(CheckCDMTvoc(true)){
     	pMeshNodeData->SensorClass = SENSOR_SKYNET_TVOC;rs485_dev = SENSOR_SKYNET_TVOC;  goto Assigned;
     }
   
@@ -391,45 +391,56 @@ uchar ScanRs485Device()
 //
 bool CheckCDMCo2()
 {
-    bool ret_code = FALSE;
-    uchar device_name[6]={0xFE, 0x64, 0x0F, 0x00, 0x75, 0xE3};  //關閉CDM7160長期自動校正
+  bool ret_code = FALSE;
+
+//   uchar device_name[6]={0xFE, 0x64, 0x0F, 0x00, 0x75, 0xE3};  //關閉CDM7160長期自動校正
+  uchar device_name[8]={0xFE, 0x06, 0x00, 0x1F, 0x00, 0x00, 0xAC ,0x03};  //關閉S8自動校正
+  // Set 5 times in a row in case IC isn't ready.
+  for (int i = 0; i < 5; i++) {
     CHECK_RS485_CMD(device_name,sizeof(device_name));
     if(UsartGetRxCounter() != 0){
-         if(memcmp(device_name,UsartGetBuff(USART_ID_RX),sizeof(device_name)) == 0)
-            {
-            ret_code = TRUE;}
-         else TraceErr("CDMCo2 Disconnect 1");
-        }
+      if (memcmp(device_name, UsartGetBuff(USART_ID_RX), sizeof(device_name)) == 0) {
+        ret_code = TRUE;
+      } else
+        TraceErr("CDMCo2 Disconnect 1");
+    }
     UsartResetRxTx(USART_ID_TX_RX);
+    if(ret_code)
+      return true;
+    Delay_ms(10);
+  }
 
-    return ret_code;
+  return ret_code;
 }
 
 bool CheckCDMPm25()
 {
-    bool ret_code = FALSE;
-    uchar CmdSetPm25Manual[7] = {0x42, 0x4D, 0xE1, 0x00, 0x00, 0x01, 0x70};  //關閉攀藤PM2.5自動模式
-    const uchar CmdReceive[8] = {0x42, 0x4D, 0x00, 0x04, 0xE1, 0x00, 0x01, 0x74};
-    // Set 5 times in a row in case PMSA003 is sending.
-    for (int i = 0; i < 5; i++) {
-         CHECK_RS485_CMD(CmdSetPm25Manual, sizeof(CmdSetPm25Manual));
-         if (UsartGetRxCounter() != 0) {
-            if (memcmp(CmdReceive, UsartGetBuff(USART_ID_RX), sizeof(CmdReceive)) == 0) {
-                return TRUE;
-            } else
-                TraceErr("CDMPm25 Disconnect 1");
-         }
-         UsartResetRxTx(USART_ID_TX_RX);
+  bool ret_code = FALSE;
+  uchar CmdSetPm25Manual[7] = {0x42, 0x4D, 0xE1, 0x00, 0x00, 0x01, 0x70};  //關閉攀藤PM2.5自動模式
+  const uchar CmdReceive[8] = {0x42, 0x4D, 0x00, 0x04, 0xE1, 0x00, 0x01, 0x74};
+  // Set 20 times in a row in case IC isn't ready.
+  for (int i = 0; i < 20; i++) {
+    CHECK_RS485_CMD(CmdSetPm25Manual, sizeof(CmdSetPm25Manual));
+    if (UsartGetRxCounter() != 0) {
+      if (memcmp(CmdReceive, UsartGetBuff(USART_ID_RX), sizeof(CmdReceive)) == 0) {
+        ret_code = TRUE;
+      } else
+        TraceErr("CDMPm25 Disconnect 1");
     }
-    return ret_code;
+    UsartResetRxTx(USART_ID_TX_RX);
+    if(ret_code)
+      return true;
+    Delay_ms(10);
+  }
+  return ret_code;
 }
 
-bool CheckCDMTvoc()
+bool CheckCDMTvoc(bool bReset)
 {
     bool ret_code = TRUE;
-    ret_code = SGPxx_IsReady();
+    ret_code = SGPxx_IsReady(bReset);
 
-    if (!ret_code) TraceErr("TVOC  Disconnect 1");
+    if (!ret_code) TraceErr("TVOC Disconnect 1");
 
     return ret_code;
 }

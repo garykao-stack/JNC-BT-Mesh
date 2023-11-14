@@ -115,7 +115,7 @@
 #endif
 
 #if defined(JNC_BT_MESH)
- #define FW_VER              136
+ #define FW_VER              137
   #define HW_VER              110
   #define DEVICE_NAME         "JNC-BT-Mesh"SPACMARK
   #define MANUFACTORY_NAME    "JNC"
@@ -123,8 +123,8 @@
   #define MODEL_NAME          "BTM001"
 
   // skynet_co2, skynet_pm25, skynet_tvoc choose either one.
-   #define SensorIsSi7021
-  //#define SensorIsSHT3x
+  #define SensorIsSi7021
+//  #define SensorIsSHT3x
 
   #if (defined(SensorIsSi7021) && defined(SensorIsSHT3x))
     #error Only one product definition can be selected !!
