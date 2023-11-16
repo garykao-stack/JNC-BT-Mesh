@@ -8,6 +8,7 @@
 #if SERVER_NODE_DEBUG
 #undef DEBUG_FUNCTION
 #define DEBUG_FUNCTION dprint
+//#define DEBUG_FUNCTION printf
 #else
 #define DEBUG_FUNCTION(...)
 #endif
@@ -165,6 +166,7 @@ void ServerNodeInit()
 //
 void ServerSetPowerStatus()
 {
+
     if(CheckPowerStatus() == POWER_USB){
         SetNodeStatus(NS_FULL_POWER,ON);   // start to get sensor info 
       }
@@ -174,6 +176,12 @@ void ServerSetPowerStatus()
     if(GetNodeStatus(NS_FULL_POWER) == ON) dprint("\r\nFull Power\r\n");
     else dprint("\r\nBattery Power\r\n");
     
+#if defined(BTM_A308)
+    /*不管是不是市電，都判斷成非市電狀態，以強制觸發休眠流程*/
+    SetNodeStatus(NS_FULL_POWER,OFF);
+#endif
+
+
 }
 
 void ServerSetupNodeInit()
@@ -781,6 +789,7 @@ void ServerGetInfoProc()
             	}else if(GetNodeStatus(NS_A308_GET_INFO)){
 					ToNextStage(SNS_SEND_A308_INFO);
 				}else if(CheckWaitTimeOut()){
+
                      if(GetNodeStatus(NS_FULL_POWER) == ON || GetNodeStatus(NS_FORCE_FULL_POWER) == ON || IgnoreBroadcastCmdMs||ServerResponseTestMs){ /*在App設定模式下不進入休眠*/
                     	 dprint("*** Full Power Mode ***\r\n");
                     	 SetLedStatus(LED_STATUS_SLEEP); ToNextStage(SNS_WAKE_UP);

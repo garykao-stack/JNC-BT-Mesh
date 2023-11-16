@@ -491,7 +491,9 @@ Result SetEventTaskTimer(uchar event,uint32 timer,uchar single_shot)
         }
 
     //TraceDec1("timer_tick 1", timer_tick);
-   if(timer)dprint("actual sleep for %.1f sec\r\n",timer_tick/(float)TIMER_CLK_FREQ);
+   if(timer && event==TD_NODE_WAKE_UP)dprint("actual sleep for %.1f sec\r\n",timer_tick/(float)TIMER_CLK_FREQ);
+   else if(single_shot<=1) dprint("set timer(%d) for %.1f ms, single:%s\r\n",event,timer_tick/(float)TIMER_CLK_FREQ*1000,single_shot?"ONCE":"REPEAT");
+   else dprint("set timer(%d) for %.1f ms, single code:%d\r\n",event,timer_tick/(float)TIMER_CLK_FREQ*1000,single_shot);
    result = Cmd_set_soft_timer(timer_tick,event,single_shot)->result;
    if(result) TraceErr1("SetEventTaskTimer",result);
    // result = Cmd_set_soft_timer(TIMER_MS_2_TICKS(timer),event,single_shot)->result;

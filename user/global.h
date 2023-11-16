@@ -129,7 +129,7 @@
   #define MODEL_NAME          "BTM001"
 
 #elif defined(BTM_A308)
-  #define FW_VER              136
+  #define FW_VER              137
   #define HW_VER              100
   #define DEVICE_NAME         "A308 BT Transmitter"SPACMARK
   #define MANUFACTORY_NAME    "JNC"
