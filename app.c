@@ -76,7 +76,7 @@ const char* SensorClassStr[]=
     "NO Sensor","Auto Scan","PZEM","Visual Sensor","DC600","FTM94","BTM-G6","BTM485"
 };
 extern void DebugShowSetting();
-extern uint16 IndexToBaudrate(uint8);
+extern uint32 IndexToBaudrate(uint8);
 //***************************************************************************
 // Initial BLE Stack, IO port,
 //
