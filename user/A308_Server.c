@@ -29,7 +29,7 @@ typedef struct{
 }IdMap;
 
 
-#define A308_DEVICE_COUNT 10 //SERVER_NODE_MAX
+#define A308_DEVICE_COUNT 16 //SERVER_NODE_MAX
 #define A308_DEVICE_BUFF_COUNT 5
 #define A308_MEM_SIZE	(62+120*3+6+14)//(62+100*6+6+14)
 #define A308_BTM_SIZE	50
@@ -234,6 +234,12 @@ int8 A308_FindTableIndex(uint8 id){
 	return -1;
 }
 
+int8 A308_TableExist(uint8 id){
+	for(int i=0;i<A308_DEVICE_COUNT;i++) if(A308IdMap[i].id==id) return 1;
+	return 0;
+}
+
+
 //extern _ClientInfo ClientInfo[];
 
 bool A308_Client_Modbus_Response(){
@@ -246,18 +252,19 @@ bool A308_Client_Modbus_Response(){
 	uint16 len=(((uint16)rx[4])<<8) | rx[5];
 	//uint8 idx=((uint8*)pInfo-(uint8*)ClientInfo)/sizeof(_ClientInfo);
 	uint16 *values=(void*)&tx[3];
-
 	int8 idxTab;
 
 
 	if(!pInfo || pInfo->ServerID== 0) return FALSE;
+
+
 	idxTab=A308_FindTableIndex(pInfo->ServerID);
 	if (idxTab==-1 || A308IdMap[idxTab].id==0){
 		dprint("!!! A308 Can't Get Table Index. ID:%d\r\n",pInfo->ServerID);
 		return FALSE;
 	}
-
 	dprint("A308 Mbs Cmd > ID:%d(%d), index:%d, loc:%d(0x%X), len:%d\r\n", rx[0],pInfo->ServerID,idxTab,loc,loc,len);
+
 
 	if(fun!=3){
 		return MbsResponseError(rx[0],rx[1],0x01); /* function error */
@@ -364,7 +371,7 @@ void A308_Client_Rec_Info_InitAll(){
 	PClientInfo pClientInfo=(void*)0;
 	do{
 		pClientInfo=FindNextServerInfo(SENSOR_A308M,pClientInfo);
-		if(pClientInfo) pClientInfo->Status|=SERVER_A308_STANDBY;
+		if(pClientInfo && !(pClientInfo->SensorInfo.Header.Status&SERVER_A308_SOURCE_ERR)) pClientInfo->Status|=SERVER_A308_STANDBY;
 	}while(pClientInfo);
 }
 
@@ -432,15 +439,6 @@ bool A308_ServerIsBusy(PClientInfo pClientInfo){
 
 PClientInfo pA308CurrServerInfo=0;
 PClientInfo A308_GetNextServer(PClientInfo pClientInfo){
-	/*do{
-		pClientInfo=FindNextServerInfo(SENSOR_A308M,pClientInfo);
-	}while(pClientInfo && (pClientInfo<=pA308CurrServerInfo || pClientInfo->Count==0));
-	if(pClientInfo){
-		pA308CurrServerInfo=pClientInfo;
-		a308_server_total++;
-	}
-	return pClientInfo;*/
-
 	pClientInfo=(void*)0;
 	do{
 		pClientInfo=FindNextServerInfo(SENSOR_A308M,pClientInfo);
@@ -625,7 +623,7 @@ bool A308_Client_GetInfo(){
 				return 1;
 			}else{
 				client_get_info_step=A308_GET_INFO_INIT;
-				dprint("*** A308 Receive All Device Finished Take %.1f(Sec). server count: %d, fail:%d\r\n",
+				printf("*** A308 Receive All Device Finished Take %.1f(Sec). server count: %d, fail:%d\r\n",
 						(float)a308_client_receive_span_time/100,a308_server_total,a308_server_fail);
 				a308_client_receive_span_time=-1;
 				return  0;

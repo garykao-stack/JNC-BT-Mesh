@@ -8,6 +8,7 @@
 #if SERVER_NODE_DEBUG
 	#undef DEBUG_FUNCTION
 	#define DEBUG_FUNCTION dprint
+//#define DEBUG_FUNCTION printf
 #else
 	#define DEBUG_FUNCTION(...)
 #endif
@@ -172,6 +173,7 @@ void ServerNodeInit()
 //
 void ServerSetPowerStatus()
 {
+
     if(CheckPowerStatus() == POWER_USB){
         SetNodeStatus(NS_FULL_POWER,ON);   // start to get sensor info 
       }
@@ -181,6 +183,12 @@ void ServerSetPowerStatus()
     if(GetNodeStatus(NS_FULL_POWER) == ON) dprint("\r\nFull Power\r\n");
     else dprint("\r\nBattery Power\r\n");
     
+#if defined(BTM_A308)
+    /*不管是不是市電，都判斷成非市電狀態，以強制觸發休眠流程*/
+    SetNodeStatus(NS_FULL_POWER,OFF);
+#endif
+
+
 }
 
 void ServerSetupNodeInit()
@@ -577,12 +585,23 @@ void ServerGetInfoProc()
             	ToWaitingStage(SNS_A308_FETCH_INFO,WAIT_MS(A308_Fetch_Timeout_Ms()+100));
             	break;
             case SNS_A308_FETCH_INFO:
+
+
             	if(CheckWaitTimeOut()||A308_Connected()){
-            		dprint("A308 Connect:%d\r\n",A308_Connected());
+            		if(A308_Connected())ServerInfo.SensorInfo.Header.Status&=~SERVER_A308_SOURCE_ERR;
+            		else ServerInfo.SensorInfo.Header.Status|=SERVER_A308_SOURCE_ERR;
+            		dprint("A308 Connect:%d ,state:0x%x\r\n",A308_Connected(),ServerInfo.SensorInfo.Header.Status);
             		//A308_ResetModbusCmd();
             		//A308_StopModbusAction();
             		ToWaitingStage(SNS_GET_INFO,0);
             	}
+            	/*
+            	else if(GetNodeStatus(NS_GET_INFO_ACT) && !A308_Connected()){//資料尚未讀取完畢就收到Client指令
+            		ServerInfo.SensorInfo.Header.Status|=SERVER_A308_SOURCE_ERR;
+            		dprint("A308 read process has been interuptd by NS_GET_INFO_ACT Command, state:0x%x\r\n",ServerInfo.SensorInfo.Header.Status);
+            		ToWaitingStage(SNS_EVENT_WAITING,0); //放棄讀取數值，直接回應Client指令
+            	}*/
+
 #else
                 const uint32 DelayCompensation = ReInitSkynetSensor();
                 const uint32 wait_10ms = GetDeviceInfoDelay + PreReadDelay - DelayCompensation;
@@ -664,7 +683,7 @@ void ServerGetInfoProc()
                     	ToWaitingStage(SNS_PRE_SEND_INFO,TIMER_WAIT_SEND_INFO);
                     	CountErr = 0;
 #ifdef BTM_A308
-                    	cd_sleep_ms=30*15*1000;
+                    	cd_sleep_ms=30*16*1000;
 #else
                     	if(pSensorHeader->SensorClass==SENSOR_CUSTOM_SERIAL)
                     		cd_sleep_ms=pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep*1000L;
@@ -709,22 +728,27 @@ void ServerGetInfoProc()
 
                 	SetLedStatus(LED_SEND_NODE_INFO_ERROR_OFF);
 					SetNodeStatus(NS_GET_INFO_ACT,OFF);
-
-					if(GetNodeStatus(NS_A308_GET_INFO)){ToNextStage(SNS_SEND_A308_INFO);}
 #ifdef BTM_A308
+					dprint("SNS_SEND_INFO success. State:0x%x\r\n",ServerInfo.SensorInfo.Header.Status);
+					if(ServerInfo.SensorInfo.Header.Status&SERVER_A308_SOURCE_ERR){
+						/*A308來源讀取失敗，跳過回傳內容直接休眠*/
+						if(pMeshNodeData->RelayEnabled){
+							ToWaitingStage(SNS_WAIT_A308_CMD,WAIT_MS(cd_sleep_ms)); /*若為Relay模式時，暫時不休眠讓其他設備傳送完資料*/
+						}
+						else ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
+						printf("!!! A308 485 is failed !!! go to hibernate ~~~\r\n");
+					}else if(GetNodeStatus(NS_A308_GET_INFO))	{ToNextStage(SNS_SEND_A308_INFO);}
                      //else if(pMeshNodeData->SensorClass==SENSOR_A308M)	ToWaitingStage(SNS_WAIT_A308_CMD,WAIT_SEC(30*15));
                      //else ToWaitingStage(SNS_WAIT_A308_CMD,WAIT_SEC(30*15));
-                     else ToWaitingStage(SNS_WAIT_SEND_INFO_ACK,WAIT_SEC(2));
+                    else ToWaitingStage(SNS_WAIT_SEND_INFO_ACK,WAIT_SEC(2));
 #else
-                     else{
-                    	 /*	1. Relay啟動時，發送完設備資訊後不直接進入休眠，讓後端的Server有機會把資料傳完
-                    	  	2. 啟用透傳模式時，發送完設備資訊後亦不直接進入休眠，空出指定時間處理透傳指令            	  */
-                    	 if(pMeshNodeData->RelayEnabled || pSensorHeader->SensorClass==SENSOR_CUSTOM_SERIAL){
-                    		 ToWaitingStage(SNS_PRE_SLEEPING,WAIT_MS(cd_sleep_ms));
-                    	 }else
-                    		 ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
-                    	 dprint("keep alive before sleep:%d(ms)\r\n",pStageInfo->Timer*10);
-                     }
+					 /*	1. Relay啟動時，發送完設備資訊後不直接進入休眠，讓後端的Server有機會把資料傳完
+						2. 啟用透傳模式時，發送完設備資訊後亦不直接進入休眠，空出指定時間處理透傳指令            	  */
+					 if(pMeshNodeData->RelayEnabled || pSensorHeader->SensorClass==SENSOR_CUSTOM_SERIAL){
+						 ToWaitingStage(SNS_PRE_SLEEPING,WAIT_MS(cd_sleep_ms));
+					 }else
+						 ToWaitingStage(SNS_PRE_SLEEPING,TIMER_WAIT_SLEEPING);
+					 dprint("keep alive before sleep:%d(ms)\r\n",pStageInfo->Timer*10);
 #endif
 
                 }else{ //failed. waiting to sleeping
@@ -786,6 +810,7 @@ void ServerGetInfoProc()
             	}else if(GetNodeStatus(NS_A308_GET_INFO)){
 					ToNextStage(SNS_SEND_A308_INFO);
 				}else if(CheckWaitTimeOut()){
+
                      if(GetNodeStatus(NS_FULL_POWER) == ON || GetNodeStatus(NS_FORCE_FULL_POWER) == ON || IgnoreBroadcastCmdMs||ServerResponseTestMs){ /*在App設定模式下不進入休眠*/
                     	 dprint("*** Full Power Mode ***\r\n");
                     	 SetLedStatus(LED_STATUS_SLEEP); ToNextStage(SNS_WAKE_UP);

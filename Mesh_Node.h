@@ -45,6 +45,7 @@ typedef struct _NodeHeader_
 #define SERVER_NO_RESPONSE          BIT0    //server node no response
 #define SERVER_FULL_POWER           BIT1    //server full power that can not sleeping
 #define SERVER_A308_STANDBY			BIT2
+#define SERVER_A308_SOURCE_ERR		BIT3
 
 typedef struct _Si7021Info_
 {
@@ -392,8 +393,6 @@ typedef struct _NodeEventInfo_
 #define SENSOR_SKYNET_PM25   22     // Skynet PM25
 #define SENSOR_SKYNET_TVOC   23     // Skynet TVOC
 #define SENSOR_CUSTOM_SERIAL 0xff
-
-
 
 
 //can not auto scan

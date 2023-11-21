@@ -56,11 +56,14 @@ void UsartInit(void)
     //usart_init.baudrate = UsartBaudrate[pMeshNodeData->BaudRate];
 //#else
 
-
-    if(NodeRole == NR_CLIENT || pMeshNodeData->SensorClass==SENSOR_CUSTOM_SERIAL)
+#ifdef BTM_A308
+    usart_init.baudrate = UsartBaudrate[pMeshNodeData->BaudRate];   //setup baudrate
+#else
+    if(NodeRole == NR_CLIENT || pMeshNodeData->SensorClass==SENSOR_CUSTOM_SERIAL || pMeshNodeData->SensorClass==SENSOR_A308M )
         usart_init.baudrate = UsartBaudrate[pMeshNodeData->BaudRate];   //setup baudrate
     else
         usart_init.baudrate = UsartBaudrate[USART_BAUDRATE_DEFAULT];   //setup baudrate
+#endif
 //#endif
     USART_InitAsync(USART, &usart_init);   // Initialize USART asynchronous mode and route pins
     
@@ -509,6 +512,7 @@ void UsartClose()
 bool UsartSendCmd(uchar size)
 {
     CounterTx = size;    
+    //UsartSetStage(USART_STAGE_TX_END);
     UsartResetRxTx(USART_ID_RX);
     UsartSetStage(USART_STAGE_TX_ING);
     MbsTxTimeout=size;
@@ -524,23 +528,32 @@ bool UsartTxSendCmd(PUCHAR pBuff,uint16 size)
     if(p_tx_buff!=pBuff)memcpy(p_tx_buff,pBuff,size);
    
    //if(UsartGetStatusTxIng() == OFF || CounterTx == 0)
-    if(!UsartTxIsBusy() || CounterTx == 0)
-    {
+    //ret_code = UsartSendCmd(size);
+
+
+    if(UsartTxIsBusy()||CounterTx){
+    	dprint("USART Tx Error 1 CounterTx:%d\r\n",CounterTx);
+    	UsartSetStage(USART_STAGE_TX_END);
+    }
+
+    ret_code = UsartSendCmd(size);
+
+    /*if(!UsartTxIsBusy() || CounterTx == 0){
         ret_code = UsartSendCmd(size);
-    }
-   else {dprint("USART Tx Error 1 CounterTx:%d\r\n",CounterTx);
-        UsartSetStage(USART_STAGE_TX_END); 
-    }
+    }else {
+	   dprint("USART Tx Error 1 CounterTx:%d\r\n",CounterTx);
+       UsartSetStage(USART_STAGE_TX_END);
+    }*/
     
     return ret_code;
 }
 
 void UsartShowDataRx()
 {
-    if(CounterRx > 0)
-        {TraceDec1("UsartShowDataRx CounterRx", CounterRx);
-         PrintDataByte("Usart Rx Data", RxBuff, (uint)CounterRx);
-        }
+    if(CounterRx > 0){
+    	TraceDec1("UsartShowDataRx CounterRx", CounterRx);
+    	PrintDataByte("Usart Rx Data", RxBuff, (uint)CounterRx);
+	}
 }
 
 

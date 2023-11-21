@@ -14,6 +14,22 @@
 1. skynet 增加可以讀取 PM2.5 Sensor PM2.5,PM10 (PMSA003.c 和 PMSA003.h)。
 2. skynet 增加可以讀取 TVOC Sensor (SGPxx.c 和 SGPxx.h)。
 3. skynet 修正 BATTERY/TEMP/RH/CO2/PM25/TVOC modbus address 及資料類型等改成統一 modbus 表，原本的暫時保留。
+### A308 V1.37 #
+#### 20230830 (曾) #
+1. Server在A308模式中，即便接著市電也會進入休眠
+2. 發送RS485 TX訊息前不論Uart是否在忙錄中都將狀態重置以發送訊息(原流程為直接跳過不發送)
+
+### A308 V1.36 #
+#### 20230426 (曾) #
+1. 修正A308通訊狀態不會正確回傳「3:Server不存在」的錯誤
+2. Client通訊表增加Server類型(0x500~0x5ff)
+
+#### 20230425 (曾) #
+1. Server若在A308通訊完成之前接收到Client的廣播指令時，會直接結束讀取流程，回應讀取失敗訊息後，等待休眠指令後進入休眠
+2. 在BTM_A308的Server下，套用Baudrate設定而非固定的9600
+3. Client可讀取A308通訊狀態(0x400~0x4ff)(0:成功, 1:BT資料接收中, 2:A308讀取失敗, 3:Server不存在)
+4. 修正Clinet通訊間隔設定10分鐘時會無效的問題
+5. Client可接收的Server數由10增加到16個(不含Relay)
 
 ### ALL DEVICE V1.35 #
 #### 20230413 (曾) #
