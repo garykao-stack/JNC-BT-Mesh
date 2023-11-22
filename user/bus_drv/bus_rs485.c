@@ -3,12 +3,14 @@
 #include "global.h"
 #include "device_bus.h"
 #include "bus_usart.h"
+#include "ble_comm.h"
 #include "Mesh_Node.h"
 #include "BUS_RS485.h"
 #include "si7013.h"
 #include "SHT3x.h"
 #include "G6_BT_Mesh.h"
 #include "SGPxx.h"
+#include <stdbool.h>
 
 
 void Rs485Init()

@@ -14,6 +14,7 @@
 #endif
 #include "debugprint.h"
 
+#include <stdbool.h>
 //richard Add
 /* BG stack headers */
 #include "sensor_server.h"
@@ -37,6 +38,8 @@
 #else
 #define STATE_CHANGE_PRINT(...)
 #endif
+
+#include "ble_comm.h"
 #include "Mesh_Node.h"
 #include "Mesh_Client.h"
 #include "Mesh_Server.h"
@@ -241,7 +244,7 @@ void ServerTimer_10ms(){
 }
 
 
-void SystemPower(uchar status);
+//void SystemPower(uchar status);
 
 
 Bool AIPSetCtrl(uint16 property_id)
@@ -563,6 +566,15 @@ void ServerSerialTransProc(){
 
 }
 
+extern int32 BootingSeconds;
+int32 CalculateSleepTime(){
+	int32 sleep_ms = (TIMER_SERVER_SLEEPING*1000-keepAliveBeforeSleepMs - TIMER_SERVER_SENS_INFO)-((uint32)GetDeviceInfoDelay+PreReadDelay+syncTime)*10;
+	if (syncTime > 0)
+		dprint("sync time %d(ms)\r\n",syncTime * 10);
+	syncTime = 0;
+	return sleep_ms;
+}
+
 //
 // for sensor report
 //
@@ -811,13 +823,24 @@ void ServerGetInfoProc()
 					ToNextStage(SNS_SEND_A308_INFO);
 				}else if(CheckWaitTimeOut()){
 
-                     if(GetNodeStatus(NS_FULL_POWER) == ON || GetNodeStatus(NS_FORCE_FULL_POWER) == ON || IgnoreBroadcastCmdMs||ServerResponseTestMs){ /*在App設定模式下不進入休眠*/
-                    	 dprint("*** Full Power Mode ***\r\n");
-                    	 SetLedStatus(LED_STATUS_SLEEP); ToNextStage(SNS_WAKE_UP);
-                     }else{
-                    	 dprint("*** Lowe Power Mode ***\r\n");
-                    	 SetNodeSleeping(ON);  ToNextStage(SNS_SLEEPING);
-                     }
+					if(IgnoreBroadcastCmdMs||ServerResponseTestMs){ /*在App設定模式下不進入休眠*/
+						dprint("*** Setting or Test Mode ***\r\n");
+						SetLedStatus(LED_STATUS_SLEEP); ToNextStage(SNS_WAKE_UP);
+					}
+					else if(GetNodeStatus(NS_FULL_POWER) == ON || GetNodeStatus(NS_FORCE_FULL_POWER) == ON){
+
+						if((pMeshNodeData->RebootMinutes>0) && ((BootingSeconds)>=(pMeshNodeData->RebootMinutes*60L))){ /*有設定強制休眠間隔，且達到休眠時間*/
+							dprint("*** Full Power Mode, Sleep quick sleep. ***\r\n");
+							SetNodeSleeping(ON,200); ToNextStage(SNS_SLEEPING);
+						}else{ /*未達到休眠時間，保持WakeUp*/
+							dprint("*** Full Power Mode ***\r\n");
+							if(pMeshNodeData->RebootMinutes>0)dprint("sleep countdown: %d sec\r\n",(pMeshNodeData->RebootMinutes*60)-BootingSeconds);
+							SetLedStatus(LED_STATUS_SLEEP); ToNextStage(SNS_WAKE_UP);
+						}
+					}else{
+						dprint("*** Lowe Power Mode ***\r\n");
+						SetNodeSleeping(ON,CalculateSleepTime());  ToNextStage(SNS_SLEEPING);
+					}
                 }
                     
                 break;
@@ -898,13 +921,13 @@ Bool BtmG6SetCtrl(uint16 property_id)
     return ret_code;
 }    
 
-extern uint16   G6ActStatus;
-extern PG6Schedule pActSchedule;
 
 //
 //for BTM G6
 //
 #ifdef BT_MESH_G6
+extern uint16   G6ActStatus;
+extern PG6Schedule pActSchedule;
 bool GetBtmG6Info()
 {
     bool ret_code = TRUE;
@@ -1926,7 +1949,7 @@ void DebugShowSetting(){
 /*避免被舊版App誤設. ※舊版_BtAppData長度較短*/
 #define NODE_DATA_UPDATE(dest,src,exp) do{if (len>=((uint8*)&(src)-(uint8*)set)){dest=src;if(dest!=src){exp;}}}while(0)
 
-extern void UsartBaudrateChange();
+//extern void UsartBaudrateChange();
 uint16 Server_ReceiveSetting(uint8 *data,uint8 len){
 	_BtAppData *set=(void*)(data);
 	uint16 result;
@@ -2030,6 +2053,7 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
 		);
 
 		if(pEvent->property_id==CUSTOM_SERIAL_DATA){
+#pragma diag_suppress=Pa084 /*停用警告提示: ext->len 類型為 uint8_t，故當USART_TX_BUFF_SIZE>0xff時，ext->len<=USART_TX_BUFF_SIZE結果必定為true，編譯器提示該判斷沒有意義*/
 			if(ext && ext->len>1 && ext->len<=USART_TX_BUFF_SIZE){
 				SeriesSeq=ext->data[0];
 				TransArrayLength=ext->len-1;
@@ -2042,6 +2066,7 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
 			}else{
 				dprint("request uart data len is over(%d/%d)\r\n",ext->len,USART_TX_BUFF_SIZE);
 			}
+#pragma diag_default=Pa084
 		}/*else if(pEvent->property_id==NODE_GET_BTM_INFO){
 			Server_ResponseInfo();
 			return;
@@ -2326,7 +2351,7 @@ void BtMeshSetupTask()
 #define NSS_SETUP_ERROR         10    // 
 
 
-uint16 CheckModbusCmd();
+//uint16 CheckModbusCmd();
 extern _PModbusCmdF4  pModbusCmd;
 extern _ModbusToHost ModbusToHostCmd;
 extern const char BtmModelName[6]; //BTM001

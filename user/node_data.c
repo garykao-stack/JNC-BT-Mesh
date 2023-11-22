@@ -8,6 +8,7 @@
 #include "leds.h"
 #include "sensor_client.h"
 #include "bus_usart.h"
+#include "ble_comm.h"
 #include "Mesh_Node.h"
 #include "node_data.h"
 

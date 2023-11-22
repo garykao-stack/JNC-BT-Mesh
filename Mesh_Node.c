@@ -13,6 +13,8 @@
 #include "ivi_features.h"
 #include "MeshFeatures.h"
 #include "cmd_to_bt_mesh.h"
+#include <stdbool.h>
+#include "ble_comm.h"
 
 #include "people_count_sensor.h"
 #include "mesh_sensor.h"
@@ -178,19 +180,19 @@ bool GetNodeStatus(uint32 status)
 //
 //
 //
-void SetSleepingTimer(uchar status)
+void SetSleepingTimer(uchar status, int32 sleep_ms)
 {
-    int32 sleeping_timer;
+    //int32 sleeping_timer;
     
     if(status == ON)
         {// sleeping on
-        sleeping_timer = (TIMER_SERVER_SLEEPING*1000-keepAliveBeforeSleepMs - TIMER_SERVER_SENS_INFO)-((uint32)GetDeviceInfoDelay+PreReadDelay+syncTime)*10;
+        /*sleeping_timer = (TIMER_SERVER_SLEEPING*1000-keepAliveBeforeSleepMs - TIMER_SERVER_SENS_INFO)-((uint32)GetDeviceInfoDelay+PreReadDelay+syncTime)*10;
         if (syncTime > 0)
             dprint("sync time %d(ms)\r\n",syncTime * 10);
-        syncTime = 0;
-        if (sleeping_timer<0)sleeping_timer=1000; /*當休眠時間<0,至少休眠一秒，如GetDeviceInfoDelay未變更，應該不會發生此狀況*/
-        dprint("sleep for sleeping_timer %d(ms)\r\n",sleeping_timer);
-        SetEventTaskTimer(TD_NODE_WAKE_UP,      sleeping_timer, TIMER_EVENT_ONCE);
+        syncTime = 0;*/
+        if (sleep_ms<0)sleep_ms=1000; /*當休眠時間<0,至少休眠一秒，如GetDeviceInfoDelay未變更，應該不會發生此狀況*/
+        dprint("sleep for sleeping_timer %d(ms)\r\n",sleep_ms);
+        SetEventTaskTimer(TD_NODE_WAKE_UP,      sleep_ms, TIMER_EVENT_ONCE);
         SetEventTaskTimer(TD_NO_EVENT,          TIMER_ENDING, TIMER_EVENT_ONCE); 
         SetEventTaskTimer(TD_GET_SENSOR_INFO,   TIMER_ENDING, TIMER_EVENT_ONCE);
         SetEventTaskTimer(TD_STAGE_TIMER,       TIMER_ENDING, TIMER_EVENT_ONCE);
@@ -209,15 +211,15 @@ void SetSleepingTimer(uchar status)
 //
 // set up node sleeping on/off
 //
-bool SetNodeSleeping(uchar status)
+bool SetNodeSleeping(uchar status, int32 sleep_ms)
 {
     bool ret_code=TRUE;
 
     if(status == ON){//Trace("Set Node Sleeping ON"); //SetNodeStatus(NS_SLEEPING,ON);
-         SetSleeping(ON);
+         SetSleeping(ON, sleep_ms);
         }
     else{//Trace("Set Node Sleeping OFF"); //SetNodeStatus(NS_SLEEPING,OFF);
-         SetSleeping(OFF);
+         SetSleeping(OFF,sleep_ms);
         }
     
     return ret_code;
@@ -225,17 +227,17 @@ bool SetNodeSleeping(uchar status)
 
 
 
-
+extern int32 BootingSeconds;
 //
 // ON: system into power saving
 //      1. All timer action  2. All device power on
 // OFF: system into action(Full power)
 //      
 //
-void SetSleeping(uchar status)
+void SetSleeping(uchar status, int32 sleep_ms)
 {
-    if(NodeRole == NR_CLIENT) return;
-    SetSleepingTimer(status);
+    //if(NodeRole == NR_CLIENT) return;
+    SetSleepingTimer(status,sleep_ms);
     if(status == ON)
       { //sleeping
       //Trace("SetSleeping ON");
@@ -249,6 +251,7 @@ void SetSleeping(uchar status)
     else
       { //wake up
       //Trace("SetSleeping OFF");
+    	BootingSeconds=0;
         NodeLpn(OFF); NodeProxy(ON); NodeBeacon(ON);
         SetMeshNodeStatus(STATUS_SLEEPING,OFF);
         SetNodeStatus(NS_SLEEPING,OFF);

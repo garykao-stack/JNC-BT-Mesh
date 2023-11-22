@@ -7,6 +7,7 @@
 #include "com_port.h"
 #include "bus_usart.h"
 #include "sensor_server.h"
+#include "ble_comm.h"
 #include "Mesh_node.h"
 #include "spidrv.h"
 #include "G6_bt_Mesh.h"

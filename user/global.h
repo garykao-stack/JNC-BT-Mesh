@@ -122,7 +122,7 @@
 #endif
 
 #if defined(JNC_BT_MESH)
- #define FW_VER              137
+ #define FW_VER              138
   #define HW_VER              110
   #define DEVICE_NAME         "JNC-BT-Mesh"SPACMARK
   #define MANUFACTORY_NAME    "JNC"
@@ -130,7 +130,7 @@
   #define MODEL_NAME          "BTM001"
 
 #elif defined(BTM_A308)
-  #define FW_VER              137
+  #define FW_VER              138
   #define HW_VER              100
   #define DEVICE_NAME         "A308 BT Transmitter"SPACMARK
   #define MANUFACTORY_NAME    "JNC"
@@ -332,7 +332,9 @@ uint16 TwoValueDiff(uint16 value_a, uint16 value_b);
 uchar WordToByte(word value);
 word ByteToWord(uchar value);
 
-
+//停用警告訊息
+#pragma diag_suppress=Pa039 //use of address of unaligned structure member
+#pragma diag_suppress=Pa093
 
 #define USER_ID_MAX_NUM      16
 

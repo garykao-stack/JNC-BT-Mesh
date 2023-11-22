@@ -8,13 +8,14 @@
 #include "ivi_features.h"
 #include "sensor_client.h"
 #include "sensor_server.h"
+#include "ble_comm.h"
 #include "Mesh_node.h"
 #include "mesh_event.h"
 
 
 
 uint8_t init_done = 0;
-extern uint32 ShowSqueNum();
+//extern uint32 ShowSqueNum();
 
 //uint8 MeshNodeModel;
 //**********************************************************************************************
@@ -241,7 +242,7 @@ uint32 EvtMeshSensorInitProc(PCmdPacket pEvent)
         Cmd_mn_set_adv_event_filter(0xF,0,NULL); //for RSSI event
 #endif  
         DI_Print("provisioned", DI_ROW_STATUS);
-        SetNodePublish(OFF); SetNodeSleeping(OFF);
+        SetNodePublish(OFF); SetNodeSleeping(OFF,0);
         dprint("\r\n***** Wake UP by Provisioned\r\n");
         
 		if(NodeRole == NR_SETUP) {Trace("BT Mesh Setup ON 1");

@@ -6,6 +6,7 @@
 #include "bus_usart.h"
 #include "sensor_client.h"
 #include "sensor_server.h"
+#include "ble_comm.h"
 #include "Mesh_node.h"
 
 #include "i2cspm.h"

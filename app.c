@@ -19,7 +19,7 @@
 #include "retargetserial.h"
 #include "leds.h"
 
-
+#include "ble_comm.h"
 #include"Mesh_node.h"
 
 #include "device_bus.h"
@@ -182,8 +182,8 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
  * @param[in] pConfig  Pointer to stack configuration.
  ******************************************************************************/
 extern EventFun BleEventFun[],MeshEventFun[];
-void WaterLeveMeshProc(void);
-void ComPortProc(void);
+//void WaterLeveMeshProc(void);
+//void ComPortProc(void);
 
 uint32  debug_count=0;
 void ServerNodeTask();

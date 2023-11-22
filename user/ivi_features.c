@@ -15,6 +15,7 @@
 #include "sensor_server.h"
 //#include "modbus_to_mesh.h"
 #include "cmd_to_bt_mesh.h"
+#include "ble_comm.h"
 #include "Mesh_node.h"
 #include "ivi_features.h"
 

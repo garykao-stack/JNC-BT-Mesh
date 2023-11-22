@@ -11,6 +11,7 @@
 #include "sensor_server.h"
 #include "node_data.h"
 #include "ivi_features.h"
+#include "ble_comm.h"
 #include "Mesh_node.h"
 #include "G6_BT_Mesh.h"
 #include "bus_rs485.h"
@@ -24,7 +25,7 @@
 Result result;
 _MeshNodeInfo MeshNodeInfo;
 _PTimerEventTask pDeviceTask;
-extern _TimerEventTask DeviceTaskTbl[];
+//extern _TimerEventTask DeviceTaskTbl[];
 extern void ClientTimer_10ms();
 extern void ServerTimer_10ms();
 extern void Modbus_Timer();
@@ -87,7 +88,7 @@ uchar GetButtonStatus()
     return ret_code;
 }
 
-void ServerNodeTask();
+//void ServerNodeTask();
     
 //*************************************************************************************
 // process Device Task
@@ -200,7 +201,6 @@ void SetTaskWork(PTimerTask p_task,uint16 status)
 {
     return;
 }
-
 void CheckStageTimer()
 {
     CheckNodeTimerCount();
@@ -213,7 +213,9 @@ void CheckStageTimer()
 #endif
 }
 
+#ifdef  BT_MESH_G6
 extern uint16 ActMotoSpeed;
+#endif
 uint16  TimerEvent=0;
 uchar   CurrTimerHandle;
 uint16  ForcePowerCounter;
@@ -226,6 +228,7 @@ const uchar PowerKeyMap[7]={1,3,4,0,MENUAL_KEY_AUTO,1,2};
 
 
 void BtMeshReset();
+extern int32 CalculateSleepTime();
 
 //**********************************************************************************************
 // Event: gecko_evt_hardware_soft_timer_id
@@ -244,10 +247,10 @@ uint32 EvtSoftTimerProc(PCmdPacket pEvent)
             CheckStageTimer();
             break;
         case TD_NODE_SLEEP: //Trace("TD_NODE_SLEEP");
-            SetNodeSleeping(ON);
+            SetNodeSleeping(ON,CalculateSleepTime());
             break;
         case TD_NODE_WAKE_UP:// Trace("TD_NODE_WAKE_UP");
-            SetNodeSleeping(OFF); 
+            SetNodeSleeping(OFF,0);
             dprint("\r\n***** Wake UP by Timer *****\r\n");
             break;
 //////////////////////////////////// for Client Timer event ///////////////////////////////////////      
@@ -624,7 +627,7 @@ void SetForceFullPowerTime(uchar status)
          
          if(NodeRole == NR_CLIENT)  ClientGetInfoActionNow();
          else {
-        	 ServerGetInfoActionNow(); SetNodeSleeping(OFF);
+        	 ServerGetInfoActionNow(); SetNodeSleeping(OFF,0);
         	 dprint("\r\n***** Wake Up by SetForceFullPowerTime\r\n");
          }
 
@@ -647,9 +650,11 @@ void SetForceFullPowerTime(uchar status)
 }
 
 int16 PowerTest;
+#ifdef  BT_MESH_G6
 extern uint16 ActMotoSpeed;
+#endif
 #if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH) /*偵錯訊息函數定義*/
-extern void MbsTransShowBuffInfo();
+//extern void MbsTransShowBuffInfo();
 #endif
 
 // BLE and Mesh common event 
@@ -658,7 +663,7 @@ extern void MbsTransShowBuffInfo();
 //
 //**********************************************************************************************
 extern uint32 ShowSqueNum();
-extern void TestIvUpdate();
+//extern void TestIvUpdate();
 uint32 EvtSysExternalSignalProc(PCmdPacket pEvent)
 {
     uint32 ret_code=TRUE;

@@ -6,6 +6,7 @@
 #include "bus_usart.h" 
 #include "sensor_client.h"
 #include "sensor_server.h"
+#include "ble_comm.h"
 #include "Mesh_node.h"
 #include "spidrv.h"
 #include "DAC7760.h"
@@ -50,6 +51,7 @@ void DacSetVol(uint16 percent)
     if(percent >VOL_PERCENT_MAX) percent = VOL_PERCENT_MAX; 
     vol_data = (((0xfff*percent)/VOL_PERCENT_MAX))<<4; 
     dac_reg.ValueA=WordSwap(vol_data);
+
     percent = ((float)percent)*0.8;
     TraceDec1("percent 2",percent); 
     vol_data = (((0xfff*percent)/VOL_PERCENT_MAX))<<4;

@@ -20,6 +20,7 @@
 #include "mesh_sensor.h"
 #include "sensor_client.h"
 #include "cmd_to_bt_mesh.h"
+#include "ble_comm.h"
 #include "Mesh_Node.h"
 
 

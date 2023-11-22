@@ -3,6 +3,7 @@
 
 //richard Add
 /* BG stack headers */
+#include "ble_comm.h"
 #include "Mesh_Node.h"
 #include "MeshFeatures.h"
 #include "sensor_client.h"

@@ -23,6 +23,7 @@
 #include "com_port.h"
 #include "ivi_features.h"
 #include "mesh_sensor.h"
+#include "ble_comm.h"
 #include "Mesh_Node.h"
 #include "Mesh_Client.h"
 #include "ClientModbus.h"
@@ -461,9 +462,22 @@ void ClientGetNodeInfoProc()
                 break;
             case CNS_GET_SEVER_INFO: 
 
+
+            	/*休眠中，離開 ※設定為休眠模式後，設備不會馬上進入休眠，避免休眠動作重覆設定先離開*/
+            	if (GetMeshNodeStatus(STATUS_SLEEPING)) return;
+
             	/*有設定重啟時間且時間條件已達成，重啟
             	 * 在廣播指令前重啟可避免重啟後若Server還在睡眠中沒有回應會判斷成斷線*/
-            	if((pMeshNodeData->RebootMinutes>0) && ((BootingSeconds/60)>=pMeshNodeData->RebootMinutes)) Cmd_sys_reset(0);
+            	if((pMeshNodeData->RebootMinutes>0) && ((BootingSeconds)>=(pMeshNodeData->RebootMinutes*60L))){
+            		//Cmd_sys_reset(0);
+            		dprint("put to sleep for a while\r\n");
+            		SetNodeSleeping(ON,200);
+            		return;
+            	}
+
+            	if(pMeshNodeData->RebootMinutes>0){
+            		dprint("reboot countdown:%d\r\n",(pMeshNodeData->RebootMinutes*60)-BootingSeconds);
+            	}
 
                 if(CountErr > 3) ToNextStage(CNS_GET_INFO_ERR); // err: go to sleeping
 
@@ -1257,6 +1271,7 @@ bool ClientOtherModbusCmd()
     ModbusToHostCmd.ModbusID = pModbusCmd->ModbusID;
     ModbusToHostCmd.FunCode = pModbusCmd->FunCode;
     ModbusToHostCmd.ByteNum = 6;
+
     memcpy(ModbusToHostCmd.Data,BtmModelName,6);
 
     return ret_code;
@@ -1967,7 +1982,7 @@ bool ClientVelocity(PVelocity p_info)
 {//
     bool ret_code=TRUE;
     uint16 start_addr,total_reg,temp_value;
-    float *p_float, float_value;
+    //float *p_float, float_value;
     ModbusToHostCmd.ModbusID = pModbusCmd->ModbusID;
     ModbusToHostCmd.FunCode = pModbusCmd->FunCode;
     ModbusToHostCmd.ByteNum = 2;

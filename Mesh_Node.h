@@ -546,14 +546,11 @@ bool CheckPreReadTimer(bool bReset, uint16 time, uint16 uart_time);
 void SetNodeStatus(uint32 status, uchar on_off);
 bool GetNodeStatus(uint32 status);
 PNodeStageInfo GetNodeStageInfo(uchar value);
-bool SetNodeSleeping(uchar status);
-void SetSleeping(uint8 status);
-void SetSleepingTimer(uchar status);
+bool SetNodeSleeping(uchar status, int32 sleep_ms);
+void SetSleeping(uint8 status, int32 sleep_ms);
+void SetSleepingTimer(uchar status, int32 sleep_ms);
 void CheckNodeTimerCount();
 void SetNodePublish(uchar status);
-
-
-
 
 extern PFunSensor pFunSensor;
 extern uint32   NodeStatus;

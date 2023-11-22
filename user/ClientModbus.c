@@ -1,6 +1,7 @@
 #include "global.h"
 
 #include "bus_usart.h"
+#include "ble_comm.h"
 #include "Mesh_Node.h"
 #include "node_data.h"
 #include "ClientModbus.h"
@@ -11,7 +12,7 @@
 	extern int8 A308_TableExist(uint8 id);
 #endif
 
-extern PClientInfo pClientInfo;
+//extern PClientInfo pClientInfo;
 extern uchar GetBatteryPower();
 
 extern uint32 ClientBroadcastCounter;
@@ -83,6 +84,7 @@ void FromWordH(float *dest,uint16 value){
 void FromWordL(float *dest,uint16 value){
 	((uint16*)dest)[0]=value;
 }*/
+
 #define NoDataChanged 0
 #define NodeDataChanged 1
 #define AdjChanged 2
@@ -134,7 +136,7 @@ int SetMemoryRegister(uint16 loc, uint16 value){
 	case MBS_HUM_OFFSET_L: FromWordL(pAdjValue->HumOffset,value); return AdjChanged;
 	case MBS_HUM_OFFSET_H: FromWordH(pAdjValue->HumOffset,value); return AdjChanged;
 	case MBS_RESET_CMD_RSP_COUNT: if(value==0x3636) ClearServerResponseCounter(); return NoDataChanged;
-	case MBS_REBOOT: if(value==0x3636) SetEventTaskTimer(TD_SYS_SETUP_RESET,1000,TIMER_EVENT_ONCE); // system reset; return NoDataChanged;
+	case MBS_REBOOT: if(value==0x3636) SetEventTaskTimer(TD_SYS_SETUP_RESET,1000,TIMER_EVENT_ONCE); return NoDataChanged;// system reset; return NoDataChanged;
 	case MSS_RSP_TEST_SEC: if(value)ClearServerResponseCounter(); ClientResponseTestMs=value*1000;ClientResponseTestMode=false; return NoDataChanged;
 	default: return NoDataChanged;
 	}

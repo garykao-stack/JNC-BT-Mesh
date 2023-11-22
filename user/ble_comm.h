@@ -4,6 +4,7 @@
 /* BG stack headers */
 
 #include "mesh_device_properties.h"
+#include <stdbool.h>
 
 typedef struct _RspResult_
 {
@@ -16,8 +17,8 @@ typedef uint16*     PResult;
 typedef uint8array* PEvtRespData;
 
 typedef uint32 (*PFunEvent)(struct gecko_cmd_packet* pEvent);
-typedef bool (*PFunSensor)(void);
 
+typedef bool (*PFunSensor)(void);
 
 
 typedef struct _EventFun_

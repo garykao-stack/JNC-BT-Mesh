@@ -10,6 +10,7 @@
 //#include "cmd_rsp_evt.h"
 //#include "ble_msg.h"
 //#include "base_def.h"
+#include "ble_comm.h"
 #include "Mesh_Node.h"
 #include "bus_usart.h"
 

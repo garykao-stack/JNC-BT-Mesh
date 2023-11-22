@@ -231,6 +231,7 @@ uint16 GetAverageTempAndRH(int16 *Temp, uint16 *humidity)
           Delay_ms(50);
         }
     PrintData("GetAverageTempAndRH", (PUINT16)&TempRh,5*2);
+    return 0;
 }
 
 
