@@ -120,8 +120,22 @@ Bool IvIndexUpdate(uchar status)
 			return ret_code;
 		}*/
 
+
         result = Cmd_mn_req_ivupdate()->result;
-        if(result){
+        if (result==0x181){
+        	result = Cmd_mt_set_iv_index(pMeshNodeData->IvIndex + IVI_INC_MIN)->result;
+			if(result){
+				dprint("Cmd_mt_set_iv_index(%d + %d):0x%x\r\n",pMeshNodeData->IvIndex,IVI_INC_MIN,result);
+				return ret_code;
+			}
+			pMeshNodeData->IvIndex = pMeshNodeData->IvIndex + IVI_INC_MIN;
+			result = Cmd_mt_set_ivupdate_state(ON)->result;
+			if(result){
+				dprint("Cmd_mt_set_ivupdate_state:0x%x\r\n",result);
+				return ret_code;
+			}
+        }
+        else if(result){
         	dprint("Cmd_mn_req_ivupdate:0x%x\r\n",result);
         	return ret_code;
         }

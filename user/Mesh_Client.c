@@ -475,14 +475,15 @@ void ClientGetNodeInfoProc()
             		return;
             	}
 
-            	if(pMeshNodeData->RebootMinutes>0){
-            		dprint("reboot countdown:%d\r\n",(pMeshNodeData->RebootMinutes*60)-BootingSeconds);
-            	}
+
+
 
                 if(CountErr > 3) ToNextStage(CNS_GET_INFO_ERR); // err: go to sleeping
 
 
                 if(CheckWaitTimeOut()){
+                	if(pMeshNodeData->RebootMinutes>0) dprint("reboot countdown:%d\r\n",(pMeshNodeData->RebootMinutes*60)-BootingSeconds);
+
                 	ServerIsAwake=true;
                 	//dprint("CNS_GET_SEVER_INFO: set ServerIsAwake=%d\r\n",ServerIsAwake);
                     //to get info from all server node
@@ -516,6 +517,7 @@ void ClientGetNodeInfoProc()
                     }
                 }else{
                     if(GetNodeStatus(NS_GET_INFO_ACT)){
+                    	if(pMeshNodeData->RebootMinutes>0) dprint("reboot countdown:%d\r\n",(pMeshNodeData->RebootMinutes*60)-BootingSeconds);
                     	ToWaitingStage(CNS_WAIT_INFO,WAIT_SEC(TIMER_CLI_WAIT_INFO));
                     }
                 	//dprint("countdown:%d\r\n",pStageInfo->Timer);
