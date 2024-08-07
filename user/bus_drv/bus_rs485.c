@@ -78,7 +78,8 @@ uchar CheckRs485Device(int16 connectTryCount)
 
     dprint("BTM Sensor type:%d\r\n", pMeshNodeData->SensorClass);
     if(pMeshNodeData->SensorClass == SENSOR_PZEM){
-        CHECK_RS485_CMD((PUCHAR)&PzemClean[0],sizeof_array(PzemClean)); UsartResetRxTx(USART_ID_TX_RX);
+        // BT-Mesh 比流計歸零，不需要每次開機都清除，故註解掉。
+        // CHECK_RS485_CMD((PUCHAR)&PzemClean[0],sizeof_array(PzemClean)); UsartResetRxTx(USART_ID_TX_RX);
         Delay_ms(500); SetLedToggle(LED_GREEN);
         pFunSensor = GetPzem;GetDeviceInfoDelay = 5;
         SetNodeStatus(NS_SERVER_RS485_ENABLE,ON);
