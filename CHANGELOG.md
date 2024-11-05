@@ -1,3 +1,21 @@
+### ALL DEVICE v1.40  #
+#### 20241105 (珊) #
+1. 新增讀取 DI 狀態。目前僅電路板 JNC-BT-MESH V1.2 有 DI 功能，其它電路板一樣可燒此版本。
+2. 可以通過 Client 或 Server 的站號用 Modbus FC2 讀取 DI 狀態。
+    - 對 Client 讀取之設定值
+        BT ID-1~255 DI 狀態: 100002~100256
+    - 對 Server 讀取之設定值
+        DI 狀態: 100001
+3. 使用 JNC BT Mesh APP 1.0.7.11 以上版本，Server 模式選擇"DI模式"。避免掃描超時無法回應 Client。
+    APP 設定 Server 為 DI 模式:
+      - 點"參數設定"
+      - 模式選"DI模式"
+      - 按"設定"
+4. Server 模式選"自動掃描(Skynet)" 且有接 sensor 的 Skynet 系列(T/R,CO2,PM2.5,TVOC) 可回傳 DI 狀態，先預留此功能。
+5. Server 模式選"自動掃描(Skynet)"，若不接 sensor 不會回傳 DI 狀態，避免忘記設定造成回應率低的問題。
+6. DI 模式狀態指示燈: Server 不接 sensor 開機時不會紅藍燈交替閃爍。
+7. 純中繼的節點(不接任何 sensor)選擇"DI模式"再開"中繼功能"，可避免掃描超時無法回應 Client。
+
 ### ALL DEVICE v1.39  #
 #### 20240807 (珊) #
 1. BT-Mesh 比流計歸零，不需要每次開機都清除，故註解掉。

@@ -122,7 +122,7 @@
 #endif
 
 #if defined(JNC_BT_MESH)
- #define FW_VER              139
+  #define FW_VER              140
   #define HW_VER              110
   #define DEVICE_NAME         "JNC-BT-Mesh"SPACMARK
   #define MANUFACTORY_NAME    "JNC"
@@ -313,6 +313,10 @@ uint16 ShowResult(char* pString, uint16 result );
 
 
 #endif
+
+
+// for JNC BT Mesh Board v1.2
+static inline bool getSkynetDI() {return GPIO_PinInGet(BSP_DI_PORT, BSP_DI_PIN);}
 
 void SetStatusOn(uint32 status);
 void SetStatusOff(uint32 status);

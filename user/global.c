@@ -148,7 +148,6 @@ bool GetMeshNodeStatus(uint32 status)
   return ret_code;
 }
 
-
 ////////////////////////////////// for Debug Function ///////////////////////////////////////////////
 
 // Show data for debug

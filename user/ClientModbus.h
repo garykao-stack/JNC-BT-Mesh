@@ -1,5 +1,18 @@
 #ifndef CLIENT_MODBUS_H
 #define CLIENT_MODBUS_H
+
+typedef enum
+{
+  fReadMemory=0x3,
+  fReadAI=0x4,
+  fWriteRegister=0x6,
+  fWriteMultipleRegisters=0x10,
+  fWriteDO=0x5,
+  fWriteMultipleDO=0xf,
+  fReadMultipleDI=0x2,
+  fReadMultipleDO=0x1
+} Function;
+
 int16 ClientModbusProc();
 
 #define MBS_MODELNAME0 0

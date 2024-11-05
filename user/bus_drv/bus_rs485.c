@@ -110,13 +110,16 @@ uchar CheckRs485Device(int16 connectTryCount)
     	pFunSensor = GetJYGD15Info;GetDeviceInfoDelay = 5;
     	 SetNodeStatus(NS_SERVER_RS485_ENABLE,ON);
     	 rs485_dev = SENSOR_JYGD15; goto Check485_End;
-    }
+        }
 //#ifdef BTM_TRANSMITTER /*偵測設定結果，預計拿掉定義判斷即可*/
     else if(pMeshNodeData->SensorClass == SENSOR_CUSTOM_SERIAL){
     	pFunSensor = GetCustomSerial;GetDeviceInfoDelay = 5;
         SetNodeStatus(NS_SERVER_RS485_ENABLE,ON);
         rs485_dev = SENSOR_CUSTOM_SERIAL; goto Check485_End;
-    }
+        }
+    else if(pMeshNodeData->SensorClass == SENSOR_DI){
+        rs485_dev = SENSOR_DI;  goto Assigned;
+        }
 #if defined(BTM_A308) && A308_SIMULATION
     else if(pMeshNodeData->SensorClass == SENSOR_A308M){
     	pFunSensor = GetA308mInfo;GetDeviceInfoDelay = 80;
@@ -212,6 +215,7 @@ Assigned:
     else if(rs485_dev == SENSOR_SKYNET_TVOC) {pFunSensor = GetSkynetTvocInfo; GetDeviceInfoDelay = 2;}
     else if(rs485_dev == SENSOR_BTM_G6)     {pFunSensor = GetBtmG6Info; GetDeviceInfoDelay = 2;}
     else if(rs485_dev == SENSOR_VELOCITY)   {pFunSensor = GetVelocityInfo; GetDeviceInfoDelay = 2;}
+    else if(rs485_dev == SENSOR_DI)     {pFunSensor = GetDI; GetDeviceInfoDelay = 2;}
     else {TraceErr("Sensor Check");} // 
 
 

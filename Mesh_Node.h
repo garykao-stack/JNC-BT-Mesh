@@ -54,6 +54,7 @@ typedef struct _Si7021Info_
 
     float   fTempature;     // -40°C ~ 85°C
     float   fHumidity;      // 0% ~ 100%
+    bool    bDI_State;    // for DI 0:Open, 1:Short
 }_Si7021Info,*PSi7021Info;
 
 typedef struct _PT485Info_
@@ -222,6 +223,7 @@ typedef struct _SkynetCo2_
     float   fHumidity;      // 0% ~ 100%
     uint16  Co2;
     float   fCo2;
+    bool    bDI_State;    // for DI 0:Open, 1:Short
 }_SkynetCo2,*PSkynetCo2;
 
 typedef struct _SkynetPm25_
@@ -229,12 +231,14 @@ typedef struct _SkynetPm25_
     uint16  PM25;           // for PM2.5
     float   fPM25;          // for float PM2.5
     float   fPM10;          // for float PM10
+    bool    bDI_State;    // for DI 0:Open, 1:Short
 }_SkynetPm25,*PSkynetPm25;
 
 typedef struct _SkynetTvoc_
 {
     uint16  TVOC;           // for TVOC
     float   fTVOC;          // for float TVOC
+    bool    bDI_State;    // for DI 0:Open, 1:Short
 }_SkynetTvoc,*PSkynetTvoc;
 
 typedef struct _BtMeshInfo_
@@ -279,6 +283,11 @@ typedef struct{
 	uint16 values[16];
 }_JYGD15Info;
 
+typedef struct _DINode_
+{
+    bool    bDI_State;     // for DI 0:Open, 1:Short
+}_DINode,*PDINode;
+
 
 typedef struct _SensorInfo_
 {    
@@ -304,8 +313,9 @@ union{
         _Velocity   Velocity;
         _BtmG6      BtmG6;
         _JYGD15Info	JYGD15Info;
-        _SkynetPm25  SkynetPm25;
-        _SkynetTvoc  SkynetTvoc;
+        _SkynetPm25 SkynetPm25;
+        _SkynetTvoc SkynetTvoc;
+        _DINode     DINode;
         
      };
 }_SensorInfo,*PSensorInfo;
@@ -392,6 +402,7 @@ typedef struct _NodeEventInfo_
 #define SENSOR_JYGD15		 21		/*風速風量變送器*/
 #define SENSOR_SKYNET_PM25   22     // Skynet PM25
 #define SENSOR_SKYNET_TVOC   23     // Skynet TVOC
+#define SENSOR_DI            24     // DI mode, select from app
 #define SENSOR_CUSTOM_SERIAL 0xff
 
 

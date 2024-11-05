@@ -167,6 +167,34 @@ bool GetCoilRegister(uint16 loc){
 	return false;
 }
 
+static bool GetDICoil(uint16 loc)
+{
+	PClientInfo pServer;
+	if(loc==pMeshNodeData->MeshNodeID) { /*Client DI 狀態*/
+		return getSkynetDI();
+	} else if(loc<=0xff) {  /*Server DI 狀態*/
+		pServer=GetExistingServerInfoPos(loc);
+		if(pServer && pServer->SensorInfo.Header.SensorClass) {
+			switch(pServer->SensorInfo.Header.SensorClass)
+			{
+			case SENSOR_SI7021: {
+				return pServer->SensorInfo.Si7021Info.bDI_State;}
+			case SENSOR_SKYNET_CO2: {
+				return pServer->SensorInfo.SkynetCo2.bDI_State;}
+			case SENSOR_SKYNET_PM25: {
+				return pServer->SensorInfo.SkynetPm25.bDI_State;}
+			case SENSOR_SKYNET_TVOC: {
+				return pServer->SensorInfo.SkynetTvoc.bDI_State;}
+			case SENSOR_DI: {
+				return pServer->SensorInfo.DINode.bDI_State;}
+			default: {
+				break;}
+			}
+		}
+	}
+	return false;
+}
+
 int16 ResponseModbusError(uint8 *rx, uint8 *tx){
 	tx[0]=rx[0];
 	tx[1]=0x80|rx[1];
@@ -185,9 +213,9 @@ int16 ClientModbusProc(){
 	uint16 value;
 	int changed=0;
 
-
 	switch(rx[1]){
-	case 3: case 4:
+	case fReadMemory:
+	case fReadAI:
 
 		if (count>((USART_TX_BUFF_SIZE-5)/2)) return ResponseModbusError(rx,tx); /*超出回應長度*/
 		if (UsartGetRxCounter()!=8) return ResponseModbusError(rx,tx);/*命令長度不符*/
@@ -201,17 +229,17 @@ int16 ClientModbusProc(){
 			tx[4+i*2]=value&0xff;
 		}
 		return MbsSend(tx,3+count*2);
-	case 6:
+	case fWriteRegister:
 		if (UsartGetRxCounter()!=8) return ResponseModbusError(rx,tx);/*命令長度不符*/
 		changed|=SetMemoryRegister(st,(((uint16)rx[4])<<8) +rx[5]);
 		MbsSend(rx,6);
 		break;
-	case 16:
+	case fWriteMultipleRegisters:
 		if (UsartGetRxCounter()!=(9+count*2)) return ResponseModbusError(rx,tx);/*命令長度不符*/
 		for(int i=0;i<count;i++) changed|=SetMemoryRegister(st+i,(((uint16)rx[i*2+7])<<8) +rx[i*2+8]);
 		MbsSend(rx,6);
 		break;
-	case 1:
+	case fReadMultipleDO:
 		if (UsartGetRxCounter()!=8) return ResponseModbusError(rx,tx);/*命令長度不符*/
 		GetCoilRegister(st);
 		memcpy(tx,rx,2);
@@ -220,15 +248,24 @@ int16 ClientModbusProc(){
 		for (int i=0;i<count;i++) tx[3+(i/8)]|=GetCoilRegister(st+i)?0x01<<(i%8):0;
 		MbsSend(tx,3+tx[2]);
 		break;
-	case 5:
+	case fWriteDO:
 		if (UsartGetRxCounter()!=8 || rx[5]!=0 || (rx[4]!=0xff && rx[4]!=0)) return ResponseModbusError(rx,tx);/*命令長度不符 or指定內容格式不符*/
 		changed|=SetCoilRegister(st,rx[4]==0xff);
 		MbsSend(rx,6);
 		break;
-	case 0xf: //func=15
+	case fWriteMultipleDO: //func=15
 		if (UsartGetRxCounter()!=(9+((count+7)/8))) return ResponseModbusError(rx,tx);/*命令長度不符*/
 		for(int i=0;i<count;i++) changed|=SetCoilRegister(st+i,((rx[7+(i/8)]>>(i%8))&1)==1);
 		MbsSend(rx,6);
+		break;
+	case fReadMultipleDI:
+		if (UsartGetRxCounter()!=8) return ResponseModbusError(rx,tx);/*命令長度不符*/
+		// GetDICoil(st);
+		memcpy(tx,rx,2);
+		tx[2]=(count+7)/8;
+		memset(tx+3,0,tx[2]);
+		for (int i=0;i<count;i++) tx[3+(i/8)]|=GetDICoil(st+i)?0x01<<(i%8):0;
+		MbsSend(tx,3+tx[2]);
 		break;
 	default:
 		return ResponseModbusError(rx,tx); /*不支援的指令*/

@@ -243,6 +243,7 @@ bool G6SetupInfo();
 bool G6GetInfo();
 bool ModbusSetupFC6();
 bool GetJYGD15Info();
+bool GetDI();
 
 
 bool G6SetSegPowerPercent(uint16 addr,uint16 value);

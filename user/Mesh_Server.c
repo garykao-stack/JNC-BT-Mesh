@@ -1126,6 +1126,7 @@ bool GetSkynetInfo()
         p_sensor->fTempature = (float)p_sensor->Tempature / 10;
         p_sensor->fHumidity = (float)p_sensor->Humidity / 10;
         dprint("====> temp: %d, hum:%d\r\n",p_sensor->Tempature,p_sensor->Humidity);
+        p_sensor->bDI_State = getSkynetDI();
     }
     else {ret_code = FALSE;}
     ret_code = TRUE; 
@@ -1169,6 +1170,7 @@ bool GetSkynetCo2Info()
         p_sensor->Co2 = co2; 
         p_sensor->fCo2 = p_sensor->Co2;
         dprint("====> CO2: %d\r\n",p_sensor->Co2);
+        p_sensor->bDI_State = getSkynetDI();
     }else{
         ret_code = FALSE;
         dprint("====> CO2: Read Faild.\r\n");
@@ -1208,6 +1210,7 @@ bool GetSkynetPm25Info() {
         p_sensor->PM25 = p_sensor->fPM25 * 10;
         p_sensor->fPM10 = pm10;
         dprint("====> PM25: %.1f, PM10: %.1f\r\n", p_sensor->fPM25, p_sensor->fPM10);
+        p_sensor->bDI_State = getSkynetDI();
     } else {
         ret_code = FALSE;
         dprint("====> PM25: Read Faild.\r\n");
@@ -1234,6 +1237,7 @@ bool GetSkynetTvocInfo()
         p_sensor->TVOC = tvoc;
         p_sensor->fTVOC = (float)p_sensor->TVOC / 1000;
         dprint("====> TVOC: %d\r\n", p_sensor->TVOC);
+        p_sensor->bDI_State = getSkynetDI();
     } else {
         dprint("====> TVOC: Read Faild.\r\n");
     }
@@ -1587,7 +1591,7 @@ bool GetRelay()
 	SetNodeInfoSize(_RelayNode);
 	SetNodeClass(SENSOR_RELAY);
 
-	p_sensor->Status++;;
+	p_sensor->Status++;
 
 
 	return ret_code;
@@ -1825,7 +1829,18 @@ bool GetJYGD15Info(){
 	return TRUE;
 }
 
+bool GetDI()
+{
+	bool ret_code = TRUE;
+	PDINode p_sensor = &ServerInfo.SensorInfo.DINode;
 
+	SetNodeInfoSize(_DINode);
+	SetNodeClass(SENSOR_DI);
+
+    p_sensor->bDI_State = getSkynetDI();
+
+	return ret_code;
+}
 
 bool GetCustomSerial(){
 	SetNodeInfoSize(_BtMeshInfo);
@@ -2178,13 +2193,14 @@ uint16  SensorClassChange(uint16 class,uint8 status)
 {
     if(status == CLASS_TO_UTILITY){ // change to Utility or App sensor class
         switch(class){
-        case SENSOR_PZEM: return 2;
-        case SENSOR_OEM: return 3;
-        case SENSOR_AGB_POWER: return 4;
-        case SENSOR_VELOCITY: return 5;
-        case SENSOR_JYGD15: return 6;
-        case SENSOR_CUSTOM_SERIAL: return 7;
-        default: return 1;
+        case SENSOR_PZEM:           return 2;
+        case SENSOR_OEM:            return 3;
+        case SENSOR_AGB_POWER:      return 4;
+        case SENSOR_VELOCITY:       return 5;
+        case SENSOR_JYGD15:         return 6;
+        case SENSOR_CUSTOM_SERIAL:  return 7;
+        case SENSOR_DI:             return 8;
+        default:                    return 1;
         }
         //TraceDec1("To Utility",ret_code);
     }
@@ -2196,6 +2212,7 @@ uint16  SensorClassChange(uint16 class,uint8 status)
         case 5: return SENSOR_VELOCITY;
         case 6: return SENSOR_JYGD15;
         case 7: return SENSOR_CUSTOM_SERIAL;
+        case 8: return SENSOR_DI;
         default :return 1;
         }
 		/*if(class == 2) ret_code = SENSOR_PZEM;

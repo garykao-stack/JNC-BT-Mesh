@@ -73,7 +73,7 @@ void gecko_bgapi_classes_init(void)
 
 const char* SensorClassStr[]=
 {
-    "NO Sensor","Auto Scan","PZEM","Visual Sensor","DC600","FTM94","BTM-G6","BTM485"
+    "NO Sensor","Auto Scan","PZEM","Visual Sensor","DC600","FTM94","BTM-G6","BTM485","DI Mode"
 };
 extern void DebugShowSetting();
 extern uint32 IndexToBaudrate(uint8);
@@ -102,6 +102,7 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
     UDELAY_Calibrate();
     led_init();  
     button_init();
+    DIDO_init();
 
     // 以下兩個函式都有溫濕度讀取
     DeviceInit();

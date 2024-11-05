@@ -284,6 +284,17 @@ typedef struct
 #define BTM_G6_TIME_FILTER2     0x0005
 
 
+
+//------------------------------------------------------------------//
+//--------------------- DI (FC02) ----------------------------------//
+#define FC02_SKYNET_DI_STATUS       0x0000  //for Skynet DI status
+
+
+
+
+
+
+
 // Client Node Status
 
 
@@ -335,6 +346,7 @@ bool ClientSkynetTvoc(PSkynetTvoc p_info);
 bool ClientBtmG6(PBtmG6 p_info);
 bool ClientVelocity(PVelocity p_info);
 bool ClientJYGD15(_JYGD15Info *info);
+bool ClientDI(PDINode p_info);
 
 void ShowAllNodeInfo(void);
 void ShowEventInfo(PClientInfo p_info);

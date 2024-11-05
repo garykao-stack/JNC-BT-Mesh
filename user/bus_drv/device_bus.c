@@ -43,6 +43,14 @@ void DeviceBusInit()
 #endif
 }
 
+void DIDO_init()
+{
+    // DI configure as inputs, with pull-up enabled
+    GPIO_PinModeSet(BSP_DI_PORT, BSP_DI_PIN, gpioModeInputPull, 1);
+    // DO
+    GPIO_PinModeSet(BSP_DO_PORT, BSP_DO_PIN, gpioModePushPull, 0);
+}
+
 void DeviceAllInit()
 {
     //AD7147Init(); 

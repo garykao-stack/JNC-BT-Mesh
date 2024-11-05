@@ -68,6 +68,7 @@ extern uchar  SpiStatus,I2cStatus;
 extern uchar SpiTxBuffer[TX_BUFFER_SIZE];
 extern uchar SpiRxBuffer[RX_BUFFER_SIZE];
 
+void DIDO_init();
 void DeviceAllInit();
 void DeviceBusInit();
 void DeviceInit();
