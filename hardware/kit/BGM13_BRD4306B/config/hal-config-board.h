@@ -158,6 +158,12 @@
 // $[IOEXP]
 // [IOEXP]$
 
+// for JNC BT Mesh Board v1.2
+#define BSP_DI_PIN                                  (5U)
+#define BSP_DI_PORT                                 (gpioPortA)
+#define BSP_DO_PIN                                  (13U)
+#define BSP_DO_PORT                                 (gpioPortB)
+
 // $[LED]
 
 
