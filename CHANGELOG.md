@@ -1,3 +1,9 @@
+### ALL DEVICE v1.41  #
+#### 20260306 (明) #
+1. 增加看門狗 watchdog.c / watchdog.h，目前設定超時八秒重啟
+2. modbus在0x900增加讀取 BootingSeconds
+3. Mesh_Client / Mesh_Server 整體重新排版(應該沒改韌體)，其他部分涵式也重新排版
+
 ### ALL DEVICE v1.40  #
 #### 20241105 (珊) #
 1. 新增讀取 DI 狀態。目前僅電路板 JNC-BT-MESH V1.2 有 DI 功能，其它電路板一樣可燒此版本。

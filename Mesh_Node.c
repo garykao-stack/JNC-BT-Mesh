@@ -49,10 +49,10 @@ NodeStageInfo NodeStageInfoTbl[NODE_STAGE_INFO_NUM]=
 //
 void CheckNodeTimerCount()
 {
-   uchar loop;
-   PNodeStageInfo p_node = NodeStageInfoTbl;
-   
-   for(loop=0; loop< NODE_STAGE_INFO_NUM; loop++)
+    uchar loop;
+    PNodeStageInfo p_node = NodeStageInfoTbl;
+
+    for(loop=0; loop< NODE_STAGE_INFO_NUM; loop++)
     {
         if(p_node->Timer) p_node->Timer--;
         p_node++;
@@ -92,6 +92,14 @@ PNodeStageInfo GetNodeStageInfo(uchar value)
 
 }
 
+void DebugClinetNodeStage(uint32 v)
+{
+    dprint("Ct: %d =>%4x,%4x,%4x \r\n",v,NodeStageInfoTbl[1].Stage,NodeStageInfoTbl[2].Stage,NodeStageInfoTbl[4].Stage);
+}
+void DebugServerNodeStage(uint32 v)
+{
+    dprint("St: %d =>%4x,%4x,%4x \r\n",v,NodeStageInfoTbl[1].Stage,NodeStageInfoTbl[2].Stage,NodeStageInfoTbl[3].Stage);
+}
 
 void SetMeshNodeStage(uint16 stage)
 {
@@ -128,27 +136,27 @@ bool CheckWaitTimeOut()
  */
 bool CheckPreReadTimer(bool bReset, uint16 time, uint16 communicate_time)
 {
-  static uint16 t = 0;
-  static uint16 communicate_t = 0;
-  // 初始化 pre read timer
-  if (bReset) {
-    t = time;
-    communicate_t = communicate_time;
-    return true;
-  }
-  
-  // 剩不到 1.5 秒就不執行 pre read
-  if (ActiveWaiting() <= 150)
-    return false;
+    static uint16 t = 0;
+    static uint16 communicate_t = 0;
+    // 初始化 pre read timer
+    if (bReset) {
+        t = time;
+        communicate_t = communicate_time;
+        return true;
+    }
 
-  bool ret_code = ActiveWaiting() < (t + 100 - communicate_t);
-  if (ret_code) {
+    // 剩不到 1.5 秒就不執行 pre read
+    if (ActiveWaiting() <= 150)
+        return false;
+
+    bool ret_code = ActiveWaiting() < (t + 100 - communicate_t);
+    if (ret_code) {
     if (t > 100) // 100: 1000ms
-      t -= (100 - communicate_t);
+        t -= (100 - communicate_t);
     else
-      t = 0;
-  }
-  return ret_code;    
+        t = 0;
+    }
+    return ret_code;
 }
 
 //
@@ -167,7 +175,7 @@ bool GetNodeStatus(uint32 status)
 {
     bool ret_code = OFF;
     if(NodeStatus & status) ret_code = ON;
-  return ret_code;
+    return ret_code;
 }
 
 
@@ -227,7 +235,7 @@ bool SetNodeSleeping(uchar status, int32 sleep_ms)
 
 
 
-extern int32 BootingSeconds;
+extern uint32 BootingSeconds;
 //
 // ON: system into power saving
 //      1. All timer action  2. All device power on

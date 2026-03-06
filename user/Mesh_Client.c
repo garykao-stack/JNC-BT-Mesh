@@ -45,7 +45,8 @@ PClientInfo pClientInfo=ClientInfo;
 _PModbusCmdF4  pModbusCmd;
 _ModbusToHost ModbusToHostCmd;
 uint16 RebootCountdown;
-int32 BootingSeconds=0;
+uint32 BootingSeconds=0;
+uint32 lastSeconds=0;
 
 #if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
 extern void MbsTransmitterInit();
@@ -68,14 +69,12 @@ void ClientNodeInit()
     //UsartClientProc();
     //ClientFromHostProc();
     if (pMeshNodeData->RebootForRs485IdelSecnods==0xffff) pMeshNodeData->RebootForRs485IdelSecnods=0;
-    if(pMeshNodeData->RebootForRs485IdelSecnods) RebootCountdown=pMeshNodeData->RebootForRs485IdelSecnods;
+    if (pMeshNodeData->RebootForRs485IdelSecnods) RebootCountdown=pMeshNodeData->RebootForRs485IdelSecnods;
     BootingSeconds=0;
 #if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
     MbsTransmitterInit();
 #endif
     ClearServerResponseCounter();
-
-
 }
 
 void ClearServerResponseCounter(){
@@ -87,13 +86,13 @@ void ClearServerResponseCounter(){
 uint16 test1;
 
 uint16 rx_ccount;
+void DebugClinetNodeStage(uint32 v);
 void ClientNodeTask()
 {
-
     ClientGetNodeInfoProc();
     //UsartClientProc(); /*移到app.c*/
 
-    ClientFromHostProc();
+    ClientFromHostProc();  
 //#ifndef BTM_TRANSMITTER
     ClientSetNodeInfoProc();
 //#endif
@@ -185,11 +184,11 @@ uchar GetServerNodeNum()
     PClientInfo p_node_info;
     p_node_info = ClientInfo;
 
-    for(loop=0; loop<SERVER_NODE_MAX; loop++)
-        {
-            if(p_node_info->ServerID != 0 ) ret_code++;
-            p_node_info++;
-        }
+    for(loop=0; loop<SERVER_NODE_MAX; loop++){
+        if(p_node_info->ServerID != 0 ) 
+            ret_code++;
+        p_node_info++;
+    }
     TraceDec1("Total Node Num",ret_code);
     return ret_code;
 }
@@ -225,51 +224,50 @@ uint16 GetProperityID()
     Trace16_1(modbus_reg);
     if(GET_MODBUS_FUN_CODE == 0x06)
     {//for AIP
-        if(modbus_reg == 0x0002)
-        {
-        if(AIP_CTRL_POWER == MODBUS_AIP_POWER_00) properity = NODE_SET_AIP_POWER_OFF;
-        else if(AIP_CTRL_POWER == MODBUS_AIP_POWER_25) properity = NODE_SET_AIP_POWER_25;
-        else if(AIP_CTRL_POWER == MODBUS_AIP_POWER_50) properity = NODE_SET_AIP_POWER_50;
-        else if(AIP_CTRL_POWER == MODBUS_AIP_POWER_75) properity = NODE_SET_AIP_POWER_75;
-        else if(AIP_CTRL_POWER == MODBUS_AIP_POWER_100) properity = NODE_SET_AIP_POWER_100;
+        if(modbus_reg == 0x0002) {
+            if(AIP_CTRL_POWER == MODBUS_AIP_POWER_00) properity = NODE_SET_AIP_POWER_OFF;
+            else if(AIP_CTRL_POWER == MODBUS_AIP_POWER_25) properity = NODE_SET_AIP_POWER_25;
+            else if(AIP_CTRL_POWER == MODBUS_AIP_POWER_50) properity = NODE_SET_AIP_POWER_50;
+            else if(AIP_CTRL_POWER == MODBUS_AIP_POWER_75) properity = NODE_SET_AIP_POWER_75;
+            else if(AIP_CTRL_POWER == MODBUS_AIP_POWER_100) properity = NODE_SET_AIP_POWER_100;
         }
-        else if(modbus_reg == 0x0001)
-        {
-        if(AIP_CTRL_POWER == MODBUS_AGB_POWER_00) properity = NODE_SET_AIP_POWER_OFF;
-        else if(AIP_CTRL_POWER == MODBUS_AGB_POWER_25) properity = NODE_SET_AIP_POWER_25;
-        else if(AIP_CTRL_POWER == MODBUS_AGB_POWER_50) properity = NODE_SET_AIP_POWER_50;
-        else if(AIP_CTRL_POWER == MODBUS_AGB_POWER_75) properity = NODE_SET_AIP_POWER_75;
-        else if(AIP_CTRL_POWER == MODBUS_AGB_POWER_100) properity = NODE_SET_AIP_POWER_100;         
+        else if(modbus_reg == 0x0001) {
+            if(AIP_CTRL_POWER == MODBUS_AGB_POWER_00) properity = NODE_SET_AIP_POWER_OFF;
+            else if(AIP_CTRL_POWER == MODBUS_AGB_POWER_25) properity = NODE_SET_AIP_POWER_25;
+            else if(AIP_CTRL_POWER == MODBUS_AGB_POWER_50) properity = NODE_SET_AIP_POWER_50;
+            else if(AIP_CTRL_POWER == MODBUS_AGB_POWER_75) properity = NODE_SET_AIP_POWER_75;
+            else if(AIP_CTRL_POWER == MODBUS_AGB_POWER_100) properity = NODE_SET_AIP_POWER_100;
         }
-        else if(modbus_reg == 0xF000)
-        {//for BTM Full Power
-            if(AIP_CTRL_POWER == MODBUS_AGB_POWER_00) 
-                { properity = NODE_GET_INFO_FULL_POWER_OFF;}
-            else 
-                { properity = NODE_GET_INFO_FULL_POWER_ON;}
-        }else if(modbus_reg == 0x0003){//Trace16_2(BTM_AIP_AUTO,BTM_AIP_POWER);
+        else if(modbus_reg == 0xF000) {
+            //for BTM Full Power
+            if(AIP_CTRL_POWER == MODBUS_AGB_POWER_00) {
+                properity = NODE_GET_INFO_FULL_POWER_OFF;
+            }
+            else { 
+                properity = NODE_GET_INFO_FULL_POWER_ON;
+            }
+        }
+        else if(modbus_reg == 0x0003){//Trace16_2(BTM_AIP_AUTO,BTM_AIP_POWER);
             btm_cmd = WordSwap(*((PUINT16)(&BTM_AIP_AUTO)));  Trace16_1(btm_cmd);
             if(btm_cmd & G6_FC6_CLS_ALL_FILTER) properity = CLEAR_ALL_FILTER;
             else if(btm_cmd & G6_FC6_CLS_FILTER1) properity = CLEAR_FILTER1;
             else if(btm_cmd & G6_FC6_AUTO_RUN) {
-                   properity =  AUTO_POWER_0+(btm_cmd&0x00FF); Trace16_1(properity);
+                properity =  AUTO_POWER_0+(btm_cmd&0x00FF); Trace16_1(properity);
             }
             else {
-                  properity =  MENU_POWER_0+(btm_cmd&0x00FF); Trace16_1(properity);  
-            }            
-            
+                properity =  MENU_POWER_0+(btm_cmd&0x00FF); Trace16_1(properity);  
+            }
             //properity = NULL; //debug
         }
     }
-    else if(GET_MODBUS_FUN_CODE == 0x05)
-    {//for A6D6
-           if(A6D6_CTRL_POWER == 0xFF){//Trace1("A6D6 Set ON", MODBUS_CTRL_REG);
-             properity = (NODE_SET_DO1_ON+(uint16)MODBUS_CTRL_REG); 
-            }
-           else {//Trace1("A6D6 Set OFF", MODBUS_CTRL_REG);
-             properity = (NODE_SET_DO1_OFF+(uint16)MODBUS_CTRL_REG); 
-            }
-
+    else if(GET_MODBUS_FUN_CODE == 0x05){
+        //for A6D6
+        if(A6D6_CTRL_POWER == 0xFF){//Trace1("A6D6 Set ON", MODBUS_CTRL_REG);
+            properity = (NODE_SET_DO1_ON+(uint16)MODBUS_CTRL_REG); 
+        }
+        else {//Trace1("A6D6 Set OFF", MODBUS_CTRL_REG);
+            properity = (NODE_SET_DO1_OFF+(uint16)MODBUS_CTRL_REG); 
+        }
     }
     return properity;
 }
@@ -286,18 +284,19 @@ bool ClientResponseTestMode=false;
 //static uint32_t cntSecond=0;
 //extern int cntMainLoop;
 void ClientTimer_10ms(){
-	TIMER_REDUCE_BY_10MS(trans_wait_ms);
-	if(ClientResponseTestMode)TIMER_REDUCE_BY_10MS(ClientResponseTestMs);
-	if(++cntTick>100){
-		cntTick=0;
-		//printf("loop:%d\r\n",cntMainLoop);
-		//cntMainLoop=0;
-		//cntSecond++;
-		//printf("Time Second:%d\r\n",cntSecond);
-		if(pMeshNodeData->RebootForRs485IdelSecnods && RebootCountdown) RebootCountdown--;
-		BootingSeconds++;
-	}
-
+    TIMER_REDUCE_BY_10MS(trans_wait_ms);
+    if(ClientResponseTestMode) TIMER_REDUCE_BY_10MS(ClientResponseTestMs);
+    if(++cntTick>100){
+        cntTick=0;
+        //printf("loop:%d\r\n",cntMainLoop);
+        //cntMainLoop=0;
+        //cntSecond++;
+        //printf("Time Second:%d\r\n",cntSecond);
+        if(pMeshNodeData->RebootForRs485IdelSecnods && RebootCountdown) 
+            RebootCountdown--;
+        BootingSeconds++;
+        dprint("Booting Seconds:%d\r\n",BootingSeconds);
+    }
 }
 
 //
@@ -308,75 +307,76 @@ void ClientSetNodeInfoProc()
     pStageInfo = GetNodeStageInfo(CLIENT_SET_NODE_INFO_PROC);
     PUCHAR prx_buff;
     
+    //dprint("#CSS:%d\r\n",ActiveStage());
     switch(ActiveStage())
-        {
-            case CNS_SET_INFO_INIT: 
-                //SetLedStatus(LED_STATUS_ON);
-                ToNextStage(CNS_SET_WAITING);
-                break;
-            case CNS_SET_WAITING:  
-                if(GetNodeStatus(NS_SET_NODE_ACT) == TRUE)  ToNextStage(CNS_SET_INFO_PRE);
-                break;
-                
-            case CNS_SET_INFO_PRE: 
-                UsartPrintBuff(USART_ID_RX);
-                prx_buff = UsartGetBuff(USART_ID_RX);
-                SetServerFunID = (uint16)prx_buff[0]; // get id number
-                SetProperityID = GetProperityID();
-                if(SetProperityID == NODE_GET_INFO_FULL_POWER_ON){
-                     gecko_external_signal(PB_SPEED_5SEC);ToNextStage(CNS_SET_INFO_OK); 
-                    }
-                 else if(SetProperityID == NODE_GET_INFO_FULL_POWER_OFF){
-                     gecko_external_signal(PB_SPEED_NORMAL);ToNextStage(CNS_SET_INFO_OK); 
-                    }
-                else if(SetProperityID != NULL ) ToNextStage(CNS_SET_INFO_SEND);
-                else  ToNextStage(CNS_SET_INFO_ERR);
-                break;
-                
-            case CNS_SET_INFO_SEND: //Trace1("CNS_SET_INFO_SEND",SetProperityID);
+    {
+        case CNS_SET_INFO_INIT: 
+            //SetLedStatus(LED_STATUS_ON);
+            ToNextStage(CNS_SET_WAITING);
+            break;
+        case CNS_SET_WAITING:
+            if(GetNodeStatus(NS_SET_NODE_ACT) == TRUE) ToNextStage(CNS_SET_INFO_PRE);
+            break;
+        case CNS_SET_INFO_PRE: 
+            UsartPrintBuff(USART_ID_RX);
+            prx_buff = UsartGetBuff(USART_ID_RX);
+            SetServerFunID = (uint16)prx_buff[0]; // get id number
+            SetProperityID = GetProperityID();
+            if(SetProperityID == NODE_GET_INFO_FULL_POWER_ON){
+                gecko_external_signal(PB_SPEED_5SEC);ToNextStage(CNS_SET_INFO_OK); 
+            }
+            else if(SetProperityID == NODE_GET_INFO_FULL_POWER_OFF){
+                gecko_external_signal(PB_SPEED_NORMAL);ToNextStage(CNS_SET_INFO_OK); 
+            }
+            else if(SetProperityID != NULL ) ToNextStage(CNS_SET_INFO_SEND);
+            else ToNextStage(CNS_SET_INFO_ERR);
+            break;
+            
+        case CNS_SET_INFO_SEND: //Trace1("CNS_SET_INFO_SEND",SetProperityID);
 
-                result = Cmd_ms_client_get(SENSOR_ELEMENT, SetServerFunID, IGNORED, 0xA5, SetProperityID)->result;
-                if(result){ 
-                     ToWaitingStage(CNS_SET_INFO_PREEAT,50);
-                    }
-                else 
-                    ToNextStage(CNS_SET_INFO_OK);
-                
-                break;
-            case CNS_SET_INFO_PREEAT: 
-                if(!CheckWaitTimeOut()) break;
-                result = Cmd_ms_client_get(SENSOR_ELEMENT, SetServerFunID, IGNORED, 0xA5, SetProperityID)->result;
-                if(result){
-                     ToNextStage(CNS_SET_INFO_ERR);
-                    }
-                else{
-                     
-                     ToNextStage(CNS_SET_INFO_OK);
-                    }
-                break;
-            case CNS_SET_INFO_OK:  //Trace1("CNS_SET_INFO_OK",SetProperityID); 
-                prx_buff = UsartGetBuff(USART_ID_RX);
-                UsartTxSendCmd(prx_buff ,MODBUS_CMD_NUM);
-                ToWaitingStage(CNS_SET_UPDATE_INFO,10);
-                break;
-                
-            case CNS_SET_UPDATE_INFO:  
-                if(CheckWaitTimeOut())  ToNextStage(CNS_SET_INFO_END);
-                break;
-                
-            case CNS_SET_INFO_END:  //Trace1("CNS_SET_INFO_END",SetProperityID); 
-                SetNodeStatus(NS_SET_NODE_ACT,OFF);
-                UsartResetRxTx(USART_ID_RX);
-                ToNextStage(CNS_SET_WAITING); 
-                break;
-                
-            case CNS_SET_INFO_ERR:  
-                ToNextStage(CNS_SET_INFO_END);
-                break;
-            default: break;
-        }
+            result = Cmd_ms_client_get(SENSOR_ELEMENT, SetServerFunID, IGNORED, 0xA5, SetProperityID)->result;
+            if(result){ 
+                ToWaitingStage(CNS_SET_INFO_PREEAT,50);
+            }
+            else 
+                ToNextStage(CNS_SET_INFO_OK);
+            
+            break;
+        case CNS_SET_INFO_PREEAT: 
+            if(!CheckWaitTimeOut()) break;
+            result = Cmd_ms_client_get(SENSOR_ELEMENT, SetServerFunID, IGNORED, 0xA5, SetProperityID)->result;
+            if(result){
+                ToNextStage(CNS_SET_INFO_ERR);
+            }
+            else{
+                ToNextStage(CNS_SET_INFO_OK);
+            }
+            break;
+        case CNS_SET_INFO_OK:  //Trace1("CNS_SET_INFO_OK",SetProperityID); 
+            prx_buff = UsartGetBuff(USART_ID_RX);
+            UsartTxSendCmd(prx_buff ,MODBUS_CMD_NUM);
+            ToWaitingStage(CNS_SET_UPDATE_INFO,10);
+            break;
+            
+        case CNS_SET_UPDATE_INFO:  
+            if(CheckWaitTimeOut())  ToNextStage(CNS_SET_INFO_END);
+            break;
+            
+        case CNS_SET_INFO_END:  //Trace1("CNS_SET_INFO_END",SetProperityID); 
+            SetNodeStatus(NS_SET_NODE_ACT,OFF);
+            UsartResetRxTx(USART_ID_RX);
+            ToNextStage(CNS_SET_WAITING); 
+            break;
+            
+        case CNS_SET_INFO_ERR:  
+            ToNextStage(CNS_SET_INFO_END);
+            break;
+
+        default: break;
+    }
+    //dprint("#CSE:%d\r\n",ActiveStage());
 }
-
+    
 void ClientGetInfoActionNow()
 {
     PNodeStageInfo p_stage_info;
@@ -393,10 +393,10 @@ void ClientGetInfoActionNow()
 #define max(a,b) ((a) > (b) ? (a) : (b))
 
 #if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
-#define DELAY_BEFORE_SLEEP_SEC (pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep)
+    #define DELAY_BEFORE_SLEEP_SEC (pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep)
 //(max((int)pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep-TIMER_CLI_WAIT_INFO,0))
 #else
-#define DELAY_BEFORE_SLEEP_SEC 0
+    #define DELAY_BEFORE_SLEEP_SEC 0
 #endif
 
 bool ServerIsAwake=true;
@@ -404,180 +404,188 @@ void ClientGetNodeInfoProc()
 {
     pStageInfo = GetNodeStageInfo(CLIENT_GET_NODE_INFO_PROC);
     uint32 ext;
-    //dprint("State:%d\r\n",ActiveStage());
+    //dprint("#CGS:%d\r\n",ActiveStage());
+    
     switch(ActiveStage())
-        {
-            case NODE_STAGE_INIT:
-                //SetLedStatus(LED_STATUS_ON);
-                GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_SLEEPING);
-                ToWaitingStage(CNS_GET_SEVER_INFO,WAIT_SEC(1));
-                break;
-            case CNS_PRE_IVI_UPDATE: 
-                if(CheckWaitTimeOut()){
-                     SetNodeStatus(NS_IVI_UPDATE,ON);   // enable ivi update
-                     CountErr = 0;
-                    }
-                break;
-            
-            case CNS_IVI_UPDATE: 
-                if(CheckWaitTimeOut() == TRUE){
-                    if(CountErr++ > 3){
-                        ToNextStage(CNS_WAIT_SET_INFO);   
-                      }
-                    else {// waiting again
-                        ToWaitingStage(CNS_IVI_UPDATE,WAIT_SEC(TIMER_CLIENT_IVI_WAIT));
-                    } 
-                  }
-               if(GetNodeStatus(NS_IVI_UPDATE) == OFF){//TraceOk("--- IVI Update Ok ---");
-                   ToNextStage(CNS_WAIT_SET_INFO); 
-                  }
-                break;
-            case CNS_PRE_SEVER_INFO: /*所有Server進入休眠，等待Server喚醒*/
-                //SetLed(LED_SERVER,OFF);
-                //SetNodeStatus(NS_GET_INFO_ACT,OFF);
-            	if(CheckWaitTimeOut()){
-            		//if(!GetNodeStatus(NS_FULL_POWER) || DELAY_BEFORE_SLEEP_SEC>0)	ServerIsAwake=false; //透傳工作時間展延已含在Server的休眠期間內這裡不需要判斷是否有設定延時間
-            		if(!GetNodeStatus(NS_FULL_POWER))	ServerIsAwake=false;
-            		//dprint("CNS_PRE_SEVER_INFO: set ServerIsAwake=%d\r\n",ServerIsAwake);
-					if(RespServerNode == 0) {ToWaitingStage(CNS_WAIT_SET_INFO,100);}
-					else {
-						dprint("*** Wait %.1f(Sec)(%d) for next time.\r\n",GetInfoCycle/100.0,(int32)GetInfoCycle-(int32)WAIT_SEC(TIMER_CLI_WAIT_INFO));
-						ToWaitingStage(CNS_WAIT_SET_INFO,max((int32)GetInfoCycle-(int32)WAIT_SEC(TIMER_CLI_WAIT_INFO),0));
-					}
-            	}
-                break;
-            case CNS_WAIT_SET_INFO: 
-
-                if(GetNodeStatus(NS_LINKING) ==ON){
-                	dprint("NS_LINKING > ON\r\n");
-                	break;
-                }
-                if(CheckWaitTimeOut()){
-                	dprint("to CNS_GET_SEVER_INFO\r\n");
-                     ToNextStage(CNS_GET_SEVER_INFO);
-                }else if(GetNodeStatus(NS_SET_NODE_ACT) != TRUE){
-                	dprint("NS_SET_NODE_ACT >O N\r\n");
-                    ToNextStage(CNS_GET_SEVER_INFO);
-                }
-                break;
-            case CNS_GET_SEVER_INFO: 
-
-
-            	/*休眠中，離開 ※設定為休眠模式後，設備不會馬上進入休眠，避免休眠動作重覆設定先離開*/
-            	if (GetMeshNodeStatus(STATUS_SLEEPING)) return;
-
-            	/*有設定重啟時間且時間條件已達成，重啟
-            	 * 在廣播指令前重啟可避免重啟後若Server還在睡眠中沒有回應會判斷成斷線*/
-            	if((pMeshNodeData->RebootMinutes>0) && ((BootingSeconds)>=(pMeshNodeData->RebootMinutes*60L))){
-            		//Cmd_sys_reset(0);
-            		dprint("put to sleep for a while\r\n");
-            		SetNodeSleeping(ON,200);
-            		return;
-            	}
-
-
-
-
-                if(CountErr > 3) ToNextStage(CNS_GET_INFO_ERR); // err: go to sleeping
-
-
-                if(CheckWaitTimeOut()){
-                	if(pMeshNodeData->RebootMinutes>0) dprint("reboot countdown:%d\r\n",(pMeshNodeData->RebootMinutes*60)-BootingSeconds);
-
-                	ServerIsAwake=true;
-                	//dprint("CNS_GET_SEVER_INFO: set ServerIsAwake=%d\r\n",ServerIsAwake);
-                    //to get info from all server node
-                    GetEventCount++;
-                    SetLed(LED_SERVER,ON);
-                    dprint("STEP: CNS_GET_SERVER_INFO\r\n");
-
-                    if (ClientResponseTestMs||ClientResponseTestMode){
-                    	if (!ClientResponseTestMs) ClientResponseTestMode=false;
-                    	ext=ClientResponseTestMs;
-                    	result=Cmd_ms_client_get_column(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, NODE_GET_ALL_SENSOR_GEN2,2,(uint8*)&ext)->result;
-                    }else
-                    	result = Cmd_ms_client_get(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, GetPropertyID)->result;
-
-                    if(result){ //error
-                    	if(result==0xc03)SetNodeStatus(NS_IVI_UPDATE,ON);
-						//TraceErr1("CNS_GET_SEVER_INFO 1",result);
-                    	dprint("!!! CNS_GET_SEVER_INFO Error:0x%X\r\n",result);
-						CountErr++;
-						ToWaitingStage(CNS_GET_SEVER_INFO,WAIT_SEC(2));
-                    }else{ //successed
-                    	dprint("SEND_GET_ALL Succeed\r\n");
-                    	//TraceOk("Get Info");
-                    	ClientBroadcastCounter++;
-                    	if(ClientBroadcastCounter>300){
-                    		ClearServerResponseCounter();
-                    		ClientBroadcastCounter=1;
-                    	}
-						CountErr = 0; RespServerNode = 0;
-						ToWaitingStage(CNS_WAIT_INFO,WAIT_SEC(TIMER_CLI_WAIT_INFO));
-                    }
-                }else{
-                    if(GetNodeStatus(NS_GET_INFO_ACT)){
-                    	if(pMeshNodeData->RebootMinutes>0) dprint("reboot countdown:%d\r\n",(pMeshNodeData->RebootMinutes*60)-BootingSeconds);
-                    	ToWaitingStage(CNS_WAIT_INFO,WAIT_SEC(TIMER_CLI_WAIT_INFO));
-                    }
-                	//dprint("countdown:%d\r\n",pStageInfo->Timer);
-                }
-                    
-                break;
-            case CNS_WAIT_INFO:
-                if(CheckWaitTimeOut()){
-                	ClientCheckNodeStatus();
-#ifdef BTM_A308
-                	ToNextStage(CNS_GET_A308_INFO);
-#else
-                	ToNextStage(CNS_WAIT_INFO_OK);
-#endif
-                }
-                break;
-#ifdef BTM_A308
-            case CNS_GET_A308_INFO:
-            	if(!A308_Client_GetInfo()) {
-            		dprint(" CNS_GET_A308_INFO > FINISHED\r\n");
-            		ToNextStage(CNS_WAIT_INFO_OK);
-            	}
-            	break;
-#endif
-            case CNS_WAIT_INFO_OK:
-                
-            	if(GetNodeStatus(NS_FULL_POWER)){ /*所有設備都使用市電，以較密集的頻率讀取Sensor資訊*/
-                	if (ClientSensorClassCount(SENSOR_CUSTOM_SERIAL))	GetInfoCycle=WAIT_SEC(TIMER_GET_INFO_SLEEPING);//WAIT_SEC(10); //降低GET_ALL_SENSOR指令的頻率，讓透傳指令傳得更順
-                	else												GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_FULL_POWER);
-                	//GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_FULL_POWER);
-                }else{
-#ifdef BTM_A308
-                	GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_SLEEPING+10+5);
-#else
-                	GetInfoCycle = WAIT_SEC(max((int32)TIMER_GET_INFO_SLEEPING-(int32)pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep,0));
-#endif
-                }
-                ToNextStage(CNS_GET_INFO_END); 
-                break;
-
-            case CNS_GET_INFO_ERR:
+    {
+        case NODE_STAGE_INIT:
+            //SetLedStatus(LED_STATUS_ON);
+            GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_SLEEPING);
+            ToWaitingStage(CNS_GET_SEVER_INFO,WAIT_SEC(1));
+            break;
+        
+        case CNS_PRE_IVI_UPDATE: 
+            if(CheckWaitTimeOut()){
+                SetNodeStatus(NS_IVI_UPDATE,ON);   // enable ivi update
                 CountErr = 0;
-                SetLed(LED_SERVER,OFF);
-                SetNodeStatus(NS_GET_INFO_ACT,OFF);
-                ServerIsAwake=true;
-                if(ClientResponseTestMs)	ToWaitingStage(CNS_GET_SEVER_INFO,0);/*測試模式，直接發送下一個指令*/
-                else	ToWaitingStage(CNS_PRE_SEVER_INFO,WAIT_SEC(DELAY_BEFORE_SLEEP_SEC));
+            }
+            break;
+        
+        case CNS_IVI_UPDATE:
+            if(CheckWaitTimeOut() == TRUE){
+                if(CountErr++ > 3){
+                    ToNextStage(CNS_WAIT_SET_INFO);
+                }
+                else {// waiting again
+                    ToWaitingStage(CNS_IVI_UPDATE,WAIT_SEC(TIMER_CLIENT_IVI_WAIT));
+                }
+            }
+            if(GetNodeStatus(NS_IVI_UPDATE) == OFF) {
+                //TraceOk("--- IVI Update Ok ---");
+                ToNextStage(CNS_WAIT_SET_INFO); 
+            }
+            break;
+        case CNS_PRE_SEVER_INFO:    /*所有Server進入休眠，等待Server喚醒*/
+            //SetLed(LED_SERVER,OFF);
+            //SetNodeStatus(NS_GET_INFO_ACT,OFF);
+            if(CheckWaitTimeOut()){
+                //if(!GetNodeStatus(NS_FULL_POWER) || DELAY_BEFORE_SLEEP_SEC>0)	ServerIsAwake=false; //透傳工作時間展延已含在Server的休眠期間內這裡不需要判斷是否有設定延時間
+                if(!GetNodeStatus(NS_FULL_POWER))
+                    ServerIsAwake=false;
+                //dprint("CNS_PRE_SEVER_INFO: set ServerIsAwake=%d\r\n",ServerIsAwake);
+                if(RespServerNode == 0) {
+                    ToWaitingStage(CNS_WAIT_SET_INFO,100);
+                }
+                else {
+                    dprint("*** Wait %.1f(Sec)(%d) for next time.\r\n",GetInfoCycle/100.0,(int32)GetInfoCycle-(int32)WAIT_SEC(TIMER_CLI_WAIT_INFO));
+                    ToWaitingStage(CNS_WAIT_SET_INFO,max((int32)GetInfoCycle-(int32)WAIT_SEC(TIMER_CLI_WAIT_INFO),0));
+                }
+            }
+            break;
+        case CNS_WAIT_SET_INFO: 
+            if(GetNodeStatus(NS_LINKING) ==ON){
+                dprint("NS_LINKING > ON\r\n");
                 break;
-            case CNS_GET_INFO_END:
-                ShowAllNodeInfo();
-                GetServerNodeNum();
-                SetLed(LED_SERVER,OFF);
-                SetNodeStatus(NS_GET_INFO_ACT,OFF);
+            }
+            if(CheckWaitTimeOut()){
+                dprint("to CNS_GET_SEVER_INFO\r\n");
+                ToNextStage(CNS_GET_SEVER_INFO);
+            }else if(GetNodeStatus(NS_SET_NODE_ACT) != TRUE){
+                dprint("NS_SET_NODE_ACT >O N\r\n");
+                ToNextStage(CNS_GET_SEVER_INFO);
+            }
+            break;
+        case CNS_GET_SEVER_INFO:
+
+            /*休眠中，離開 ※設定為休眠模式後，設備不會馬上進入休眠，避免休眠動作重覆設定先離開*/
+            if (GetMeshNodeStatus(STATUS_SLEEPING)) return;
+
+            /*有設定重啟時間且時間條件已達成，重啟
+                * 在廣播指令前重啟可避免重啟後若Server還在睡眠中沒有回應會判斷成斷線*/
+            if((pMeshNodeData->RebootMinutes>0) && ((BootingSeconds)>=(pMeshNodeData->RebootMinutes*60L))){
+                //Cmd_sys_reset(0);
+                dprint("put to sleep for a while\r\n");
+                SetNodeSleeping(ON,200);
+                return;
+            }
+
+            if(CountErr > 3) ToNextStage(CNS_GET_INFO_ERR); // err: go to sleeping
+
+            if(CheckWaitTimeOut()){
+                if(pMeshNodeData->RebootMinutes>0) 
+                    dprint("reboot countdown:%d\r\n",(pMeshNodeData->RebootMinutes*60)-BootingSeconds);
+
                 ServerIsAwake=true;
-                if(ClientResponseTestMs)	ToWaitingStage(CNS_GET_SEVER_INFO,0);/*測試模式，直接發送下一個指令*/
-                else	ToWaitingStage(CNS_PRE_SEVER_INFO,WAIT_SEC(DELAY_BEFORE_SLEEP_SEC));
-                dprint("keep awake for %d(SEC)\r\n",DELAY_BEFORE_SLEEP_SEC);
-                break;
-            default: TraceErr1("ClientGetNodeInfoProc",ActiveStage()); break;
-        };
+                //dprint("CNS_GET_SEVER_INFO: set ServerIsAwake=%d\r\n",ServerIsAwake);
+                //to get info from all server node
+                GetEventCount++;
+                SetLed(LED_SERVER,ON);
+                dprint("STEP: CNS_GET_SERVER_INFO\r\n");
+
+                if (ClientResponseTestMs||ClientResponseTestMode){
+                    if (!ClientResponseTestMs) ClientResponseTestMode=false;
+                    ext=ClientResponseTestMs;
+                    result=Cmd_ms_client_get_column(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, NODE_GET_ALL_SENSOR_GEN2,2,(uint8*)&ext)->result;
+                }
+                else
+                    result = Cmd_ms_client_get(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, GetPropertyID)->result;
+
+                if(result){ //error
+                    if(result==0xc03) SetNodeStatus(NS_IVI_UPDATE,ON);
+                    //TraceErr1("CNS_GET_SEVER_INFO 1",result);
+                    dprint("!!! CNS_GET_SEVER_INFO Error:0x%X\r\n",result);
+                    CountErr++;
+                    ToWaitingStage(CNS_GET_SEVER_INFO,WAIT_SEC(2));
+                }
+                else{ //successed
+                    dprint("SEND_GET_ALL Succeed\r\n");
+                    //TraceOk("Get Info");
+                    ClientBroadcastCounter++;
+                    if(ClientBroadcastCounter>300){
+                        ClearServerResponseCounter();
+                        ClientBroadcastCounter=1;
+                    }
+                    CountErr = 0;
+                    RespServerNode = 0;
+                    ToWaitingStage(CNS_WAIT_INFO,WAIT_SEC(TIMER_CLI_WAIT_INFO));
+                }
+            }
+            else{
+                if(GetNodeStatus(NS_GET_INFO_ACT)){
+                    if(pMeshNodeData->RebootMinutes>0) dprint("reboot countdown:%d\r\n",(pMeshNodeData->RebootMinutes*60)-BootingSeconds);
+                    ToWaitingStage(CNS_WAIT_INFO,WAIT_SEC(TIMER_CLI_WAIT_INFO));
+                }
+                //dprint("countdown:%d\r\n",pStageInfo->Timer);
+            }
+                
+            break;
+        case CNS_WAIT_INFO:
+            if(CheckWaitTimeOut()){
+                ClientCheckNodeStatus();
+#ifdef BTM_A308
+                ToNextStage(CNS_GET_A308_INFO);
+#else
+                ToNextStage(CNS_WAIT_INFO_OK);
+#endif
+            }
+            break;
+#ifdef BTM_A308
+        case CNS_GET_A308_INFO:
+            if(!A308_Client_GetInfo()) {
+                dprint(" CNS_GET_A308_INFO > FINISHED\r\n");
+                ToNextStage(CNS_WAIT_INFO_OK);
+            }
+            break;
+#endif
+        case CNS_WAIT_INFO_OK:
+            
+            if(GetNodeStatus(NS_FULL_POWER)){ /*所有設備都使用市電，以較密集的頻率讀取Sensor資訊*/
+                if (ClientSensorClassCount(SENSOR_CUSTOM_SERIAL))
+                    GetInfoCycle=WAIT_SEC(TIMER_GET_INFO_SLEEPING);//WAIT_SEC(10); //降低GET_ALL_SENSOR指令的頻率，讓透傳指令傳得更順
+                else GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_FULL_POWER);
+                //GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_FULL_POWER);
+            }
+            else{
+#ifdef BTM_A308
+                GetInfoCycle = WAIT_SEC(TIMER_GET_INFO_SLEEPING+10+5);
+#else
+                GetInfoCycle = WAIT_SEC(max((int32)TIMER_GET_INFO_SLEEPING-(int32)pAdjValue->RS485TransmitterData.Rs485ServerDelayBeforeSleep,0));
+#endif
+            }
+            ToNextStage(CNS_GET_INFO_END); 
+            break;
+
+        case CNS_GET_INFO_ERR:
+            CountErr = 0;
+            SetLed(LED_SERVER,OFF);
+            SetNodeStatus(NS_GET_INFO_ACT,OFF);
+            ServerIsAwake=true;
+            if(ClientResponseTestMs)	ToWaitingStage(CNS_GET_SEVER_INFO,0);/*測試模式，直接發送下一個指令*/
+            else	ToWaitingStage(CNS_PRE_SEVER_INFO,WAIT_SEC(DELAY_BEFORE_SLEEP_SEC));
+            break;
+        case CNS_GET_INFO_END:
+            ShowAllNodeInfo();
+            GetServerNodeNum();
+            SetLed(LED_SERVER,OFF);
+            SetNodeStatus(NS_GET_INFO_ACT,OFF);
+            ServerIsAwake=true;
+            if(ClientResponseTestMs)	ToWaitingStage(CNS_GET_SEVER_INFO,0);/*測試模式，直接發送下一個指令*/
+            else	ToWaitingStage(CNS_PRE_SEVER_INFO,WAIT_SEC(DELAY_BEFORE_SLEEP_SEC));
+            dprint("keep awake for %d(SEC)\r\n",DELAY_BEFORE_SLEEP_SEC);
+            break;
+        default: TraceErr1("ClientGetNodeInfoProc",ActiveStage()); break;
+    }
+    //dprint("#CGE:%d\r\n",ActiveStage());
 }
 
 
@@ -591,29 +599,36 @@ void ClientCheckNodeStatus()
     uchar loop;
 
     for(loop=0; loop < SERVER_NODE_MAX; loop++){
-		if(pNodeInfo->ServerID != 0){
-			if(pNodeInfo->Count == 0){
-				dprint("\r\n***** Node No Response *****ID:%d\r\n",pNodeInfo->ServerID);
-				//memset(pNodeInfo,0,sizeof(_ClientInfo));
-				pNodeInfo->Status |= SERVER_NO_RESPONSE;
-			}else if(pNodeInfo->Count>0){
-				pNodeInfo->Count--;
-				if((pNodeInfo->SensorInfo.Header.Status & SERVER_FULL_POWER) == 0){
-					//dprint("************* pNodeInfo->SensorInfo.Header.Status:0x%0x\r\n ************************",pNodeInfo->SensorInfo.Header.Status);
-					power_flag = OFF;
-				}
-			}
-		}
+        if(pNodeInfo->ServerID != 0){
+            if(pNodeInfo->Count == 0){
+                dprint("\r\n***** Node No Response *****ID:%d\r\n",pNodeInfo->ServerID);
+                //memset(pNodeInfo,0,sizeof(_ClientInfo));
+                pNodeInfo->Status |= SERVER_NO_RESPONSE;
+            }else if(pNodeInfo->Count>0){
+                pNodeInfo->Count--;
+                if((pNodeInfo->SensorInfo.Header.Status & SERVER_FULL_POWER) == 0){
+                    //dprint("************* pNodeInfo->SensorInfo.Header.Status:0x%0x\r\n ************************",pNodeInfo->SensorInfo.Header.Status);
+                    power_flag = OFF;
+                }
+            }
+        }
         pNodeInfo++;
     }
+
+    
     
     if(GetNodeStatus(NS_FORCE_FULL_POWER) == ON) {
-        SetNodeStatus(NS_FULL_POWER,ON);SetLed(LED_GREEN,ON);
-    }else{
+        SetNodeStatus(NS_FULL_POWER,ON);
+        SetLed(LED_GREEN,ON);
+    }
+    else{
         if(power_flag == OFF){
-            SetNodeStatus(NS_FULL_POWER,OFF);SetLed(LED_GREEN,OFF);
-        }else{
-            SetNodeStatus(NS_FULL_POWER,ON);SetLed(LED_GREEN,ON);
+            SetNodeStatus(NS_FULL_POWER,OFF);
+            SetLed(LED_GREEN,OFF);
+        }
+        else{
+            SetNodeStatus(NS_FULL_POWER,ON);
+            SetLed(LED_GREEN,ON);
         }
     }
 }
@@ -693,119 +708,121 @@ void ClientFromHostProc()
 	uint8 btId;
 	PClientInfo cInfo;
     pStageInfo = GetNodeStageInfo(CLIENT_TO_HOST_STAGE_PROC);
-    //dprint("MbsHost Stage:%d\r\n",ActiveStage());
-    switch(ActiveStage())
-        {
+    
+    //dprint("#CFS:%d\r\n",ActiveStage());
+    switch(ActiveStage()){
         case CHS_STAGE_INIT: 
             ToNextStage(CHS_CHECK_RX_EVENT);
             break;
         case CHS_CHECK_RX_EVENT: 
 #if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH) || defined(BT_MESH_G6)
-        	if(UsartGetRxCounter()) trans_prepare_response_count=0; /*接收到任何Rx訊息就取消回傳暫存值的動作，避免接下來的指令發生回應錯位的問題*/
+            if(UsartGetRxCounter()) 
+                trans_prepare_response_count=0; /*接收到任何Rx訊息就取消回傳暫存值的動作，避免接下來的指令發生回應錯位的問題*/
 #endif
-        	if(GetNodeStatus(NS_USART_RX_EVENT) == TRUE)
+            if(GetNodeStatus(NS_USART_RX_EVENT) == TRUE)
 //#if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
-        	{
-        		if(pMeshNodeData->RebootForRs485IdelSecnods ) RebootCountdown=pMeshNodeData->RebootForRs485IdelSecnods;/*收到RX訊息，重置重啟計數*/
-        		btId=UsartGetBuff(USART_ID_RX)[0];
-        		if (btId==pMeshNodeData->MeshNodeID){/*Client自身ID，回傳電池電量、回應次數等...*/
-        			ClientModbusProc();
+            {
+                if(pMeshNodeData->RebootForRs485IdelSecnods ) 
+                    RebootCountdown=pMeshNodeData->RebootForRs485IdelSecnods;/*收到RX訊息，重置重啟計數*/
+                btId=UsartGetBuff(USART_ID_RX)[0];
+                if (btId==pMeshNodeData->MeshNodeID){/*Client自身ID，回傳電池電量、回應次數等...*/
+                    ClientModbusProc();
 #if DPRINT
-        			if(UsartGetRxCounter()){
-						dprint("receive RX(%d): ",UsartGetRxCounter());
-						for (int i=0;i<UsartGetRxCounter();i++)	dprint(" %02x",UsartGetBuff(USART_ID_RX)[i]);
-						dprint("\r\n");
-        			}
+                    if(UsartGetRxCounter()){
+                        dprint("receive RX(%d): ",UsartGetRxCounter());
+                        for (int i=0;i<UsartGetRxCounter();i++)	
+                            dprint(" %02x",UsartGetBuff(USART_ID_RX)[i]);
+                        dprint("\r\n");
+                    }
 #endif
-        			UsartResetRxTx(USART_ID_RX);
-					SetNodeStatus(NS_USART_RX_EVENT,OFF);
-					ToWaitingStage(CHS_CHECK_RX_EVENT,WAIT_MS(0));
+                    UsartResetRxTx(USART_ID_RX);
+                    SetNodeStatus(NS_USART_RX_EVENT,OFF);
+                    ToWaitingStage(CHS_CHECK_RX_EVENT,WAIT_MS(0));
 
-        			break;
-        		}
+                    break;
+                }
 
-
-        		pClientInfo = GetServerInfoPos(btId); /*是否有Server在線上，有的話以Skynet方式回傳內容*/
-        		if (pClientInfo && pClientInfo->SensorInfo.Header.SensorClass && pClientInfo->SensorInfo.Header.SensorClass!=SENSOR_CUSTOM_SERIAL){ /*非透傳設備，以Skynet方式處理Modbus指令*/
-        			if (pClientInfo->Status & SERVER_NO_RESPONSE){
-        				dprint("Old Skynet ID:%d(%d) is disconnected.\r\n",btId,pClientInfo->SensorInfo.Header.SensorClass);
-        				ToNextStage(CHS_MODBUS_ERROR); /*該Server斷線中，不回應訊息*/
-        			}else{
-        				switch(ClientModbusResponse(pClientInfo)){
-						case CMR_DONE:
-							UsartResetRxTx(USART_ID_RX);
-							SetNodeStatus(NS_USART_RX_EVENT,OFF);
-							ToWaitingStage(CHS_CHECK_RX_EVENT,WAIT_MS(0));
-							break;
-						case CMR_NONE: /*不在ClientModbusResponse()函式的處理範圍中，採用原先的方式*/
-							dprint("Old Skynet ID:%d(%d) Protocal proccess.\r\n",btId,pClientInfo->SensorInfo.Header.SensorClass);
-							ToNextStage(CHS_CHECK_MODBUS);
-							break;
-						default: //case CMR_ERROR:
-							ToNextStage(CHS_MODBUS_ERROR);
-						}
-						//dprint("Old Skynet ID:%d(%d) Protocal proccess.\r\n",btId,pClientInfo->SensorInfo.Header.SensorClass);
-						//ToNextStage(CHS_CHECK_MODBUS);
-        			}
-					break;
-        		}
+                pClientInfo = GetServerInfoPos(btId); /*是否有Server在線上，有的話以Skynet方式回傳內容*/
+                if (pClientInfo && pClientInfo->SensorInfo.Header.SensorClass && pClientInfo->SensorInfo.Header.SensorClass!=SENSOR_CUSTOM_SERIAL){ /*非透傳設備，以Skynet方式處理Modbus指令*/
+                    if (pClientInfo->Status & SERVER_NO_RESPONSE){
+                        dprint("Old Skynet ID:%d(%d) is disconnected.\r\n",btId,pClientInfo->SensorInfo.Header.SensorClass);
+                        ToNextStage(CHS_MODBUS_ERROR); /*該Server斷線中，不回應訊息*/
+                    }
+                    else{
+                        switch(ClientModbusResponse(pClientInfo)){
+                        case CMR_DONE:
+                            UsartResetRxTx(USART_ID_RX);
+                            SetNodeStatus(NS_USART_RX_EVENT,OFF);
+                            ToWaitingStage(CHS_CHECK_RX_EVENT,WAIT_MS(0));
+                            break;
+                        case CMR_NONE: /*不在ClientModbusResponse()函式的處理範圍中，採用原先的方式*/
+                            dprint("Old Skynet ID:%d(%d) Protocal proccess.\r\n",btId,pClientInfo->SensorInfo.Header.SensorClass);
+                            ToNextStage(CHS_CHECK_MODBUS);
+                            break;
+                        default: //case CMR_ERROR:
+                            ToNextStage(CHS_MODBUS_ERROR);
+                        }
+                        //dprint("Old Skynet ID:%d(%d) Protocal proccess.\r\n",btId,pClientInfo->SensorInfo.Header.SensorClass);
+                        //ToNextStage(CHS_CHECK_MODBUS);
+                    }
+                    break;
+                }
 
 #if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
-        		/*透傳方式處理*/
-        		dprint("Transparent Transmitter proccess. ID:%d\r\n",btId);
-        		ToNextStage(CHS_SEND_TO_CLIENT);
-        		trans_seq++;
-        		rec_flag=0;
-        		trans_retry=0;
-        		trans_wait_ms=0;
-        		trans_prepare_response_count=0; /*取消回傳暫存數值*/
+                /*透傳方式處理*/
+                dprint("Transparent Transmitter proccess. ID:%d\r\n",btId);
+                ToNextStage(CHS_SEND_TO_CLIENT);
+                trans_seq++;
+                rec_flag=0;
+                trans_retry=0;
+                trans_wait_ms=0;
+                trans_prepare_response_count=0; /*取消回傳暫存數值*/
         		//dprint("rx process: ServerIsAwake=%d\r\n",ServerIsAwake);
-        		goto CLIENT_SEND_DATA_TO_SERVER;
+                goto CLIENT_SEND_DATA_TO_SERVER;
 #else /*無透傳功能*/
-        		UsartResetRxTx(USART_ID_RX);
-				SetNodeStatus(NS_USART_RX_EVENT,OFF);
-				ToWaitingStage(CHS_CHECK_RX_EVENT,WAIT_MS(0));
+                UsartResetRxTx(USART_ID_RX);
+                SetNodeStatus(NS_USART_RX_EVENT,OFF);
+                ToWaitingStage(CHS_CHECK_RX_EVENT,WAIT_MS(0));
 #endif
-        	}
+            }
 #if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH) || defined(BT_MESH_G6)
-        	else if(trans_prepare_response_count>0 && CheckWaitTimeOut()){ /*發送到Server的指令未回應，將預備好的回應內容回應到485*/
-        		if(!UsartTxIsBusy() && !UsartRxIsBusy()){
-					btId=GetSourceBtId(UsartGetBuff(USART_ID_TX)[0]);
-					if (btId){
-						cInfo=GetServerInfoPos(btId);
-						if (cInfo && cInfo->ServerID>0){
-							MbsSend(UsartGetBuff(USART_ID_TX),trans_prepare_response_count);
-							//trans_prepare_response_count=0;
-							trans_seq++; /*累加計數，避免回傳內容錯誤*/
-						}
-					}
-        		}
-        		trans_prepare_response_count=0;
-        	}
+            else if(trans_prepare_response_count>0 && CheckWaitTimeOut()){ /*發送到Server的指令未回應，將預備好的回應內容回應到485*/
+                if(!UsartTxIsBusy() && !UsartRxIsBusy()){
+                    btId=GetSourceBtId(UsartGetBuff(USART_ID_TX)[0]);
+                    if (btId){
+                        cInfo=GetServerInfoPos(btId);
+                        if (cInfo && cInfo->ServerID>0){
+                            MbsSend(UsartGetBuff(USART_ID_TX),trans_prepare_response_count);
+                            //trans_prepare_response_count=0;
+                            trans_seq++; /*累加計數，避免回傳內容錯誤*/
+                        }
+                    }
+                }
+                trans_prepare_response_count=0;
+            }
 #endif
 
 #if 0
 //#elif defined(BTM_A308)
-			{
-
-        		if(GetNodeStatus(USART_RX_CRC_ERROR)){ /*CRC錯誤，重置接收參數*/
-					UsartResetRxTx(USART_ID_RX);
-					SetNodeStatus(NS_USART_RX_EVENT,OFF);
-					ToNextStage(CHS_CHECK_RX_EVENT);
-				}else{
-					switch(ClientModbusResponse()){
-					case CMR_NONE:
-						ToWaitingStage(CHS_WAIT_TX_FINISHED,WAIT_SEC(1));
-						//ToNextStage(CHS_WAIT_TX_FINISHED);
-						break;
-					case CMR_ERROR:
-						ToNextStage(CHS_MODBUS_ERROR);
-						break;
-					default: /*不在ClientModbusResponse()函式的處理範圍中，採用原先的方式*/
-						ToNextStage(CHS_CHECK_MODBUS);
-					}
-				}
-			}
+            {
+                if(GetNodeStatus(USART_RX_CRC_ERROR)){ /*CRC錯誤，重置接收參數*/
+                    UsartResetRxTx(USART_ID_RX);
+                    SetNodeStatus(NS_USART_RX_EVENT,OFF);
+                    ToNextStage(CHS_CHECK_RX_EVENT);
+                }else{
+                    switch(ClientModbusResponse()){
+                    case CMR_NONE:
+                        ToWaitingStage(CHS_WAIT_TX_FINISHED,WAIT_SEC(1));
+                        //ToNextStage(CHS_WAIT_TX_FINISHED);
+                        break;
+                    case CMR_ERROR:
+                        ToNextStage(CHS_MODBUS_ERROR);
+                        break;
+                    default: /*不在ClientModbusResponse()函式的處理範圍中，採用原先的方式*/
+                        ToNextStage(CHS_CHECK_MODBUS);
+                    }
+                }
+            }
 //#else
             ToNextStage(CHS_CHECK_MODBUS); //ToNextStage(CHS_PREPARE_DATA);   //default
 //#endif
@@ -814,55 +831,52 @@ void ClientFromHostProc()
 
         case CHS_WAIT_TX_FINISHED:
 
-        	if(UsartGetStatus(USART_TX_END)||CheckWaitTimeOut()){
-        		UsartSetStatus(USART_TX_END,OFF);
-        		UsartResetRxTx(USART_ID_RX);
-				SetNodeStatus(NS_USART_RX_EVENT,OFF);
-				ToWaitingStage(CHS_CHECK_RX_EVENT,0);
-        	}
-
-        	break;
+            if(UsartGetStatus(USART_TX_END)||CheckWaitTimeOut()){
+                UsartSetStatus(USART_TX_END,OFF);
+                UsartResetRxTx(USART_ID_RX);
+                SetNodeStatus(NS_USART_RX_EVENT,OFF);
+                ToWaitingStage(CHS_CHECK_RX_EVENT,0);
+            }
+            break;
         case CHS_CHECK_MODBUS: 
             if(CheckModbusCmd() == MODBUS_GET_INFO) ToNextStage(CHS_PREPARE_DATA);
             else if(CheckModbusCmd() == MODBUS_SET_INFO) ToNextStage(CHS_SERVER_SET);
             else ToNextStage(CHS_MODBUS_ERROR);
-
             break;
 #if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
         case CHS_SEND_TO_CLIENT:
 CLIENT_SEND_DATA_TO_SERVER:
 
-			if(	ServerIsAwake &&    /*Server還未進入休眠*/
-				!ClientResponseTestMs /*當處於回應測試模式時，為避免透傳指令干擾到測試指令，暫時停止轉發Modbus命令*/
-			){
-				if(TIMER_IS_TIMEROUT(trans_wait_ms)){
-
-					*(UsartGetBuff(USART_ID_RX)-1)=trans_seq;
-					result = Cmd_ms_client_get_column(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, CUSTOM_SERIAL_DATA,UsartGetRxCounter()+1,UsartGetBuff(USART_ID_RX)-1)->result;
-					if (!result || ++trans_retry>=5){ /*發送完成 or 重試超過n次*/
-
-						MbsTransmitterRecordCmd(UsartGetBuff(USART_ID_RX),UsartGetRxCounter(),true);
-						trans_prepare_response_count=MbsTransmitterPrepareBuff(UsartGetBuff(USART_ID_TX),USART_TX_BUFF_SIZE);
-						//dprint("cmd:%d ,prepare res len:%d\r\n",UsartGetRxCounter(),trans_prepare_response_count);
-						UsartResetRxTx(USART_ID_RX);
-						SetNodeStatus(NS_USART_RX_EVENT,OFF);
-						ToWaitingStage(CHS_CHECK_RX_EVENT,WAIT_MS(pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs));
-					}else {
-						trans_wait_ms=100; /*100ms後重試*/
-						dprint("command transfer error! try:%d\r\n",trans_retry);
-					}
-				}
-			}else{ /*當Server處於休眠模式 or 目前為回應測試模式時直接回傳暫存器的值*/
-				//dprint("server is sleeing\r\n");
-				MbsTransmitterRecordCmd(UsartGetBuff(USART_ID_RX),UsartGetRxCounter(),false);
-				trans_prepare_response_count=MbsTransmitterPrepareBuff(UsartGetBuff(USART_ID_TX),USART_TX_BUFF_SIZE);
-				//dprint("cmd:%d ,prepare res len:%d\r\n",UsartGetRxCounter(),trans_prepare_response_count);
-				UsartResetRxTx(USART_ID_RX);
-				SetNodeStatus(NS_USART_RX_EVENT,OFF);
-				ToWaitingStage(CHS_CHECK_RX_EVENT,WAIT_MS(0));
-				//if(trans_prepare_response_count) dprint("send buff data directory:%d\r\n",trans_prepare_response_count);
-			}
-        	break;
+            if(	ServerIsAwake &&    /*Server還未進入休眠*/
+                !ClientResponseTestMs /*當處於回應測試模式時，為避免透傳指令干擾到測試指令，暫時停止轉發Modbus命令*/
+            ){
+                if(TIMER_IS_TIMEROUT(trans_wait_ms)){
+                    *(UsartGetBuff(USART_ID_RX)-1)=trans_seq;
+                    result = Cmd_ms_client_get_column(SENSOR_ELEMENT, ActServerAddr, IGNORED, 0xA5, CUSTOM_SERIAL_DATA,UsartGetRxCounter()+1,UsartGetBuff(USART_ID_RX)-1)->result;
+                    if (!result || ++trans_retry>=5){ /*發送完成 or 重試超過n次*/
+                        MbsTransmitterRecordCmd(UsartGetBuff(USART_ID_RX),UsartGetRxCounter(),true);
+                        trans_prepare_response_count=MbsTransmitterPrepareBuff(UsartGetBuff(USART_ID_TX),USART_TX_BUFF_SIZE);
+                        //dprint("cmd:%d ,prepare res len:%d\r\n",UsartGetRxCounter(),trans_prepare_response_count);
+                        UsartResetRxTx(USART_ID_RX);
+                        SetNodeStatus(NS_USART_RX_EVENT,OFF);
+                        ToWaitingStage(CHS_CHECK_RX_EVENT,WAIT_MS(pAdjValue->RS485TransmitterData.Rs485ClientBuffTimeoutMs));
+                    }
+                    else {
+                        trans_wait_ms=100; /*100ms後重試*/
+                        dprint("command transfer error! try:%d\r\n",trans_retry);
+                    }
+                }
+            }else{ /*當Server處於休眠模式 or 目前為回應測試模式時直接回傳暫存器的值*/
+                //dprint("server is sleeing\r\n");
+                MbsTransmitterRecordCmd(UsartGetBuff(USART_ID_RX),UsartGetRxCounter(),false);
+                trans_prepare_response_count=MbsTransmitterPrepareBuff(UsartGetBuff(USART_ID_TX),USART_TX_BUFF_SIZE);
+                //dprint("cmd:%d ,prepare res len:%d\r\n",UsartGetRxCounter(),trans_prepare_response_count);
+                UsartResetRxTx(USART_ID_RX);
+                SetNodeStatus(NS_USART_RX_EVENT,OFF);
+                ToWaitingStage(CHS_CHECK_RX_EVENT,WAIT_MS(0));
+                //if(trans_prepare_response_count) dprint("send buff data directory:%d\r\n",trans_prepare_response_count);
+            }
+            break;
 #endif
         case CHS_PREPARE_DATA: 
             if(ClientPrepareToHost() == TRUE)
@@ -885,7 +899,7 @@ CLIENT_SEND_DATA_TO_SERVER:
             ToNextStage(CHS_SEND_DATA_END);   //default
             break;
         case CHS_SEND_DATA_END:
-        	UsartResetRxTx(USART_ID_RX);
+            UsartResetRxTx(USART_ID_RX);
             SetNodeStatus(NS_USART_RX_EVENT,OFF);
             ToNextStage(CHS_CHECK_RX_EVENT);   //default
             break;
@@ -896,108 +910,109 @@ CLIENT_SEND_DATA_TO_SERVER:
         default:  break;
         };
     
+    //dprint("#CFE:%d\r\n",ActiveStage());
 }
 
 
 extern bool UsartRxIsBusy();
 void ClientSeriesEvent(msg_ms_client_series_status_evt *pEvent){
-	uint8_t *property_data = NULL;
-	uint8_t property_len=0;
-	PUCHAR p_tx_buff = UsartGetBuff(USART_ID_TX);
-	uint8 seq;
-	uint8 size;
-	uint8 flag;
-	uint16 reg;
-	uint16 reg_len;
-	uint8 offset=0;
-	uint8 part=0;
-	uint8 part_len=0;
-	PUCHAR data;
-	//dprint("Event Client(0x%02x), elem:%d, flag:%d, len:%d\r\n",pEvent->client_address,pEvent->elem_index,pEvent->flags,pEvent->sensor_data.len);
-	//dprint("*** Client Series Event> property:0x%04X\r\n",pEvent->property_id);
-	switch(pEvent->property_id){
-#if BTM_A308
-	case NODE_GET_A308_TABLE:
-		A308ClientSeriesEvent(pEvent);
-		break;
-#endif
-#if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
-	case CUSTOM_SERIAL_DATA:
-		property_len=pEvent->sensor_data.len;
-		property_data=pEvent->sensor_data.data;
-		seq=property_data[0];
-		size=property_data[1];
-		flag=property_data[2];
-		reg=property_data[3]|(((uint16)property_data[4])<<8);
-		reg_len=property_data[5];//property_data[5]|(((uint16)property_data[6])<<8);
-		data=property_data+6;
-		//if(trans_seq!=seq || UsartRxIsBusy()) return;
+    uint8_t *property_data = NULL;
+    uint8_t property_len=0;
+    PUCHAR p_tx_buff = UsartGetBuff(USART_ID_TX);
+    uint8 seq;
+    uint8 size;
+    uint8 flag;
+    uint16 reg;
+    uint16 reg_len;
+    uint8 offset=0;
+    uint8 part=0;
+    uint8 part_len=0;
+    PUCHAR data;
+    //dprint("Event Client(0x%02x), elem:%d, flag:%d, len:%d\r\n",pEvent->client_address,pEvent->elem_index,pEvent->flags,pEvent->sensor_data.len);
+    //dprint("*** Client Series Event> property:0x%04X\r\n",pEvent->property_id);
+    switch(pEvent->property_id){
+    #if BTM_A308
+    case NODE_GET_A308_TABLE:
+        A308ClientSeriesEvent(pEvent);
+        break;
+    #endif
+    #if defined(BTM_TRANSMITTER) || defined(JNC_BT_MESH)
+    case CUSTOM_SERIAL_DATA:
+        property_len=pEvent->sensor_data.len;
+        property_data=pEvent->sensor_data.data;
+        seq=property_data[0];
+        size=property_data[1];
+        flag=property_data[2];
+        reg=property_data[3]|(((uint16)property_data[4])<<8);
+        reg_len=property_data[5];//property_data[5]|(((uint16)property_data[6])<<8);
+        data=property_data+6;
+        //if(trans_seq!=seq || UsartRxIsBusy()) return;
 
 
-		if(rec_flag==0){
-			part=0;
-			offset=0;
-			while(offset<size){
-				rec_flag|=0x1<<part;
-				part++;
-				offset+=50;
-			}
-			dprint("initial rec_flag:0x%x\r\n",rec_flag);
-		}
+        if(rec_flag==0){
+            part=0;
+            offset=0;
+            while(offset<size){
+                rec_flag|=0x1<<part;
+                part++;
+                offset+=50;
+            }
+            dprint("initial rec_flag:0x%x\r\n",rec_flag);
+        }
 
-		part=0;
-		offset=0;
-		while(offset<size){
-			if((1<<part)==flag) break;
-			part++;
-			offset+=50;
-		}
+        part=0;
+        offset=0;
+        while(offset<size){
+            if((1<<part)==flag) break;
+            part++;
+            offset+=50;
+        }
 
-		part_len=size-offset;
-		if (part_len>50) part_len=50;
-		memcpy(p_tx_buff+offset,data,part_len);
-		rec_flag&= ~flag;
-		dprint("receive msg. rec_flag:0x%x, flag:0x%x, offset:%d, part_len:%d\r\n",rec_flag,flag, offset, part_len);
-		if(!rec_flag){
-			IFDPRINT(
-				dprint("req_seq:%03d, rsp_seq:%03d, reg:%d(0x%X) size:%d>",trans_seq,property_data[0],reg,reg,size);
-				for(uint8_t _idx=0;_idx<size;_idx++)dprint(" %02X",p_tx_buff[_idx]);
-				dprint("\r\n");
-			)
+        part_len=size-offset;
+        if (part_len>50) part_len=50;
+        memcpy(p_tx_buff+offset,data,part_len);
+        rec_flag&= ~flag;
+        dprint("receive msg. rec_flag:0x%x, flag:0x%x, offset:%d, part_len:%d\r\n",rec_flag,flag, offset, part_len);
+        if(!rec_flag){
+            IFDPRINT(
+                dprint("req_seq:%03d, rsp_seq:%03d, reg:%d(0x%X) size:%d>",trans_seq,property_data[0],reg,reg,size);
+                for(uint8_t _idx=0;_idx<size;_idx++)dprint(" %02X",p_tx_buff[_idx]);
+                dprint("\r\n");
+            )
 
-			if(trans_seq==seq && !UsartRxIsBusy() && !GetNodeStatus(NS_USART_RX_EVENT)){
-				UsartTxSendCmd(p_tx_buff,size);
-			}else{
-				if(UsartRxIsBusy()) dprint("Rx is Busy. ");
-				if (trans_seq!=seq)	dprint("seq is not matched. ");
-				dprint("record value only.\r\n");
-			}
+            if(trans_seq==seq && !UsartRxIsBusy() && !GetNodeStatus(NS_USART_RX_EVENT)){
+                UsartTxSendCmd(p_tx_buff,size);
+            }else{
+                if(UsartRxIsBusy()) dprint("Rx is Busy. ");
+                if (trans_seq!=seq)	dprint("seq is not matched. ");
+                dprint("record value only.\r\n");
+            }
 
-			SetSourceBtId(p_tx_buff[0], pEvent->server_address);
-			MbsTransmitterRecordRes(p_tx_buff, size,reg,reg_len);
-			trans_prepare_response_count=0;
-			/*if (UsartRxIsBusy()){
-				dprint("Received response but RX is Busy !!!!!!\r\n");
-			}else{
-				UsartTxSendCmd(p_tx_buff,size);
-				SetSourceBtId(p_tx_buff[0], pEvent->server_address);
-				MbsTransmitterRecordRes(p_tx_buff, size);
-				trans_prepare_response_count=0;
-			}*/
-			return;
-		}
+            SetSourceBtId(p_tx_buff[0], pEvent->server_address);
+            MbsTransmitterRecordRes(p_tx_buff, size,reg,reg_len);
+            trans_prepare_response_count=0;
+            /*if (UsartRxIsBusy()){
+                dprint("Received response but RX is Busy !!!!!!\r\n");
+            }else{
+                UsartTxSendCmd(p_tx_buff,size);
+                SetSourceBtId(p_tx_buff[0], pEvent->server_address);
+                MbsTransmitterRecordRes(p_tx_buff, size);
+                trans_prepare_response_count=0;
+            }*/
+            return;
+        }
 
-		/*IFDPRINT(
-			dprint("req_seq:%d, rsp_seq:%d, len:%d(0x%x)>",trans_seq,property_data[0],property_len,property_len);
-			for(uint8_t _idx=0;_idx<(property_len-1);_idx++)dprint(" %02X",property_data[_idx+1]);
-			dprint("\r\n");
-		)
-		if (trans_seq==property_data[0])
-			UsartTxSendCmd(property_data+1,property_len-1);*/
-		break;
-#endif
-	default:
-	}
+        /*IFDPRINT(
+            dprint("req_seq:%d, rsp_seq:%d, len:%d(0x%x)>",trans_seq,property_data[0],property_len,property_len);
+            for(uint8_t _idx=0;_idx<(property_len-1);_idx++)dprint(" %02X",property_data[_idx+1]);
+            dprint("\r\n");
+        )
+        if (trans_seq==property_data[0])
+            UsartTxSendCmd(property_data+1,property_len-1);*/
+        break;
+    #endif
+    default:
+    }
 }
 
 void ResetAliveCount(PClientInfo pClientInfo){
@@ -1011,41 +1026,41 @@ void ResetAliveCount(PClientInfo pClientInfo){
 }
 
 void ClientColumnEvent(msg_ms_client_column_status_evt *pEvent){
-	uint8_t *p_sensor_data = pEvent->sensor_data.data;
-	mesh_device_properties_t property_id;
-	uint8_t *property_data;
-	uint8_t property_len;
-	if((pClientInfo = GetServerInfoPos(pEvent->server_address))== NULL) return;
-	int16 idxServer=((uint8*)pClientInfo-(uint8*)ClientInfo)/sizeof(_ClientInfo);
-	TraceDec1("Node ID-2", pEvent->server_address);
-	dprint("Event Client(0x%02x) from:%d, elem:%d, flag:%d, len:%d\r\n",pEvent->client_address,pEvent->server_address,pEvent->elem_index,pEvent->flags,pEvent->sensor_data.len);
+    uint8_t *p_sensor_data = pEvent->sensor_data.data;
+    mesh_device_properties_t property_id;
+    uint8_t *property_data;
+    uint8_t property_len;
+    if((pClientInfo = GetServerInfoPos(pEvent->server_address))== NULL) return;
+    int16 idxServer=((uint8*)pClientInfo-(uint8*)ClientInfo)/sizeof(_ClientInfo);
+    TraceDec1("Node ID-2", pEvent->server_address);
+    dprint("Event Client(0x%02x) from:%d, elem:%d, flag:%d, len:%d\r\n",pEvent->client_address,pEvent->server_address,pEvent->elem_index,pEvent->flags,pEvent->sensor_data.len);
 
 
-	//Reset Timer
-	GetNodeStageInfo(CLIENT_GET_NODE_INFO_PROC)->Timer = WAIT_SEC(TIMER_CLI_WAIT_INFO);
-	RespServerNode++;
-	pClientInfo->ServerID = pEvent->server_address;
-	pClientInfo->Status &= !SERVER_NO_RESPONSE;
-	ServerResponseCounter[idxServer]++;
-	pNodeEventInfo->ElemIndex   = pEvent->appkey_index;
-	pNodeEventInfo->ClientAddr  = pEvent->client_address;
-	pNodeEventInfo->ServerAddr  = pEvent->server_address;
-	pNodeEventInfo->AppkeyIndex = pEvent->appkey_index;
-	pNodeEventInfo->Flags       = pEvent->flags;
-	//pNodeEventInfo->PropertyID  = pEvent->property_id;
+    //Reset Timer
+    GetNodeStageInfo(CLIENT_GET_NODE_INFO_PROC)->Timer = WAIT_SEC(TIMER_CLI_WAIT_INFO);
+    RespServerNode++;
+    pClientInfo->ServerID = pEvent->server_address;
+    pClientInfo->Status &= !SERVER_NO_RESPONSE;
+    ServerResponseCounter[idxServer]++;
+    pNodeEventInfo->ElemIndex   = pEvent->appkey_index;
+    pNodeEventInfo->ClientAddr  = pEvent->client_address;
+    pNodeEventInfo->ServerAddr  = pEvent->server_address;
+    pNodeEventInfo->AppkeyIndex = pEvent->appkey_index;
+    pNodeEventInfo->Flags       = pEvent->flags;
+    //pNodeEventInfo->PropertyID  = pEvent->property_id;
 
-	switch(pEvent->property_id){
-	case NODE_GET_ALL_SENSOR: case NODE_GET_ALL_SENSOR_GEN2:
-		if(ClientResponseTestMs) ClientResponseTestMode=true;
-		property_id = (mesh_device_properties_t)(p_sensor_data[0] + (p_sensor_data[1] << 8));
-		property_data=&p_sensor_data[PROPERTY_HEADER_SIZE];
-		uint8_t property_len = p_sensor_data[PROPERTY_ID_SIZE];
-		memcpy(&(pClientInfo->SensorInfo),property_data,property_len);
-		dprint("** Received Info Class:%d, Battery Power:%d\r\n",pClientInfo->SensorInfo.Header.SensorClass,pClientInfo->SensorInfo.Header.BatteryPower);
-		GetPropertyID = NODE_GET_ALL_SENSOR;  // recover data
-		break;
-	}
-	ResetAliveCount(pClientInfo);
+    switch(pEvent->property_id){
+    case NODE_GET_ALL_SENSOR: case NODE_GET_ALL_SENSOR_GEN2:
+        if(ClientResponseTestMs) ClientResponseTestMode=true;
+        property_id = (mesh_device_properties_t)(p_sensor_data[0] + (p_sensor_data[1] << 8));
+        property_data=&p_sensor_data[PROPERTY_HEADER_SIZE];
+        uint8_t property_len = p_sensor_data[PROPERTY_ID_SIZE];
+        memcpy(&(pClientInfo->SensorInfo),property_data,property_len);
+        dprint("** Received Info Class:%d, Battery Power:%d\r\n",pClientInfo->SensorInfo.Header.SensorClass,pClientInfo->SensorInfo.Header.BatteryPower);
+        GetPropertyID = NODE_GET_ALL_SENSOR;  // recover data
+        break;
+    }
+    ResetAliveCount(pClientInfo);
 }
 
 
@@ -1080,19 +1095,20 @@ void ClientPropertyEvent(msg_ms_client_status_evt *pEvent)
     pNodeEventInfo->Flags       = pEvent->flags;
     while(pos < data_len)
         {
-           //TraceDec2("data_len" , data_len, pos);
-           if(data_len - pos > PROPERTY_ID_SIZE)
+            //TraceDec2("data_len" , data_len, pos);
+            if(data_len - pos > PROPERTY_ID_SIZE)
             {
-        	   //dprint("first 3 bytes: %02X %02X %02X\r\n",p_sensor_data[pos],p_sensor_data[pos+1],p_sensor_data[pos+2]);
-               property_id = (mesh_device_properties_t)(p_sensor_data[pos] + (p_sensor_data[pos + 1] << 8));
-               //Trace16_1(property_id);
-               uint8_t property_len = p_sensor_data[pos + PROPERTY_ID_SIZE];
-               uint8_t *property_data = NULL;
-               if(property_len && (data_len - pos > PROPERTY_HEADER_SIZE))
-                   {property_data = &p_sensor_data[pos + PROPERTY_HEADER_SIZE];}
-               dprint("> property id: %d\r\n",property_id);
+                //dprint("first 3 bytes: %02X %02X %02X\r\n",p_sensor_data[pos],p_sensor_data[pos+1],p_sensor_data[pos+2]);
+                property_id = (mesh_device_properties_t)(p_sensor_data[pos] + (p_sensor_data[pos + 1] << 8));
+                //Trace16_1(property_id);
+                uint8_t property_len = p_sensor_data[pos + PROPERTY_ID_SIZE];
+                uint8_t *property_data = NULL;
+                if(property_len && (data_len - pos > PROPERTY_HEADER_SIZE)){
+                    property_data = &p_sensor_data[pos + PROPERTY_HEADER_SIZE];
+                }
+                dprint("> property id: %d\r\n",property_id);
 
-               switch(property_id)
+                switch(property_id)
                 {
                     case AUTO_POWER_0:
                     case AUTO_POWER_1:
@@ -1114,28 +1130,27 @@ void ClientPropertyEvent(msg_ms_client_status_evt *pEvent)
                         dprint("** Received Info Class:%d, Battery Power:%d, State:0x%x\r\n",pClientInfo->SensorInfo.Header.SensorClass,pClientInfo->SensorInfo.Header.BatteryPower,pClientInfo->SensorInfo.Header.Status);
 #ifdef BTM_A308
                         if(property_id==NODE_GET_ALL_SENSOR || property_id==NODE_GET_ALL_SENSOR_GEN2) {
-                        	result=Cmd_ms_client_get(SENSOR_ELEMENT, pNodeEventInfo->ServerAddr, IGNORED, 0xA5, PROP_SERVER_ACK)->result;
-                        	dprint("PROP_SERVER_ACK:0x%x\r\n",result);
+                            result=Cmd_ms_client_get(SENSOR_ELEMENT, pNodeEventInfo->ServerAddr, IGNORED, 0xA5, PROP_SERVER_ACK)->result;
+                            dprint("PROP_SERVER_ACK:0x%x\r\n",result);
                         }
 #endif
                         GetPropertyID = NODE_GET_ALL_SENSOR;  // recover data
                         break;
                     case CUSTOM_SERIAL_DATA:
-                    	IFDPRINT(
-							dprint("req_flag:%d, rsp_flag:%d, len:%d(0x%x)>",trans_seq,property_data[0],property_len,property_len);
-							for(uint8_t _idx=0;_idx<(property_len-1);_idx++)dprint(" %02X",property_data[_idx+1]);
-							dprint("\r\n");
-						)
-						if (trans_seq==property_data[0])
-							UsartTxSendCmd(property_data+1,property_len-1);
-                      break;
+                        IFDPRINT(
+                            dprint("req_flag:%d, rsp_flag:%d, len:%d(0x%x)>",trans_seq,property_data[0],property_len,property_len);
+                            for(uint8_t _idx=0;_idx<(property_len-1);_idx++)dprint(" %02X",property_data[_idx+1]);
+                            dprint("\r\n");
+                        )
+                        if (trans_seq==property_data[0])
+                            UsartTxSendCmd(property_data+1,property_len-1);
+                        break;
                     default: break;
                 };
-               pos += PROPERTY_HEADER_SIZE + property_len;
+                pos += PROPERTY_HEADER_SIZE + property_len;
             }
-           else 
-            pos = data_len;
-               
+            else 
+                pos = data_len;
         };
 
     ResetAliveCount(pClientInfo);
@@ -1154,21 +1169,19 @@ void PropertyLcd()
 {// Tools
 #ifdef SILICON_EVA_BOARD
 
-    uchar loop;    
+    uchar loop;
     char tmp[21];
     PClientInfo p_node_info;
     PSi7021Info pSi7021Info;
     PSdInfo     pSdInfo;
 
-    for(loop=0; loop<8; loop++)
-       {
+    for(loop=0; loop<8; loop++){
         p_node_info = GetServerInfoPos(loop+3);
-        if(p_node_info)
-            {
+        if(p_node_info){
             pSi7021Info = &(p_node_info->SensorInfo.Si7021Info);
             snprintf(tmp, 21, "Adr%2d %3u %2.1f %2.1f", p_node_info->ServerID, p_node_info->SensorInfo.Header.BatteryPower,
-                          ((float)pSi7021Info->Tempature)/10,((float)pSi7021Info->Humidity)/10);
-            }
+                            ((float)pSi7021Info->Tempature)/10,((float)pSi7021Info->Humidity)/10);
+        }
         
         /*
         snprintf(tmp, 21, "Adr%2x %3u %3u ", p_node_info->ServerID, p_node_info->SensorInfo.Header.BatteryPower,
@@ -1176,21 +1189,19 @@ void PropertyLcd()
         */
         p_node_info++;
         DI_Print(tmp, 1+loop);
-       }
+    }
 
     if((p_node_info = GetServerInfoPos(18)) != NULL)
-        {
-         pSdInfo = &(p_node_info->SensorInfo.SdInfo);
-         snprintf(tmp, 21, "Adr%2d %4d %2.1f %2.1f", p_node_info->ServerID, pSdInfo->CO2,\
-                          ((float)pSdInfo->Tempature)/10,((float)pSdInfo->Humidity)/10);    
-         DI_Print(tmp, 1+loop);
-         snprintf(tmp, 21, "Adr%2d %3u %4d %2.1f", p_node_info->ServerID, p_node_info->SensorInfo.Header.BatteryPower,\
-                          pSdInfo->CO2,((float)pSdInfo->PM25)/10);
-         DI_Print(tmp, 2+loop);
-        }
-    
+    {
+        pSdInfo = &(p_node_info->SensorInfo.SdInfo);
+        snprintf(tmp, 21, "Adr%2d %4d %2.1f %2.1f", p_node_info->ServerID, pSdInfo->CO2,\
+                        ((float)pSdInfo->Tempature)/10,((float)pSdInfo->Humidity)/10);
+        DI_Print(tmp, 1+loop);
+        snprintf(tmp, 21, "Adr%2d %3u %4d %2.1f", p_node_info->ServerID, p_node_info->SensorInfo.Header.BatteryPower,\
+                        pSdInfo->CO2,((float)pSdInfo->PM25)/10);
+        DI_Print(tmp, 2+loop);
+    }
 #endif
-    
 }
 
 
@@ -1202,46 +1213,47 @@ bool ClientPrepareToHost()
     bool    ret_code=FALSE;
     uint8   sensor_class;
     pModbusCmd = (_PModbusCmdF4)UsartGetBuff(USART_ID_RX);
-    if((pClientInfo = GetServerInfoPos((uint16)(pModbusCmd->ModbusID)))== NULL) 
-           {return ret_code;}
+    if((pClientInfo = GetServerInfoPos((uint16)(pModbusCmd->ModbusID)))== NULL) {
+        return ret_code;
+    }
 #ifndef OEM_SENSOR
     if(pModbusCmd->FunCode == 0x03 && pModbusCmd->StartAddr == 0x0000 && pModbusCmd->TotalReg == 0x0300)
         sensor_class = OTHER_MODBUS_CMD;
     else
-#endif        
-        sensor_class = pClientInfo->SensorInfo.Header.SensorClass;
+#endif
+    sensor_class = pClientInfo->SensorInfo.Header.SensorClass;
 
     switch(sensor_class)
         {
-            case SENSOR_SI7021:     ret_code = ClientSkynet(&pClientInfo->SensorInfo.Si7021Info);	break;
-            case SENSOR_PT485:      ret_code = ClientPT485(&pClientInfo->SensorInfo.PT485);			break;
-            case SENSOR_AIP:        ret_code = ClientAIP(&pClientInfo->SensorInfo.AipInfo);			break;
-            case SENSOR_A308M:      ret_code = ClientA308m(&pClientInfo->SensorInfo.A308mInfo);		break;
-           case SENSOR_WATER_LEVEL: ret_code = ClientWaterLevel(&pClientInfo->SensorInfo.WaterLevelInfo);	break;
-            case SENSOR_JNC_SD:     ret_code = ClientJncSd(&pClientInfo->SensorInfo.SdInfo);		break;
+            case SENSOR_SI7021:     ret_code = ClientSkynet(&pClientInfo->SensorInfo.Si7021Info);   break;
+            case SENSOR_PT485:      ret_code = ClientPT485(&pClientInfo->SensorInfo.PT485);         break;
+            case SENSOR_AIP:        ret_code = ClientAIP(&pClientInfo->SensorInfo.AipInfo);         break;
+            case SENSOR_A308M:      ret_code = ClientA308m(&pClientInfo->SensorInfo.A308mInfo);     break;
+            case SENSOR_WATER_LEVEL: ret_code = ClientWaterLevel(&pClientInfo->SensorInfo.WaterLevelInfo);	break;
+            case SENSOR_JNC_SD:     ret_code = ClientJncSd(&pClientInfo->SensorInfo.SdInfo);        break;
             case SENSOR_ULTRA_SOUND: ret_code = ClientUltraSound(&pClientInfo->SensorInfo.UltraSound);	break;
-            case SENSOR_DO_485:     ret_code = ClientJncDo485(&pClientInfo->SensorInfo.JncDo485);	break;
-            case SENSOR_A6D6:       ret_code = ClientA6D6(&pClientInfo->SensorInfo.A6D6);			break;
-            case SENSOR_RELAY:      ret_code = ClientRelay(&pClientInfo->SensorInfo.RelayNode);		break;
-            case SENSOR_IAQS:       ret_code = ClientIAQS(&pClientInfo->SensorInfo.IaqsInfo);		break;
-            case SENSOR_CW9:        ret_code = ClientCW9(&pClientInfo->SensorInfo.Cw9Info);			break;
+            case SENSOR_DO_485:     ret_code = ClientJncDo485(&pClientInfo->SensorInfo.JncDo485);   break;
+            case SENSOR_A6D6:       ret_code = ClientA6D6(&pClientInfo->SensorInfo.A6D6);           break;
+            case SENSOR_RELAY:      ret_code = ClientRelay(&pClientInfo->SensorInfo.RelayNode);     break;
+            case SENSOR_IAQS:       ret_code = ClientIAQS(&pClientInfo->SensorInfo.IaqsInfo);       break;
+            case SENSOR_CW9:        ret_code = ClientCW9(&pClientInfo->SensorInfo.Cw9Info);         break;
             case SENSOR_SKYNET_CO2: ret_code = ClientSkynetCo2(&pClientInfo->SensorInfo.SkynetCo2);	break;
-            case SENSOR_PZEM:       ret_code = ClientPzem(&pClientInfo->SensorInfo.Pzem);			break;
+            case SENSOR_PZEM:       ret_code = ClientPzem(&pClientInfo->SensorInfo.Pzem);           break;
             case SENSOR_OEM:        ret_code = ClientOemSensor(&pClientInfo->SensorInfo.OemSensor);	break;
-            case SENSOR_BTM_G6:     ret_code = ClientBtmG6(&pClientInfo->SensorInfo.BtmG6);			break;
-            case SENSOR_VELOCITY:   ret_code = ClientVelocity(&pClientInfo->SensorInfo.Velocity);	break;
-            case SENSOR_JYGD15:	ret_code = ClientJYGD15(&pClientInfo->SensorInfo.JYGD15Info);	break;
+            case SENSOR_BTM_G6:     ret_code = ClientBtmG6(&pClientInfo->SensorInfo.BtmG6);         break;
+            case SENSOR_VELOCITY:   ret_code = ClientVelocity(&pClientInfo->SensorInfo.Velocity);   break;
+            case SENSOR_JYGD15:     ret_code = ClientJYGD15(&pClientInfo->SensorInfo.JYGD15Info);   break;
             case SENSOR_SKYNET_PM25: ret_code = ClientSkynetPm25(&pClientInfo->SensorInfo.SkynetPm25);	break;
             case SENSOR_SKYNET_TVOC: ret_code = ClientSkynetTvoc(&pClientInfo->SensorInfo.SkynetTvoc);	break;
-            case SENSOR_DI:         ret_code = ClientDI(&pClientInfo->SensorInfo.DINode);		    break;
-            case OTHER_MODBUS_CMD:  ret_code = ClientOtherModbusCmd();                				break;
+            case SENSOR_DI:         ret_code = ClientDI(&pClientInfo->SensorInfo.DINode);           break;
+            case OTHER_MODBUS_CMD:  ret_code = ClientOtherModbusCmd();                              break;
             default:  ret_code=FALSE;
                 break;
         }
 
     if(ret_code == TRUE){
-         ModbusAddCrc();
-        }
+        ModbusAddCrc();
+    }
     else TraceErr("ClientPrepareToHost 2");
 
     return ret_code;
@@ -1281,30 +1293,31 @@ bool ClientOtherModbusCmd()
 }
 
 bool ClientJYGD15(_JYGD15Info *info){
-	ModbusToHostCmd.ModbusID = pModbusCmd->ModbusID;
-	uint8 *data=(void*)(ModbusToHostCmd.Data);
-	uint16 loc,len=WordSwap(pModbusCmd->TotalReg);
+    ModbusToHostCmd.ModbusID = pModbusCmd->ModbusID;
+    uint8 *data=(void*)(ModbusToHostCmd.Data);
+    uint16 loc,len=WordSwap(pModbusCmd->TotalReg);
 
-	if(len>(MODBUS_TO_HOST_BUFF_NUM/2)){
-		dprint("req len:%d is over then %d\r\n",len,(MODBUS_TO_HOST_BUFF_NUM/2));
-		ModbusToHostCmd.FunCode = pModbusCmd->FunCode | 0x80;
-		ModbusToHostCmd.ByteNum = 1;
-		ModbusToHostCmd.Data[0]=0x02;
-	}else{
-		ModbusToHostCmd.FunCode = pModbusCmd->FunCode;
-		ModbusToHostCmd.ByteNum=len*2;
-		for(int i=0;i<len;i++){
-			loc=pModbusCmd->StartAddr+i;
-			if (loc<14){
-				data[i*2]=info->values[loc]>>8;
-				data[i*2+1]=info->values[loc]&0xff;
-			}else{
-				data[i*2]=0;data[i*2+1]=0;
-			}
-		}
-
-	}
-	return TRUE;
+    if(len>(MODBUS_TO_HOST_BUFF_NUM/2)){
+        dprint("req len:%d is over then %d\r\n",len,(MODBUS_TO_HOST_BUFF_NUM/2));
+        ModbusToHostCmd.FunCode = pModbusCmd->FunCode | 0x80;
+        ModbusToHostCmd.ByteNum = 1;
+        ModbusToHostCmd.Data[0]=0x02;
+    }
+    else{
+        ModbusToHostCmd.FunCode = pModbusCmd->FunCode;
+        ModbusToHostCmd.ByteNum=len*2;
+        for(int i=0;i<len;i++){
+            loc=pModbusCmd->StartAddr+i;
+            if (loc<14){
+                data[i*2]=info->values[loc]>>8;
+                data[i*2+1]=info->values[loc]&0xff;
+            }
+            else{
+                data[i*2]=0;data[i*2+1]=0;
+            }
+        }
+    }
+    return TRUE;
 }
 
 bool ClientDI(PDINode p_info)
@@ -1314,7 +1327,7 @@ bool ClientDI(PDINode p_info)
     ModbusToHostCmd.ModbusID = pModbusCmd->ModbusID;
     ModbusToHostCmd.FunCode = pModbusCmd->FunCode;
     start_addr  = WordSwap(pModbusCmd->StartAddr);
-    total_reg = WordSwap(pModbusCmd->TotalReg);    
+    total_reg = WordSwap(pModbusCmd->TotalReg);
 
     switch(pModbusCmd->FunCode) {
     case fReadMultipleDI: {
@@ -1325,10 +1338,12 @@ bool ClientDI(PDINode p_info)
         } else {
             ret_code = FALSE;
         }
-        break;}
+        break;
+    }
     default: {
         ret_code = FALSE;
-        break;}
+        break;
+    }
     }
 
     return ret_code;
@@ -1354,33 +1369,42 @@ bool ClientSkynet(PSi7021Info p_info)
             ModbusToHostCmd.ByteNum = 4;
             ModbusToHostCmd.Data[0] = f_to_u16L(p_info->fTempature);
             ModbusToHostCmd.Data[1] = f_to_u16H(p_info->fTempature);
-        } else if (start_addr == JNC_MODBUS_RH) {
+        }
+        else if (start_addr == JNC_MODBUS_RH) {
             ModbusToHostCmd.ByteNum = 4;
             ModbusToHostCmd.Data[0] = f_to_u16L(p_info->fHumidity);
             ModbusToHostCmd.Data[1] = f_to_u16H(p_info->fHumidity);
-        } else if (start_addr == SI7021_TEMP) {
+        }
+        else if (start_addr == SI7021_TEMP) {
             ModbusToHostCmd.Data[0] = WordSwap(p_info->Tempature);
-        } else if (start_addr == SI7021_RH) {
+        }
+        else if (start_addr == SI7021_RH) {
             ModbusToHostCmd.Data[0] = WordSwap(p_info->Humidity);
-        } else if ((start_addr == BATTERY_POWER) || (start_addr == JNC_MODBUS_BATTERY)) {
+        }
+        else if ((start_addr == BATTERY_POWER) || (start_addr == JNC_MODBUS_BATTERY)) {
             ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
-        } else {
+        }
+        else {
             ret_code = FALSE;
         }
-        break;}
+        break;
+    }
     case fReadMultipleDI: {
         ModbusToHostCmd.ByteNum = 1;
         ModbusToHostCmd.Data[0] = 0;
         if (start_addr == FC02_SKYNET_DI_STATUS) {
             ModbusToHostCmd.Data[0] |= (p_info->bDI_State ? 1 : 0);
-        } else {
+        } 
+        else {
             ret_code = FALSE;
         }
-        break;}
+        break;
+    }
     default: {
         ret_code = FALSE;
-        break;}
+        break;
     }
+    };
 
     return ret_code;
 }
@@ -1405,38 +1429,49 @@ bool ClientSkynetCo2(PSkynetCo2 p_info)
             ModbusToHostCmd.ByteNum = 4;
             ModbusToHostCmd.Data[0] = f_to_u16L(p_info->fTempature);
             ModbusToHostCmd.Data[1] = f_to_u16H(p_info->fTempature);
-        } else if (start_addr == JNC_MODBUS_RH) {
+        } 
+        else if (start_addr == JNC_MODBUS_RH) {
             ModbusToHostCmd.ByteNum = 4;
             ModbusToHostCmd.Data[0] = f_to_u16L(p_info->fHumidity);
             ModbusToHostCmd.Data[1] = f_to_u16H(p_info->fHumidity);
-        } else if (start_addr == JNC_MODBUS_CO2) {
+        } 
+        else if (start_addr == JNC_MODBUS_CO2) {
             ModbusToHostCmd.ByteNum = 4;
             ModbusToHostCmd.Data[0] = f_to_u16L(p_info->fCo2);
             ModbusToHostCmd.Data[1] = f_to_u16H(p_info->fCo2);
-        } else if (start_addr == SI7021_TEMP) {
+        }
+        else if (start_addr == SI7021_TEMP) {
             ModbusToHostCmd.Data[0] = WordSwap(p_info->Tempature);
-        } else if (start_addr == SI7021_RH) {
+        }
+        else if (start_addr == SI7021_RH) {
             ModbusToHostCmd.Data[0] = WordSwap(p_info->Humidity);
-        } else if (start_addr == SENSOR_CO2) {
+        }
+        else if (start_addr == SENSOR_CO2) {
             ModbusToHostCmd.Data[0] = WordSwap(p_info->Co2);
-        } else if ((start_addr == BATTERY_POWER) || (start_addr == JNC_MODBUS_BATTERY)) {
+        }
+        else if ((start_addr == BATTERY_POWER) || (start_addr == JNC_MODBUS_BATTERY)) {
             ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
-        } else {
+        }
+        else {
             ret_code = FALSE;
         }
-        break;}
+        break;
+    }
     case fReadMultipleDI: {
         ModbusToHostCmd.ByteNum = 1;
         ModbusToHostCmd.Data[0] = 0;
         if (start_addr == FC02_SKYNET_DI_STATUS) {
             ModbusToHostCmd.Data[0] |= (p_info->bDI_State ? 1 : 0);
-        } else {
+        }
+        else {
             ret_code = FALSE;
         }
-        break;}
+        break;
+    }
     default: {
         ret_code = FALSE;
-        break;}
+        break;
+    }
     }
 
     return ret_code;
@@ -1459,30 +1494,38 @@ bool ClientSkynetPm25(PSkynetPm25 p_info)
             ModbusToHostCmd.ByteNum = 4;
             ModbusToHostCmd.Data[0] = f_to_u16L(p_info->fPM25);
             ModbusToHostCmd.Data[1] = f_to_u16H(p_info->fPM25);
-        } else if (start_addr == JNC_MODBUS_PM10) {
+        }
+        else if (start_addr == JNC_MODBUS_PM10) {
             ModbusToHostCmd.ByteNum = 4;
             ModbusToHostCmd.Data[0] = f_to_u16L(p_info->fPM10);
             ModbusToHostCmd.Data[1] = f_to_u16H(p_info->fPM10);
-        } else if (start_addr == SENSOR_PM25) {
+        }
+        else if (start_addr == SENSOR_PM25) {
             ModbusToHostCmd.Data[0] = WordSwap(p_info->PM25);
-        } else if ((start_addr == BATTERY_POWER) || (start_addr == JNC_MODBUS_BATTERY)) {
+        }
+        else if ((start_addr == BATTERY_POWER) || (start_addr == JNC_MODBUS_BATTERY)) {
             ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
-        } else {
+        }
+        else {
             ret_code = FALSE;
         }
-        break;}
+        break;
+    }
     case fReadMultipleDI: {
         ModbusToHostCmd.ByteNum = 1;
         ModbusToHostCmd.Data[0] = 0;
         if (start_addr == FC02_SKYNET_DI_STATUS) {
             ModbusToHostCmd.Data[0] |= (p_info->bDI_State ? 1 : 0);
-        } else {
+        }
+        else {
             ret_code = FALSE;
         }
-        break;}
+        break;
+    }
     default: {
         ret_code = FALSE;
-        break;}
+        break;
+    }
     }
 
     return ret_code;
@@ -1504,26 +1547,33 @@ bool ClientSkynetTvoc(PSkynetTvoc p_info)
             ModbusToHostCmd.ByteNum = 4;
             ModbusToHostCmd.Data[0] = f_to_u16L(p_info->fTVOC);
             ModbusToHostCmd.Data[1] = f_to_u16H(p_info->fTVOC);
-        } else if (start_addr == SENSOR_TVOC) {
+        }
+        else if (start_addr == SENSOR_TVOC) {
             ModbusToHostCmd.Data[0] = WordSwap(p_info->TVOC);
-        } else if ((start_addr == BATTERY_POWER) || (start_addr == JNC_MODBUS_BATTERY)) {
+        }
+        else if ((start_addr == BATTERY_POWER) || (start_addr == JNC_MODBUS_BATTERY)) {
             ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
-        } else {
+        }
+        else {
             ret_code = FALSE;
         }
-        break;}
+        break;
+    }
     case fReadMultipleDI: {
         ModbusToHostCmd.ByteNum = 1;
         ModbusToHostCmd.Data[0] = 0;
         if (start_addr == FC02_SKYNET_DI_STATUS) {
             ModbusToHostCmd.Data[0] |= (p_info->bDI_State ? 1 : 0);
-        } else {
+        }
+        else {
             ret_code = FALSE;
         }
-        break;}
+        break;
+    }
     default: {
         ret_code = FALSE;
-        break;}
+        break;
+    }
     }
 
     return ret_code;
@@ -1540,20 +1590,17 @@ bool ClientPT485(PPT485Info p_info)
     ModbusToHostCmd.FunCode = pModbusCmd->FunCode;
     ModbusToHostCmd.ByteNum = 2;
     start_addr  = WordSwap(pModbusCmd->StartAddr); 
-    total_reg = WordSwap(pModbusCmd->TotalReg);    
+    total_reg = WordSwap(pModbusCmd->TotalReg);
 
-    if(start_addr == PT485_TEMP)
-      {
+    if(start_addr == PT485_TEMP) {
         ModbusToHostCmd.Data[0] =  WordSwap(p_info->Tempature);
-      }
-    else if(start_addr == BATTERY_POWER )
-      {
+    }
+    else if(start_addr == BATTERY_POWER ) {
         ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
-      }
-    
+    }
     else{ 
         ret_code=FALSE;
-        }
+    }
 
 
     return ret_code;
@@ -1570,36 +1617,28 @@ bool ClientAIP(PAIPInfo p_info)
     ModbusToHostCmd.FunCode = pModbusCmd->FunCode;
     ModbusToHostCmd.ByteNum = 2;
     start_addr  = WordSwap(pModbusCmd->StartAddr); 
-    total_reg = WordSwap(pModbusCmd->TotalReg);   
+    total_reg = WordSwap(pModbusCmd->TotalReg);
 
-    if(start_addr == AIP_POWER)
-      {
+    if(start_addr == AIP_POWER){
         ModbusToHostCmd.Data[0] =  WordSwap(p_info->AipPower);
-      }
-    else if(start_addr == AIP_POWER_STATUS)
-      {
-       ModbusToHostCmd.Data[0] =  WordSwap(p_info->AipPowerStatus); 
-      }
-    else if(start_addr == AIP_POWER_STATUS_VALUE)
-      {
-
-       if(p_info->AipPowerStatus == 0)      ModbusToHostCmd.Data[0] = 0x0000;  //0%
-       else if(p_info->AipPowerStatus == 1) ModbusToHostCmd.Data[0] = 0x1900;   //25%
-       else if(p_info->AipPowerStatus == 2) ModbusToHostCmd.Data[0] = 0x3200;   //50%
-       else if(p_info->AipPowerStatus == 3) ModbusToHostCmd.Data[0] = 0x4B00;   //75%
-       else if(p_info->AipPowerStatus == 4) ModbusToHostCmd.Data[0] = 0x6400;   //100%
-       else TraceErr("AIP Power Value");
-      }
-    
-    else if(start_addr == BATTERY_POWER )
-      {
+    }
+    else if(start_addr == AIP_POWER_STATUS) {
+        ModbusToHostCmd.Data[0] =  WordSwap(p_info->AipPowerStatus); 
+    }
+    else if(start_addr == AIP_POWER_STATUS_VALUE) {
+        if(p_info->AipPowerStatus == 0)      ModbusToHostCmd.Data[0] = 0x0000;  //0%
+        else if(p_info->AipPowerStatus == 1) ModbusToHostCmd.Data[0] = 0x1900;   //25%
+        else if(p_info->AipPowerStatus == 2) ModbusToHostCmd.Data[0] = 0x3200;   //50%
+        else if(p_info->AipPowerStatus == 3) ModbusToHostCmd.Data[0] = 0x4B00;   //75%
+        else if(p_info->AipPowerStatus == 4) ModbusToHostCmd.Data[0] = 0x6400;   //100%
+        else TraceErr("AIP Power Value");
+    }
+    else if(start_addr == BATTERY_POWER ) {
         ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
-      }
-    else{ 
+    }
+    else{
         ret_code=FALSE;
-        }
-
-
+    }
     return ret_code;
 }
 
@@ -1618,49 +1657,48 @@ bool ClientA308m(PA308mInfo p_info)
     total_reg = WordSwap(pModbusCmd->TotalReg);
 
     switch(start_addr)
-        {
-            case BT_RMS_X:
-            case RMS_X:     ModbusToHostCmd.Data[0] = WordSwap(p_info->RmsX);break;
-            case BT_SKEWNESS_X:
-            case SKEWNESS_X: ModbusToHostCmd.Data[0] = WordSwap(p_info->SkewnessX); break;
-            case BT_KURTOSIS_X:
-            case KURTOSIS_X: ModbusToHostCmd.Data[0] = WordSwap(p_info->KurtosisX); break;
-            case BT_FREQUENCY_X:
-            case FREQUENCY_X: ModbusToHostCmd.Data[0] = WordSwap(p_info->FrequencyX); break;
-            case BT_SPEED_X:
-            case SPEED_X: ModbusToHostCmd.Data[0] = WordSwap(p_info->SpeedX); break;
-            case BT_STRENGTH_X:
-            case STRENGTH_X: ModbusToHostCmd.Data[0] = WordSwap(p_info->StengthX); break;
-            case BT_RMS_Y:
-            case RMS_Y:     ModbusToHostCmd.Data[0] = WordSwap(p_info->RmsY); break;
-            case BT_SKEWNESS_Y:
-            case SKEWNESS_Y: ModbusToHostCmd.Data[0] = WordSwap(p_info->SkewnessY); break;
-            case BT_KURTOSIS_Y:
-            case KURTOSIS_Y: ModbusToHostCmd.Data[0] = WordSwap(p_info->KurtosisY); break;
-            case BT_FREQUENCY_Y:
-            case FREQUENCY_Y: ModbusToHostCmd.Data[0] = WordSwap(p_info->FrequencyY); break;
-            case BT_SPEED_Y:
-            case SPEED_Y: ModbusToHostCmd.Data[0] = WordSwap(p_info->SpeedY); break;
-            case BT_STRENGTH_Y:
-            case STRENGTH_Y: ModbusToHostCmd.Data[0] = WordSwap(p_info->StengthY); break;
-            case BT_RMS_Z:
-            case RMS_Z:     ModbusToHostCmd.Data[0] = WordSwap(p_info->RmsZ); break;
-            case BT_SKEWNESS_Z:
-            case SKEWNESS_Z: ModbusToHostCmd.Data[0] = WordSwap(p_info->SkewnessZ); break;
-            case BT_KURTOSIS_Z:
-            case KURTOSIS_Z: ModbusToHostCmd.Data[0] = WordSwap(p_info->KurtosisZ); break;
-            case BT_FREQUENCY_Z:
-            case FREQUENCY_Z: ModbusToHostCmd.Data[0] = WordSwap(p_info->FrequencyZ); break;
-            case BT_SPEED_Z:
-            case SPEED_Z: ModbusToHostCmd.Data[0] = WordSwap(p_info->SpeedZ);break;
-            case BT_STRENGTH_Z:
-            case STRENGTH_Z: ModbusToHostCmd.Data[0] = WordSwap(p_info->StengthZ);break;
-            case BT_A308M_TEMP:
-            case A308M_TEMP:    ModbusToHostCmd.Data[0] = WordSwap(p_info->Tempature);  break;
-            case BATTERY_POWER: ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
-                break;
-        };
-
+    {
+        case BT_RMS_X:
+        case RMS_X:     ModbusToHostCmd.Data[0] = WordSwap(p_info->RmsX);break;
+        case BT_SKEWNESS_X:
+        case SKEWNESS_X: ModbusToHostCmd.Data[0] = WordSwap(p_info->SkewnessX); break;
+        case BT_KURTOSIS_X:
+        case KURTOSIS_X: ModbusToHostCmd.Data[0] = WordSwap(p_info->KurtosisX); break;
+        case BT_FREQUENCY_X:
+        case FREQUENCY_X: ModbusToHostCmd.Data[0] = WordSwap(p_info->FrequencyX); break;
+        case BT_SPEED_X:
+        case SPEED_X: ModbusToHostCmd.Data[0] = WordSwap(p_info->SpeedX); break;
+        case BT_STRENGTH_X:
+        case STRENGTH_X: ModbusToHostCmd.Data[0] = WordSwap(p_info->StengthX); break;
+        case BT_RMS_Y:
+        case RMS_Y:     ModbusToHostCmd.Data[0] = WordSwap(p_info->RmsY); break;
+        case BT_SKEWNESS_Y:
+        case SKEWNESS_Y: ModbusToHostCmd.Data[0] = WordSwap(p_info->SkewnessY); break;
+        case BT_KURTOSIS_Y:
+        case KURTOSIS_Y: ModbusToHostCmd.Data[0] = WordSwap(p_info->KurtosisY); break;
+        case BT_FREQUENCY_Y:
+        case FREQUENCY_Y: ModbusToHostCmd.Data[0] = WordSwap(p_info->FrequencyY); break;
+        case BT_SPEED_Y:
+        case SPEED_Y: ModbusToHostCmd.Data[0] = WordSwap(p_info->SpeedY); break;
+        case BT_STRENGTH_Y:
+        case STRENGTH_Y: ModbusToHostCmd.Data[0] = WordSwap(p_info->StengthY); break;
+        case BT_RMS_Z:
+        case RMS_Z:     ModbusToHostCmd.Data[0] = WordSwap(p_info->RmsZ); break;
+        case BT_SKEWNESS_Z:
+        case SKEWNESS_Z: ModbusToHostCmd.Data[0] = WordSwap(p_info->SkewnessZ); break;
+        case BT_KURTOSIS_Z:
+        case KURTOSIS_Z: ModbusToHostCmd.Data[0] = WordSwap(p_info->KurtosisZ); break;
+        case BT_FREQUENCY_Z:
+        case FREQUENCY_Z: ModbusToHostCmd.Data[0] = WordSwap(p_info->FrequencyZ); break;
+        case BT_SPEED_Z:
+        case SPEED_Z: ModbusToHostCmd.Data[0] = WordSwap(p_info->SpeedZ);break;
+        case BT_STRENGTH_Z:
+        case STRENGTH_Z: ModbusToHostCmd.Data[0] = WordSwap(p_info->StengthZ);break;
+        case BT_A308M_TEMP:
+        case A308M_TEMP:    ModbusToHostCmd.Data[0] = WordSwap(p_info->Tempature);  break;
+        case BATTERY_POWER: ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
+            break;
+    }
     return ret_code;
 }
 
@@ -1677,25 +1715,22 @@ bool ClientWaterLevel(PWaterLevelInfo p_info)
     start_addr  = WordSwap(pModbusCmd->StartAddr); 
     total_reg = WordSwap(pModbusCmd->TotalReg);
 
-    
     if(start_addr == POSITION_WATER) {
         ModbusToHostCmd.Data[0] =  WordSwap(p_info->WaterLevel);
         if(total_reg>1) {
             ModbusToHostCmd.Data[1] = WordSwap(p_info->OilLevel);
-            ModbusToHostCmd.ByteNum=4;}
-      }
+            ModbusToHostCmd.ByteNum=4;
+        }
+    }
     else if(start_addr == POSITION_OIL){
-       ModbusToHostCmd.Data[0] =  WordSwap(p_info->OilLevel); 
-      }
+        ModbusToHostCmd.Data[0] =  WordSwap(p_info->OilLevel); 
+    }
     else if(start_addr == BATTERY_POWER ){
         ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
-      }
-    
+    }
     else{ 
         ret_code=FALSE;
-        }
-
-
+    }
     return ret_code;
 }
 
@@ -1714,23 +1749,22 @@ bool ClientJncSd(PSdInfo p_info)
 
     if(start_addr == JNC_SD_CO2){
         ModbusToHostCmd.Data[0] =  WordSwap(p_info->CO2);
-      }
+    }
     else if(start_addr == JNC_SD_PM25){
-       ModbusToHostCmd.Data[0] =  WordSwap(p_info->PM25); 
-      }
+        ModbusToHostCmd.Data[0] =  WordSwap(p_info->PM25); 
+    }
     else if(start_addr == JNC_SD_TEMP){
-       ModbusToHostCmd.Data[0] =  WordSwap(p_info->Tempature); 
-      }
+        ModbusToHostCmd.Data[0] =  WordSwap(p_info->Tempature); 
+    }
     else if(start_addr == JNC_SD_RH){
-       ModbusToHostCmd.Data[0] =  WordSwap(p_info->Humidity); 
-      }
+        ModbusToHostCmd.Data[0] =  WordSwap(p_info->Humidity); 
+    }
     else if(start_addr == BATTERY_POWER ){
         ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
-      }
-    
+    }
     else{ 
         ret_code=FALSE;
-        }
+    }
     return ret_code;
 }
 
@@ -1751,38 +1785,39 @@ bool ClientUltraSound(PUltraSoundInfo p_info)
     if(start_addr != SI7021_TEMP && start_addr != SI7021_RH)
         if(end_addr > UD_RH) {end_addr = UD_RH;total_reg = end_addr - start_addr +1;}
 
-    
-
     if(start_addr == BATTERY_POWER ) {
         ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
-      }
+    }
     else if(start_addr == POSITION_WATER){
         ModbusToHostCmd.Data[0] =  WordSwap(p_info->WaterLevel);
         if(total_reg>1) {
             ModbusToHostCmd.Data[1] = WordSwap(p_info->OilLevel);
             ModbusToHostCmd.ByteNum=4;
         }
-      }
+    }
     else if(start_addr == POSITION_OIL){
-       ModbusToHostCmd.Data[0] =  WordSwap(p_info->OilLevel); 
-      }
+        ModbusToHostCmd.Data[0] =  WordSwap(p_info->OilLevel); 
+    }
     else if(start_addr == SI7021_TEMP){
-       ModbusToHostCmd.Data[0] =  WordSwap(p_info->Tempature);
-       if(total_reg > 1) {
+        ModbusToHostCmd.Data[0] =  WordSwap(p_info->Tempature);
+        if(total_reg > 1) {
             ModbusToHostCmd.Data[1] = WordSwap(p_info->Humidity);
             ModbusToHostCmd.ByteNum=4;
-            }
-       }
+        }
+    }
     else if(start_addr == SI7021_RH){
-       ModbusToHostCmd.Data[0] =  WordSwap(p_info->Humidity); 
-      }    
-    else if(start_addr > UD_RH) {ret_code = FALSE;}
+        ModbusToHostCmd.Data[0] =  WordSwap(p_info->Humidity); 
+    }
+    else if(start_addr > UD_RH) {
+        ret_code = FALSE;
+    }
     else{
         p_ai_value = &(p_info->BatteryVol)+(start_addr-UD_BATTERY_VOL);  p_modbus_value = &ModbusToHostCmd.Data[0];
         ModbusToHostCmd.ByteNum = (end_addr - start_addr+1)*2;
-        while(start_addr++ <= end_addr)
-            {*p_modbus_value++ = WordSwap(*(p_ai_value++));}
+        while(start_addr++ <= end_addr) {
+            *p_modbus_value++ = WordSwap(*(p_ai_value++));
         }
+    }
     return ret_code;
 }
 
@@ -1799,23 +1834,22 @@ bool ClientJncDo485(PJncDo485 p_info)
     
     if(start_addr == DO485_REAL_VALUE){
         ModbusToHostCmd.Data[0] =  WordSwap(p_info->DoRealValue);
-      }
+    }
     else if(start_addr == DO485_REAL_OFFSET){
-      ModbusToHostCmd.Data[0] =  WordSwap(p_info->DoOffsetValue);
+        ModbusToHostCmd.Data[0] =  WordSwap(p_info->DoOffsetValue);
     }
     else if(start_addr == DO485_TEMP_VALUE) {
-      ModbusToHostCmd.Data[0] =  WordSwap(p_info->TempRealValue);
+        ModbusToHostCmd.Data[0] =  WordSwap(p_info->TempRealValue);
     }
     else if(start_addr == DO485_TEMP_OFFSET){
-      ModbusToHostCmd.Data[0] =  WordSwap(p_info->TempOffsetValue);
+        ModbusToHostCmd.Data[0] =  WordSwap(p_info->TempOffsetValue);
     }    
     else if(start_addr == BATTERY_POWER ){
         ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
-      }
-    
+    }
     else{ 
         ret_code=FALSE;
-        }
+    }
     return ret_code;
 }
 
@@ -1830,22 +1864,29 @@ bool ClientOemSensor(POemSensor p_info)
     start_addr  = WordSwap(pModbusCmd->StartAddr); 
     total_reg = WordSwap(pModbusCmd->TotalReg);
 
-    if(ModbusToHostCmd.FunCode != 0x03 && start_addr != BATTERY_POWER) 
-        { ret_code = FALSE; }
+    if(ModbusToHostCmd.FunCode != 0x03 && start_addr != BATTERY_POWER) {
+        ret_code = FALSE;
+    }
     end_addr = start_addr + total_reg -1;
     if(end_addr > 0x03) end_addr = 0x03;
 
-    if(start_addr == BATTERY_POWER )  {ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower)); }
-    else if(start_addr == OEM_ADDR_0A) { ModbusToHostCmd.Data[0] =  WordSwap(p_info->Addr0A);  }
-    else if(start_addr > 0x03) {ret_code = FALSE;}
+    if(start_addr == BATTERY_POWER ) {
+        ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
+    }
+    else if(start_addr == OEM_ADDR_0A) {
+        ModbusToHostCmd.Data[0] =  WordSwap(p_info->Addr0A);
+    }
+    else if(start_addr > 0x03) {
+        ret_code = FALSE;
+    }
     else{
         p_ai_value = &(p_info->Addr00)+start_addr;  p_modbus_value = &ModbusToHostCmd.Data[0];
         //PrintData("OEM Sensor Data",p_ai_value,5);
         ModbusToHostCmd.ByteNum = (end_addr - start_addr+1)*2;
-        while(start_addr++ <= end_addr)
-            {*p_modbus_value++ = WordSwap(*(p_ai_value++));}
+        while(start_addr++ <= end_addr){
+            *p_modbus_value++ = WordSwap(*(p_ai_value++));
         }
-        
+    }
 
     return ret_code;
 }
@@ -1871,23 +1912,27 @@ bool ClientIAQS(PIaqsInfo p_info)
     ModbusToHostCmd.ByteNum = 2;
     start_addr  = WordSwap(pModbusCmd->StartAddr); 
     total_reg = WordSwap(pModbusCmd->TotalReg);
-    if(ModbusToHostCmd.FunCode != 0x04)  { return FALSE;}
+    if(ModbusToHostCmd.FunCode != 0x04) {
+        return FALSE;
+    }
     end_addr = start_addr + total_reg -1;
     if(end_addr > 0x340) end_addr = 0x340;
 
-    if(start_addr == BATTERY_POWER )  
-        {ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower)); }
-    else if(start_addr>=0x330 && start_addr<=0x340 )
-        {
-        p_ai_value = &(p_info->Tempature)+(start_addr-0x330);  p_modbus_value = &ModbusToHostCmd.Data[0];
+    if(start_addr == BATTERY_POWER ){
+        ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
+    }
+    else if(start_addr>=0x330 && start_addr<=0x340 ){
+        p_ai_value = &(p_info->Tempature)+(start_addr-0x330);
+        p_modbus_value = &ModbusToHostCmd.Data[0];
         ModbusToHostCmd.ByteNum = (end_addr - start_addr+1)*2;
         do{
-            *p_modbus_value++ = WordSwap(*(p_ai_value++));             
-          }while(++start_addr <= end_addr);
-        }
-    else{ret_code=FALSE;}
+            *p_modbus_value++ = WordSwap(*(p_ai_value++));
+        }while(++start_addr <= end_addr);
+    }
+    else{
+        ret_code=FALSE;
+    }
         
-
     return ret_code;
 
 }
@@ -1901,21 +1946,26 @@ bool ClientCW9(PCw9Info p_info)
     ModbusToHostCmd.ByteNum = 2;
     start_addr  = WordSwap(pModbusCmd->StartAddr); 
     total_reg = WordSwap(pModbusCmd->TotalReg);
-    if(ModbusToHostCmd.FunCode != 0x04)  { return FALSE;}
+    if(ModbusToHostCmd.FunCode != 0x04) {
+        return FALSE;
+    }
     end_addr = start_addr + total_reg -1;
     if(end_addr > 0x340) end_addr = 0x340;
 
-    if(start_addr == BATTERY_POWER )  
-        {ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower)); }
-    else if(start_addr>=0x330 && start_addr<=0x340 )
-        {
-        p_ai_value = &(p_info->Data01)+(start_addr-0x330);  p_modbus_value = &ModbusToHostCmd.Data[0];
+    if(start_addr == BATTERY_POWER ) {
+        ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
+    }
+    else if(start_addr>=0x330 && start_addr<=0x340 ){
+        p_ai_value = &(p_info->Data01)+(start_addr-0x330);
+        p_modbus_value = &ModbusToHostCmd.Data[0];
         ModbusToHostCmd.ByteNum = (end_addr - start_addr+1)*2;
         do{// Trace16_2(start_addr, end_addr);
-           *p_modbus_value++ = WordSwap(*(p_ai_value++));
-          }while(++start_addr <= end_addr);
-        }
-    else{ret_code=FALSE;}
+            *p_modbus_value++ = WordSwap(*(p_ai_value++));
+        }while(++start_addr <= end_addr);
+    }
+    else{
+        ret_code=FALSE;
+    }
         
     return ret_code;
 
@@ -1942,37 +1992,43 @@ bool ClientA6D6(PA6D6 p_info)
     loop = total_reg;
     
     if(ModbusToHostCmd.FunCode == 0x04)
-      {
+    {
         p_ai_value = &(p_info->AiValue1);
         p_modbus_value = &ModbusToHostCmd.Data[0];
-        for(loop=start_addr; loop<8 && (total_reg--!=0)  ; loop++){
-             *p_modbus_value = WordSwap(*(p_ai_value+loop));
-             p_modbus_value++; ModbusToHostCmd.ByteNum += 2;
-            }
-      }
+        for(loop=start_addr; loop<8 && (total_reg--!=0) ; loop++){
+            *p_modbus_value = WordSwap(*(p_ai_value+loop));
+            p_modbus_value++; 
+            ModbusToHostCmd.ByteNum += 2;
+        }
+    }
     else if(ModbusToHostCmd.FunCode == 0x02){   
         ModbusToHostCmd.ByteNum = 1;
         bit_mask = bit_mask << start_addr;
-        for(loop=start_addr; loop<8 && (total_reg--!=0)  ; loop++)
-            {
-              if(p_info->Di_Status & bit_mask) {status_bit |= status_mask;}
-              bit_mask<<=1; status_mask<<=1;
+        for(loop=start_addr; loop<8 && (total_reg--!=0)  ; loop++){
+            if(p_info->Di_Status & bit_mask) {
+                status_bit |= status_mask;
             }
-
-         *((PUCHAR)(&(ModbusToHostCmd.Data[0]))) = status_bit;
-      }
+            bit_mask<<=1; 
+            status_mask<<=1;
+        }
+        *((PUCHAR)(&(ModbusToHostCmd.Data[0]))) = status_bit;
+    }
     else if(ModbusToHostCmd.FunCode == 0x01){
         ModbusToHostCmd.ByteNum = 1;
         bit_mask = bit_mask << start_addr;
-        for(loop=start_addr; loop<6 && (total_reg--!=0)  ; loop++)
-            {
-              if(p_info->DO_Status & bit_mask)  {status_bit |= status_mask;}
-              bit_mask<<=1; status_mask<<=1;
-              //Trace8_3(loop,p_info->Di_Status,status_bit);
+        for(loop=start_addr; loop<6 && (total_reg--!=0) ; loop++){
+            if(p_info->DO_Status & bit_mask) {
+                status_bit |= status_mask;
             }
-         *((PUCHAR)(&(ModbusToHostCmd.Data[0]))) = status_bit;
-      }
-    else{ret_code = FALSE;}
+            bit_mask<<=1; 
+            status_mask<<=1;
+            //Trace8_3(loop,p_info->Di_Status,status_bit);
+        }
+        *((PUCHAR)(&(ModbusToHostCmd.Data[0]))) = status_bit;
+    }
+    else{
+        ret_code = FALSE;
+    }
     return ret_code;
 }
 
@@ -1991,18 +2047,20 @@ bool ClientPzem(PPzem p_info)
     if(start_addr > PZEM_ITEM_SIZE-1) start_addr = PZEM_ITEM_SIZE-1;
     if(total_reg > PZEM_ITEM_SIZE) total_reg = PZEM_ITEM_SIZE;
     loop = total_reg;
-    
+
     if(ModbusToHostCmd.FunCode == 0x04)
-      {
+    {
         p_ai_value = &(p_info->Voltage);
         p_modbus_value = &ModbusToHostCmd.Data[0];
-        for(loop=start_addr; loop<PZEM_ITEM_SIZE && (total_reg--!=0)  ; loop++)
-            {
-             *p_modbus_value = WordSwap(*(p_ai_value+loop));
-             p_modbus_value++; ModbusToHostCmd.ByteNum += 2;
-            }
-      }
-    else{ ret_code = FALSE;}
+        for(loop=start_addr; loop<PZEM_ITEM_SIZE && (total_reg--!=0)  ; loop++) {
+            *p_modbus_value = WordSwap(*(p_ai_value+loop));
+            p_modbus_value++; 
+            ModbusToHostCmd.ByteNum += 2;
+        }
+    }
+    else{
+        ret_code = FALSE;
+    }
     return ret_code;
 }
 
@@ -2017,19 +2075,24 @@ bool ClientRelay(PRelayNode p_info)
     ModbusToHostCmd.ModbusID = pModbusCmd->ModbusID;
     ModbusToHostCmd.FunCode = pModbusCmd->FunCode;
     start_addr  = WordSwap(pModbusCmd->StartAddr);
-    total_reg = WordSwap(pModbusCmd->TotalReg);    
+    total_reg = WordSwap(pModbusCmd->TotalReg);
     Trace16_1(p_info->Status);
 
     switch(pModbusCmd->FunCode) {
-    case fReadAI: {
-        ModbusToHostCmd.ByteNum = 2;
-        if(start_addr == BATTERY_POWER) {
-            ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
-        } else {ret_code=FALSE;}
-        break;}
-    default: {
-        ret_code = FALSE;
-        break;}
+        case fReadAI: {
+            ModbusToHostCmd.ByteNum = 2;
+            if(start_addr == BATTERY_POWER) {
+                ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
+            } 
+            else {
+                ret_code=FALSE;
+            }
+            break;
+        }
+        default: {
+            ret_code = FALSE;
+            break;
+        }
     }
 
     return ret_code;
@@ -2039,9 +2102,6 @@ uint16 ClientGetRelayRegister(uint16 loc){
 	if (loc==BATTERY_POWER) return (uint16)(pClientInfo->SensorInfo.Header.BatteryPower);
 	return 0;
 }
-
-
-
 //
 //
 //
@@ -2052,27 +2112,29 @@ bool ClientBtmG6(PBtmG6 p_info)
     ModbusToHostCmd.ModbusID = pModbusCmd->ModbusID;
     ModbusToHostCmd.FunCode = pModbusCmd->FunCode;
     ModbusToHostCmd.ByteNum = 2;
-    start_addr  = WordSwap(pModbusCmd->StartAddr);
+    start_addr = WordSwap(pModbusCmd->StartAddr);
     total_reg = WordSwap(pModbusCmd->TotalReg);    
     if(start_addr == BATTERY_POWER ){
         ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
-      }
+    }
     else if(start_addr == BTM_G6_STATUS ){
-           if(p_info->Status.PPercent > 4) {
-                p_info->Status.PPercent =4;
-            }
-           Trace16_1(p_info->Status.G6CurrStatus);
-           ModbusToHostCmd.Data[0] = WordSwap(p_info->Status.G6CurrStatus); 
+        if(p_info->Status.PPercent > 4) {
+            p_info->Status.PPercent =4;
         }
-    else if(start_addr == BTM_G6_TIME_FILTER1 ){Trace16_1(p_info->TimeFilter1);
-           ModbusToHostCmd.Data[0] = WordSwap(p_info->TimeFilter1); 
-        }
-    else if(start_addr == BTM_G6_TIME_FILTER2 ){Trace16_1(p_info->TimeFilter2);
-           ModbusToHostCmd.Data[0] = WordSwap(p_info->TimeFilter2); 
-        }
+        Trace16_1(p_info->Status.G6CurrStatus);
+        ModbusToHostCmd.Data[0] = WordSwap(p_info->Status.G6CurrStatus); 
+    }
+    else if(start_addr == BTM_G6_TIME_FILTER1 ){
+        Trace16_1(p_info->TimeFilter1);
+        ModbusToHostCmd.Data[0] = WordSwap(p_info->TimeFilter1); 
+    }
+    else if(start_addr == BTM_G6_TIME_FILTER2 ){
+        Trace16_1(p_info->TimeFilter2);
+        ModbusToHostCmd.Data[0] = WordSwap(p_info->TimeFilter2); 
+    }
     else{
         ret_code=FALSE;
-      }
+    }
     return ret_code;
 }
 
@@ -2090,56 +2152,62 @@ bool ClientVelocity(PVelocity p_info)
     ModbusToHostCmd.FunCode = pModbusCmd->FunCode;
     ModbusToHostCmd.ByteNum = 2;
     start_addr  = WordSwap(pModbusCmd->StartAddr);
-    total_reg = WordSwap(pModbusCmd->TotalReg);    
+    total_reg = WordSwap(pModbusCmd->TotalReg);
     
     if(start_addr == BATTERY_POWER ){
         ModbusToHostCmd.Data[0] = WordSwap((uint16)(pClientInfo->SensorInfo.Header.BatteryPower));
-      }
-    else if(start_addr == FTM_RAW_VEL_1 ){        
-        if(total_reg == 2){ 
+    }
+    else if(start_addr == FTM_RAW_VEL_1 ){
+        if(total_reg == 2) { 
             ModbusToHostCmd.Data[0]=WordSwap(*(((PUINT16)&(p_info->RawFlowVelocity))+1));
             ModbusToHostCmd.Data[1]=WordSwap(*((PUINT16)&(p_info->RawFlowVelocity)));
             ModbusToHostCmd.ByteNum=4;
-        }else if(total_reg == 1){
-            temp_value = *((PUINT16)&(p_info->RawFlowVelocity)+0);            
-            ModbusToHostCmd.Data[0] = WordSwap(temp_value);
-        }else ret_code=FALSE;
-      }
-    else if(start_addr == FTM_RAW_VEL_2){
-            temp_value = *((PUINT16)(&(p_info->RawFlowVelocity)+1));   
+        }
+        else if(total_reg == 1) {
+            temp_value = *((PUINT16)&(p_info->RawFlowVelocity)+0);
             ModbusToHostCmd.Data[0] = WordSwap(temp_value);
         }
+        else ret_code=FALSE;
+    }
+    else if(start_addr == FTM_RAW_VEL_2){
+        temp_value = *((PUINT16)(&(p_info->RawFlowVelocity)+1));   
+        ModbusToHostCmd.Data[0] = WordSwap(temp_value);
+    }
     else if(start_addr == FTM_VEL_1 ){
         if(total_reg == 2){ 
-            ModbusToHostCmd.Data[0]=WordSwap(*(((PUINT16)&(p_info->FlowVelocity))+1));
-            ModbusToHostCmd.Data[1]=WordSwap(*((PUINT16)&(p_info->FlowVelocity)));
+            ModbusToHostCmd.Data[0] = WordSwap(*(((PUINT16)&(p_info->FlowVelocity))+1));
+            ModbusToHostCmd.Data[1] = WordSwap(*((PUINT16)&(p_info->FlowVelocity)));
             ModbusToHostCmd.ByteNum=4;
-        }else if(total_reg == 1){
-            temp_value = *((PUINT16)&(p_info->FlowVelocity)+0);            
-            ModbusToHostCmd.Data[0] = WordSwap(temp_value);
-        }else ret_code=FALSE;
-      }
-    else if(start_addr == FTM_VEL_2){
-            temp_value = *(((PUINT16)&(p_info->FlowVelocity))+1);   
+        }
+        else if(total_reg == 1){
+            temp_value = *((PUINT16)&(p_info->FlowVelocity)+0);
             ModbusToHostCmd.Data[0] = WordSwap(temp_value);
         }
+        else ret_code=FALSE;
+    }
+    else if(start_addr == FTM_VEL_2){
+        temp_value = *(((PUINT16)&(p_info->FlowVelocity))+1);
+        ModbusToHostCmd.Data[0] = WordSwap(temp_value);
+    }
     else if(start_addr == FTM_VEL_TEMP_1 ){
         if(total_reg == 2){ 
-            ModbusToHostCmd.Data[0]=WordSwap(*(((PUINT16)&(p_info->Tempature))+1));
-            ModbusToHostCmd.Data[1]=WordSwap(*((PUINT16)&(p_info->Tempature)));
+            ModbusToHostCmd.Data[0] = WordSwap(*(((PUINT16)&(p_info->Tempature))+1));
+            ModbusToHostCmd.Data[1] = WordSwap(*((PUINT16)&(p_info->Tempature)));
             ModbusToHostCmd.ByteNum=4;
-        }else if(total_reg == 1){
-            temp_value = *((PUINT16)&(p_info->Tempature)+0);            
+        }
+        else if(total_reg == 1){
+            temp_value = *((PUINT16)&(p_info->Tempature)+0);
             ModbusToHostCmd.Data[0] = WordSwap(temp_value);
-        }else ret_code=FALSE;
-      }
+        }
+        else ret_code=FALSE;
+    }
     else if(start_addr == FTM_VEL_TEMP_2){
-            temp_value = *(((PUINT16)&(p_info->Tempature))+1);   
-            ModbusToHostCmd.Data[0] = WordSwap(temp_value);
-        }        
+        temp_value = *(((PUINT16)&(p_info->Tempature))+1);
+        ModbusToHostCmd.Data[0] = WordSwap(temp_value);
+    }
     else{ 
         ret_code=FALSE;
-      }
+    }
     return ret_code;
 }
 
@@ -2147,102 +2215,93 @@ bool ClientVelocity(PVelocity p_info)
 
 
 ClientMbsResult ClientModbusResponse(PClientInfo server){
-	uint16 (*getValueFunc)(uint16 loc);
-	UCHAR *rx=UsartGetBuff(USART_ID_RX);
-	UCHAR *tx=UsartGetBuff(USART_ID_TX);
-	uint8 fun=rx[1];
-	uint16 start=(((uint16)rx[2])<<8) | rx[3];
-	uint16 len=(((uint16)rx[4])<<8) | rx[5];
-	uint16 *values=(void*)&tx[3];
+    uint16 (*getValueFunc)(uint16 loc);
+    UCHAR *rx=UsartGetBuff(USART_ID_RX);
+    UCHAR *tx=UsartGetBuff(USART_ID_TX);
+    uint8 fun=rx[1];
+    uint16 start=(((uint16)rx[2])<<8) | rx[3];
+    uint16 len=(((uint16)rx[4])<<8) | rx[5];
+    uint16 *values=(void*)&tx[3];
 
-	if((fun==3||fun==4) && len>127 )return MbsResponseError(rx[0],rx[1],0x02)?CMR_DONE:CMR_ERROR; /* location error*/
+    if((fun==3||fun==4) && len>127 ) return MbsResponseError(rx[0],rx[1],0x02)?CMR_DONE:CMR_ERROR; /* location error*/
 
-
-	//if((pClientInfo = GetServerInfoPos(rx[0]))== NULL) return CMR_ERROR;
-	//switch(pClientInfo->SensorInfo.Header.SensorClass){
-	switch(server->SensorInfo.Header.SensorClass){
+    //if((pClientInfo = GetServerInfoPos(rx[0]))== NULL) return CMR_ERROR;
+    //switch(pClientInfo->SensorInfo.Header.SensorClass){
+    switch(server->SensorInfo.Header.SensorClass){
 #ifdef BTM_A308
-	case SENSOR_A308M:
-		return A308_Client_Modbus_Response()?CMR_DONE:CMR_ERROR;
+    case SENSOR_A308M:
+        return A308_Client_Modbus_Response()?CMR_DONE:CMR_ERROR;
 #endif
-	case SENSOR_RELAY: getValueFunc=ClientGetRelayRegister; break;
-	case SENSOR_OEM: getValueFunc=ClientGetOemSensorRegister; break;
-	default:
-		return CMR_NONE;
-	}
+    case SENSOR_RELAY: getValueFunc=ClientGetRelayRegister; break;
+    case SENSOR_OEM: getValueFunc=ClientGetOemSensorRegister; break;
+    default:
+        return CMR_NONE;
+    }
 
-	tx[0]=rx[0];
-	tx[1]=rx[1];
-	tx[2]=len*2;
+    tx[0]=rx[0];
+    tx[1]=rx[1];
+    tx[2]=len*2;
 
-	for(uint16 i=0; i<len;i++)	values[i]=WordSwap(getValueFunc(start+i));
+    for(uint16 i=0; i<len;i++)	values[i] = WordSwap(getValueFunc(start+i));
 
-	return MbsSend(tx,len*2+3)?CMR_DONE:CMR_ERROR;
+    return MbsSend(tx,len*2+3)?CMR_DONE:CMR_ERROR;
 }
 
 
 void ShowAllNodeInfo(void)
 {
- #ifdef DEBUG_PRINT
+#ifdef DEBUG_PRINT
     PClientInfo p_info=ClientInfo;
     uint16 loop;
 
-    for(loop=0; loop<SERVER_NODE_MAX; loop++)
-        {
-            if(p_info->ServerID) ShowEventInfo(p_info);
-            p_info++;
-        }
-  
-
- #endif
+    for(loop=0; loop<SERVER_NODE_MAX; loop++){
+        if(p_info->ServerID) ShowEventInfo(p_info);
+        p_info++;
+    }
+#endif
 }
 
 void ShowEventInfo(PClientInfo p_info)
 {
 #ifdef DEBUG_PRINT
-     uint8      sensor_class;
-     PA308mInfo p_info_a308m;
-     PSdInfo    p_info_jnc_sd;
-     PA6D6      p_A6D6;
+    uint8      sensor_class;
+    PA308mInfo p_info_a308m;
+    PSdInfo    p_info_jnc_sd;
+    PA6D6      p_A6D6;
 
     sensor_class = p_info->SensorInfo.Header.SensorClass;
     Printf("\r\nID=%02d Class=%d Lose=%02d Power=%03d => ",
             p_info->ServerID,p_info->SensorInfo.Header.SensorClass, 
             p_info->Count,p_info->SensorInfo.Header.BatteryPower
-          );  
+            );  
 
-     switch(sensor_class)
-        {
-            case SENSOR_SI7021: 
-                Printf("BTM Temp = %03d, RH= %02d\r\n",p_info->SensorInfo.Si7021Info.Tempature ,p_info->SensorInfo.Si7021Info.Humidity);
-                break;
-            case SENSOR_PT485: 
-                Printf("PT485 Temp= %d\r\n",p_info->SensorInfo.PT485.Tempature);
-                break;
-            case SENSOR_AIP: 
-                Printf("AIP Power= %d Status=%X\r\n",p_info->SensorInfo.AipInfo.AipPower,p_info->SensorInfo.AipInfo.AipPowerStatus);
-                break;
-            case SENSOR_RELAY: 
-                Printf("Relay: Power=%x\r\n",p_info->SensorInfo.Header.BatteryPower);
-                break;            
-            case SENSOR_AGB_POWER:
-                Printf("PowerStatus = %d \r\n",p_info->SensorInfo.AgbPower.PowerStatus);
-                break;
-            case SENSOR_CW9:
-                Printf("CW9 Data01 = %d \r\n",p_info->SensorInfo.Cw9Info.Data01);
-                break;
-            case SENSOR_BTM_G6:
-                Printf("G6 Status = %04xh Filter1 = %04xh, Filter2 = %04xh, \r\n",
-                        p_info->SensorInfo.BtmG6.Status.G6CurrStatus,p_info->SensorInfo.BtmG6.TimeFilter1,
-                        p_info->SensorInfo.BtmG6.TimeFilter2);
-                break;
-        };
-        
-#endif    
+    switch(sensor_class)
+    {
+        case SENSOR_SI7021: 
+            Printf("BTM Temp = %03d, RH= %02d\r\n",p_info->SensorInfo.Si7021Info.Tempature ,p_info->SensorInfo.Si7021Info.Humidity);
+            break;
+        case SENSOR_PT485: 
+            Printf("PT485 Temp= %d\r\n",p_info->SensorInfo.PT485.Tempature);
+            break;
+        case SENSOR_AIP: 
+            Printf("AIP Power= %d Status=%X\r\n",p_info->SensorInfo.AipInfo.AipPower,p_info->SensorInfo.AipInfo.AipPowerStatus);
+            break;
+        case SENSOR_RELAY: 
+            Printf("Relay: Power=%x\r\n",p_info->SensorInfo.Header.BatteryPower);
+            break;            
+        case SENSOR_AGB_POWER:
+            Printf("PowerStatus = %d \r\n",p_info->SensorInfo.AgbPower.PowerStatus);
+            break;
+        case SENSOR_CW9:
+            Printf("CW9 Data01 = %d \r\n",p_info->SensorInfo.Cw9Info.Data01);
+            break;
+        case SENSOR_BTM_G6:
+            Printf("G6 Status = %04xh Filter1 = %04xh, Filter2 = %04xh, \r\n",
+                    p_info->SensorInfo.BtmG6.Status.G6CurrStatus,p_info->SensorInfo.BtmG6.TimeFilter1,
+                    p_info->SensorInfo.BtmG6.TimeFilter2);
+            break;
+    }
+
+#endif
     return;
 }
-
-
-
-
-

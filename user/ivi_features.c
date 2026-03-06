@@ -42,7 +42,7 @@ extern uint32 ShowSqueNum();
 void NodeIviUpdateProc(void)
 {
         pStageInfo = GetNodeStageInfo(NODE_IVI_UPDATE_PROC);
-
+        //dprint("#CIS:%d\r\n",ActiveStage());
         switch(ActiveStage())
             {
                 case NODE_STAGE_INIT:   
@@ -76,6 +76,7 @@ void NodeIviUpdateProc(void)
                     ToNextStage(IVI_DETECT);
                     break;
             };
+            //dprint("#CIE:%d\r\n",ActiveStage());
 }
 
 bool MeshCheckSeqNum()

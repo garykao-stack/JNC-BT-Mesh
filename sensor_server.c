@@ -183,7 +183,6 @@ void SensorServerNodeInit(void)
     set_people_count(0);
     // Initialize the Temperature Sensor
 
-    //Peter Test
     init_temperature_sensor();
    // NodeSleeping(ON); NodeProxy(OFF);// while(1);
 }

@@ -30,6 +30,9 @@
 #include "sensor_client.h"
 #include "app.h"
 
+/* Watchdog driver */
+#include "watchdog.h"
+
 /***************************************************************************//**
  * @addtogroup Application
  * @{
@@ -153,6 +156,15 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
 			);
 
 
+    // Initialize watchdog - 8 second timeout with warning DISABLED for testing
+    watchdog_config_t wdog_config = {
+        .timeout_period = WDOG_PERIOD_8S,
+        .warning_percent = WDOG_WARNING_NEVER,
+        .enable_warning = false,
+        .run_in_debug = false,
+        .enable_lockup = true
+    };
+    watchdog_init_config(&wdog_config);
 
 
     if(NodeRole == NR_CLIENT){
@@ -193,7 +205,7 @@ void BtMeshSetupTask();
 
 extern void UsartClientProc();
 //int cntMainLoop=0;
-
+extern uint32_t BootingSeconds;
 void appMain(gecko_configuration_t *pConfig)
 {
     
@@ -203,34 +215,39 @@ void appMain(gecko_configuration_t *pConfig)
 
     while(1)
     {
-    	//cntMainLoop++;
-		// Event pointer for handling events
+        //cntMainLoop++;
+        // Event pointer for handling events
 
-		// If there are no events pending then the next call to gecko_wait_event()
-		// may cause device go to deep sleep.
-		// Make sure that debug prints are flushed before going to sleep
-	//GetMeshEvent:
-		if (gecko_event_pending()) { RETARGET_SerialFlush();  }
-		pEvent = gecko_wait_event(); // Check for stack event
-		bool pass = mesh_bgapi_listener(pEvent);
-		if (pass) {
-			if(BleMeshEventProc(pEvent,BleEventFun) == FALSE)
-				if(BleMeshEventProc(pEvent,MeshEventFun) == FALSE)
-					EventIDtoStringProc(pEvent);
-		}
-		if(!CheckRunDevTask()) continue;
+        // If there are no events pending then the next call to gecko_wait_event()
+        // may cause device go to deep sleep.
+        // Make sure that debug prints are flushed before going to sleep
+        //GetMeshEvent:
+        if (gecko_event_pending()) {
+            RETARGET_SerialFlush();
+        }
+        pEvent = gecko_wait_event(); // Check for stack event
+        bool pass = mesh_bgapi_listener(pEvent);
+        if (pass) {
+            if(BleMeshEventProc(pEvent,BleEventFun) == FALSE)
+                if(BleMeshEventProc(pEvent,MeshEventFun) == FALSE)
+                    EventIDtoStringProc(pEvent);
+        }
+        if(!CheckRunDevTask()) continue;
 
-		//dprint("===\r\nMax Sensor Info Size:%d\r\n===\r\n",sizeof(_SensorInfo));
+        //dprint("===\r\nMax Sensor Info Size:%d\r\n===\r\n",sizeof(_SensorInfo));
 
-
-		//dprint("Node Role:%d\r\n",NodeRole);
-		UsartClientProc();
-		if(NodeRole == NR_CLIENT)
-			ClientNodeTask();
-		else if(NodeRole == NR_SERVER || NodeRole == NR_SETUP_SERVER)
-			ServerNodeTask();
-		else BtMeshSetupTask(); //window Utility
-
+        //dprint("Node Role:%d\r\n",NodeRole);
+        
+        /* Feed watchdog to prevent timeout reboot */
+        //if(BootingSeconds<60)
+            watchdog_feed();
+        
+        UsartClientProc();
+        if(NodeRole == NR_CLIENT)
+            ClientNodeTask();
+        else if(NodeRole == NR_SERVER || NodeRole == NR_SETUP_SERVER)
+            ServerNodeTask();
+        else BtMeshSetupTask(); //window Utility
 
     } 
 }

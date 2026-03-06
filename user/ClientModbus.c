@@ -19,7 +19,7 @@ extern uint32 ClientBroadcastCounter;
 extern uint32 ServerResponseCounter[SERVER_NODE_MAX+1];
 extern _ClientInfo ClientInfo[SERVER_NODE_MAX+1];
 extern void ClearServerResponseCounter();
-
+extern uint32 BootingSeconds;
 /*即時值*/
 uint16 GetAiRegister(uint16 loc){
 	PClientInfo pServer;
@@ -66,6 +66,8 @@ uint16 GetAiRegister(uint16 loc){
 		pServer=GetExistingServerInfoPos(id);
 		return pServer?pServer->SensorInfo.Header.SensorClass:0;
 	}
+	else if(loc==0x900) return BootingSeconds&0xffff;
+	else if(loc==0x901) return BootingSeconds>>16;
 	return 0;
 }
 

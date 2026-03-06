@@ -32,6 +32,9 @@
 /* Application code */
 #include "app.h"
 
+/* Watchdog driver */
+#include "watchdog.h"
+
 #define JNC_OTA  
 /***************************************************************************//**
  * @addtogroup Application
@@ -113,6 +116,8 @@ int main(void)
 {
   // Initialize device
   initMcu();
+  
+  
   // Initialize board
   initBoard();
   // Initialize application

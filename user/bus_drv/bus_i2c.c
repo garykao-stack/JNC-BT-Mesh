@@ -17,19 +17,14 @@ uchar BatteryPower=0;
 
 void I2CInit()
 {
-
     BpAdcInit();
     GetBpValue();
-
 #if (HAL_I2CSENSOR_ENABLE) //I2C0 Initialize I2C peripheral
     I2CSPM_Init_TypeDef i2cInit = I2CSPM_INIT_DEFAULT;
     I2CSPM_Init(&i2cInit);
     Delay_ms(50);
- 
 #endif //HAL_I2CSENSOR_ENABLE
 
-    //Peter Test
-    printf("Peter Test \r\n");
     #ifdef SensorIsSHT3x
         SHT3x_Measure(I2C0,SHT3x_ADDR,NULL,NULL);
     #endif
@@ -40,7 +35,7 @@ void I2CInit()
     
     BatteryPower=100; TraceDec1("BatteryPower",BatteryPower);
 }
- 
+
 
 
 //
@@ -52,7 +47,7 @@ void EepromInit()
     uint16 DeviceInfoID;
     DeviceInfoID = EepromReadWord1((uint16)pEeprom); Trace16_1(DeviceInfoID);
     if(DeviceInfoID != DEVICE_INFO_ID ) EepromToDefault();
-   
+
 }
 
 //
@@ -63,7 +58,6 @@ bool EepromToDefault()
     bool ret_code = TRUE;
     _MeshNodeSysData mesh_sys_data;
     memset(&mesh_sys_data,0,sizeof(_MeshNodeSysData));
-   
     mesh_sys_data.DeviceInfoID = DEVICE_INFO_ID;
     mesh_sys_data.SysDataInittVer = FW_VER;    // for 1.00
     mesh_sys_data.MeshNodeID = 0;
@@ -192,9 +186,9 @@ int16 GetTempature()
     ret_byte = Si7013_Measure(I2C_SI7021, I2C_ADDR_SI7021, (PUINT32)&tempature, SI7013_READ_RH);
     ret_byte = Si7013_Measure(I2C_SI7021, I2C_ADDR_SI7021, (PUINT32)&tempature, SI7013_READ_TEMP);
     if (ret_byte == 2) {
-      tempature = (((17552*tempature)/65536) - 4685)/10;
+        tempature = (((17552*tempature)/65536) - 4685)/10;
     } else {
-      tempature = RET_VALUE_ERROR;
+        tempature = RET_VALUE_ERROR;
     }
     
     printf("Tempature 1 ==> %3.1f -C\r\n",(float)tempature/10);
@@ -209,12 +203,12 @@ int16 GetHumidity()
 {
     int32 ret_byte;
     uint32 humidity;
-   
+    
     ret_byte = Si7013_Measure(I2C_SI7021, I2C_ADDR_SI7021, &humidity, SI7013_READ_RH);
     if (ret_byte == 2) {/* convert to milli-percent */
-      humidity = ((1250*humidity)/65536L) - 60;
+        humidity = ((1250*humidity)/65536L) - 60;
     } else {
-      humidity = RET_VALUE_ERROR;
+        humidity = RET_VALUE_ERROR;
     }
     Printf("Humidity 2 ==> %ld%\r\n",(int16)humidity/10);
     return (int16)humidity;
@@ -245,14 +239,12 @@ uchar GetBatteryPower()
     
     if(power_percent == 0) return power_percent;
         
-    if(power_percent < BatteryPower)
-        {
-          //TraceDec2("Battery Test1",power_percent,BatteryPower);
-          BatteryPower = power_percent;
-        }
-    else 
-        {//TraceDec2("Battery Test2",power_percent,BatteryPower);
-        }
+    if(power_percent < BatteryPower){
+        //TraceDec2("Battery Test1",power_percent,BatteryPower);
+        BatteryPower = power_percent;
+    }
+    else {//TraceDec2("Battery Test2",power_percent,BatteryPower);
+    }
     temp_battery_power = BatteryPower;
     if(BatteryPower < 10) temp_battery_power = (float)BatteryPower*0.4;
     
@@ -274,28 +266,28 @@ volatile uint32_t millivolts;
 void BpAdcInit (void)
 {
 
-  // Enable ADC0 clock
-  CMU_ClockEnable(cmuClock_ADC0, true);
+    // Enable ADC0 clock
+    CMU_ClockEnable(cmuClock_ADC0, true);
 
-  // Declare init structs
-  ADC_Init_TypeDef init = ADC_INIT_DEFAULT;
-  ADC_InitSingle_TypeDef initSingle = ADC_INITSINGLE_DEFAULT;
+    // Declare init structs
+    ADC_Init_TypeDef init = ADC_INIT_DEFAULT;
+    ADC_InitSingle_TypeDef initSingle = ADC_INITSINGLE_DEFAULT;
 
-  // Modify init structs and initialize
-  init.prescale = ADC_PrescaleCalc(adcFreq, 0); // Init to max ADC clock for Series 1
+    // Modify init structs and initialize
+    init.prescale = ADC_PrescaleCalc(adcFreq, 0); // Init to max ADC clock for Series 1
 
-  initSingle.diff       = false;        // single ended
-  initSingle.reference  = _ADC_SINGLECTRL_REF_VDD; //v3.3
-  initSingle.resolution = adcRes12Bit;  // 12-bit resolution
-  initSingle.acqTime    = adcAcqTime4;  // set acquisition time to meet minimum requirement
+    initSingle.diff       = false;        // single ended
+    initSingle.reference  = _ADC_SINGLECTRL_REF_VDD; //v3.3
+    initSingle.resolution = adcRes12Bit;  // 12-bit resolution
+    initSingle.acqTime    = adcAcqTime4;  // set acquisition time to meet minimum requirement
 
-  // Select ADC input. See README for corresponding EXP header pin.
-  initSingle.posSel = adcPosSelAPORT3YCH11; //for PA3 
-  init.timebase = ADC_TimebaseCalc(0);
+    // Select ADC input. See README for corresponding EXP header pin.
+    initSingle.posSel = adcPosSelAPORT3YCH11; //for PA3 
+    init.timebase = ADC_TimebaseCalc(0);
 
-  ADC_Init(ADC0, &init);
-  ADC_InitSingle(ADC0, &initSingle); 
-  Delay_ms(50);
+    ADC_Init(ADC0, &init);
+    ADC_InitSingle(ADC0, &initSingle); 
+    Delay_ms(50);
 }
 
 
@@ -343,9 +335,9 @@ void TempAdcInit(void)
 
 uint32 GetAdcTemp(void)
 {
-  ADC_Start(ADC0, adcStartSingle);
-  while ( ( ADC0->STATUS & ADC_STATUS_SINGLEDV ) == 0 );
-  return ADC_DataSingleGet(ADC0);
+    ADC_Start(ADC0, adcStartSingle);
+    while ( ( ADC0->STATUS & ADC_STATUS_SINGLEDV ) == 0 );
+    return ADC_DataSingleGet(ADC0);
 }
 
 
@@ -353,32 +345,32 @@ uint32 GetAdcTemp(void)
 // Convert ADC temperature sensor readings into milli-celcius
 int32_t convert_to_millicelsius(int32_t adc_sample)
 {
-  const float TGRAD_ADCTH = 1.835; // TGRAD_ADCTH = 1.835 mV/degC (from datasheet)
-  const uint32_t VFS = 1250; // VFS = 1250 mV
-  const uint32_t NUM_STEPS_12BIT = 4096;
-  float T_Celsius;
+    const float TGRAD_ADCTH = 1.835; // TGRAD_ADCTH = 1.835 mV/degC (from datasheet)
+    const uint32_t VFS = 1250; // VFS = 1250 mV
+    const uint32_t NUM_STEPS_12BIT = 4096;
+    float T_Celsius;
 
-  /* Factory calibration temperature from device information page. */
-  const uint32_t CAL_TEMP0 = ((DEVINFO->CAL & _DEVINFO_CAL_TEMP_MASK) >> _DEVINFO_CAL_TEMP_SHIFT);
+    /* Factory calibration temperature from device information page. */
+    const uint32_t CAL_TEMP0 = ((DEVINFO->CAL & _DEVINFO_CAL_TEMP_MASK) >> _DEVINFO_CAL_TEMP_SHIFT);
 
-  /* _DEVINFO_ADC0CAL3_TEMPREAD1V25_MASK is not correct in
-     current CMSIS. This is a 12-bit value, not 16-bit. */
-  const uint32_t CAL_VALUE0 = ((DEVINFO->ADC0CAL3 & _DEVINFO_ADC0CAL3_TEMPREAD1V25_MASK) >> _DEVINFO_ADC0CAL3_TEMPREAD1V25_SHIFT);
+    /* _DEVINFO_ADC0CAL3_TEMPREAD1V25_MASK is not correct in
+        current CMSIS. This is a 12-bit value, not 16-bit. */
+    const uint32_t CAL_VALUE0 = ((DEVINFO->ADC0CAL3 & _DEVINFO_ADC0CAL3_TEMPREAD1V25_MASK) >> _DEVINFO_ADC0CAL3_TEMPREAD1V25_SHIFT);
 
-  if ((CAL_TEMP0 == 0xFF) || (CAL_VALUE0 == 0xFFF)) {
-    /* The temperature sensor is not calibrated */
-    return -100.0;
-  }
+    if ((CAL_TEMP0 == 0xFF) || (CAL_VALUE0 == 0xFFF)) {
+        /* The temperature sensor is not calibrated */
+        return -100.0;
+    }
 
-  // e.g. EFRxG13 datasheet section 27.3.10.9 Temperature Measurement for below formula
-  int32_t readout_difference = CAL_VALUE0 - adc_sample;
-  T_Celsius = ((float) readout_difference * VFS);
-  T_Celsius /= (NUM_STEPS_12BIT * (-1 * TGRAD_ADCTH));
+    // e.g. EFRxG13 datasheet section 27.3.10.9 Temperature Measurement for below formula
+    int32_t readout_difference = CAL_VALUE0 - adc_sample;
+    T_Celsius = ((float) readout_difference * VFS);
+    T_Celsius /= (NUM_STEPS_12BIT * (-1 * TGRAD_ADCTH));
 
-  /* Calculate offset from calibration temperature */
-  T_Celsius = (float) CAL_TEMP0 - T_Celsius;
-  return (int32_t) (T_Celsius * 1000);
-  //return (int32_t) (T_Celsius * 10);
+    /* Calculate offset from calibration temperature */
+    T_Celsius = (float) CAL_TEMP0 - T_Celsius;
+    return (int32_t) (T_Celsius * 1000);
+    //return (int32_t) (T_Celsius * 10);
 }
 
 

@@ -88,7 +88,7 @@
 
 /*---------------- Temperature Snsor Selection -----------------*/
   // skynet_co2, skynet_pm25, skynet_tvoc choose either one.
-  // #define SensorIsSi7021
+  //#define SensorIsSi7021
   #define SensorIsSHT3x
 
   #if (defined(SensorIsSi7021) && defined(SensorIsSHT3x))
@@ -105,14 +105,14 @@
 #define TRANS_BUFF_MODE	1	/*啟動Buff功能，0:關, 1:開(預設值)*/
 
 /*------------------------ A308 Option -------------------------*/
-#define A308_SIMULATION 			0	/*A308訊號模擬。不從485讀取A308數值，直接以ID填滿所有暫存器*/
+#define A308_SIMULATION			0	/*A308訊號模擬。不從485讀取A308數值，直接以ID填滿所有暫存器*/
 #define A308_SLEEP_MODE			1 		/*喚醒後延遲兩秒再讀取數值，預設開啟(1)*/
 
 /*=============================================================
  *							Debug
  *-------------------------------------------------------------*/
 //#define DEBUG_PRINT
-#define DPRINT 0			// dprint, 0:disabled, 1:enabled
+#define DPRINT 1			// dprint, 0:disabled, 1:enabled
 #define TRANSDEBUG 0
 
 #if NODE_DISCONNECT_DETECT_COUNT>0
@@ -122,7 +122,7 @@
 #endif
 
 #if defined(JNC_BT_MESH)
-  #define FW_VER              140
+  #define FW_VER              141
   #define HW_VER              110
   #define DEVICE_NAME         "JNC-BT-Mesh"SPACMARK
   #define MANUFACTORY_NAME    "JNC"

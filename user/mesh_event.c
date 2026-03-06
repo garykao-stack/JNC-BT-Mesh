@@ -549,6 +549,3 @@ uint32 EvtMeshLpnFriendProc(PCmdPacket pEvent)
 }
 
 #endif
-
-
-
