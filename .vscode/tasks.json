@@ -1,0 +1,76 @@
+{
+  // ============================================================================
+  // VSCode 一鍵編譯設定 — JNC-BT-Mesh (BGM13P32F512GA)
+  //   Ctrl+Shift+B          → 執行預設建置「編譯 (make all)」
+  //   Ctrl+Shift+P → Tasks: Run Task → 可選「清除後重建」
+  // 跑的就是 Simplicity Studio 的正規 Makefile (IAR ARM - Default/Makefile)
+  // ============================================================================
+  "version": "2.0.0",
+  "options": {
+    // 在 Makefile 所在資料夾執行
+    "cwd": "${workspaceFolder}/IAR ARM - Default",
+    // 用 cmd.exe 當 shell（PowerShell 5.1 不支援部分語法，cmd 較穩定）
+    "shell": {
+      "executable": "cmd.exe",
+      "args": ["/d", "/c"]
+    },
+    "env": {
+      // 把 msys 的 make 與 IAR 8.3 編譯器加到 PATH 最前面
+      // 若日後 Simplicity Studio 版本不同，請調整下面的 v5_4 字段
+      "PATH": "C:\\SiliconLabs\\SimplicityStudio\\v5_4\\support\\common\\build\\msys\\1.0\\bin;C:\\Program Files (x86)\\IAR Systems\\Embedded Workbench 8.3\\arm\\bin;C:\\Program Files (x86)\\IAR Systems\\Embedded Workbench 8.3\\common\\bin;${env:PATH}"
+    }
+  },
+  "tasks": [
+    {
+      // 預設建置：增量編譯（只重編改過的檔，最快）。Ctrl+Shift+B 會跑這個。
+      "label": "編譯 (make all)",
+      "type": "shell",
+      "command": "make -j4 all",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "clear": true,
+        "panel": "shared"
+      },
+      "problemMatcher": {
+        "owner": "iar",
+        "fileLocation": "absolute",
+        "pattern": {
+          "regexp": "^\"(.+?)\",(\\d+)\\s+(Warning|Error|Fatal Error)\\[(\\w+)\\]:\\s*(.*)$",
+          "file": 1,
+          "line": 2,
+          "severity": 3,
+          "code": 4,
+          "message": 5
+        }
+      }
+    },
+    {
+      // 清除後重建：先 make clean 再 make all（從零完整編譯，較慢但最乾淨）
+      "label": "清除後重建 (make clean all)",
+      "type": "shell",
+      "command": "make clean all",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "clear": true,
+        "panel": "shared"
+      },
+      "problemMatcher": {
+        "owner": "iar",
+        "fileLocation": "absolute",
+        "pattern": {
+          "regexp": "^\"(.+?)\",(\\d+)\\s+(Warning|Error|Fatal Error)\\[(\\w+)\\]:\\s*(.*)$",
+          "file": 1,
+          "line": 2,
+          "severity": 3,
+          "code": 4,
+          "message": 5
+        }
+      }
+    }
+  ]
+}

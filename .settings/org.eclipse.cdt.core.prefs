@@ -1,12 +1,12 @@
 eclipse.preferences.version=1
 environment/project/com.silabs.ss.framework.project.toolchain.core.default\#com.silabs.ss.tool.ide.arm.toolchain.iar\:8.32.1.169\ -\ BGM13P32F512GA/PATH/delimiter=;
 environment/project/com.silabs.ss.framework.project.toolchain.core.default\#com.silabs.ss.tool.ide.arm.toolchain.iar\:8.32.1.169\ -\ BGM13P32F512GA/PATH/operation=prepend
-environment/project/com.silabs.ss.framework.project.toolchain.core.default\#com.silabs.ss.tool.ide.arm.toolchain.iar\:8.32.1.169\ -\ BGM13P32F512GA/PATH/value=C\:\\SiliconLabs\\SimplicityStudio\\v4\\support\\common\\build\\msys\\1.0\\bin
+environment/project/com.silabs.ss.framework.project.toolchain.core.default\#com.silabs.ss.tool.ide.arm.toolchain.iar\:8.32.1.169\ -\ BGM13P32F512GA/PATH/value=C\:\\SiliconLabs\\SimplicityStudio\\v5_4\\support\\common\\build\\msys\\1.0\\bin
 environment/project/com.silabs.ss.framework.project.toolchain.core.default\#com.silabs.ss.tool.ide.arm.toolchain.iar\:8.32.1.169\ -\ BGM13P32F512GA/append=true
 environment/project/com.silabs.ss.framework.project.toolchain.core.default\#com.silabs.ss.tool.ide.arm.toolchain.iar\:8.32.1.169\ -\ BGM13P32F512GA/appendContributed=true
 environment/project/com.silabs.ss.framework.project.toolchain.core.default\#com.silabs.ss.tool.ide.arm.toolchain.iar\:8.32.1.169/PATH/delimiter=;
 environment/project/com.silabs.ss.framework.project.toolchain.core.default\#com.silabs.ss.tool.ide.arm.toolchain.iar\:8.32.1.169/PATH/operation=prepend
-environment/project/com.silabs.ss.framework.project.toolchain.core.default\#com.silabs.ss.tool.ide.arm.toolchain.iar\:8.32.1.169/PATH/value=C\:\\SiliconLabs\\SimplicityStudio\\v4\\support\\common\\build\\msys\\1.0\\bin
+environment/project/com.silabs.ss.framework.project.toolchain.core.default\#com.silabs.ss.tool.ide.arm.toolchain.iar\:8.32.1.169/PATH/value=C\:\\SiliconLabs\\SimplicityStudio\\v5_4\\support\\common\\build\\msys\\1.0\\bin
 environment/project/com.silabs.ss.framework.project.toolchain.core.default\#com.silabs.ss.tool.ide.arm.toolchain.iar\:8.32.1.169/append=true
 environment/project/com.silabs.ss.framework.project.toolchain.core.default\#com.silabs.ss.tool.ide.arm.toolchain.iar\:8.32.1.169/appendContributed=true
 org.eclipse.cdt.core.formatter.alignment_for_arguments_in_method_invocation=16

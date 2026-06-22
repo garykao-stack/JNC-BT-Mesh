@@ -128,7 +128,7 @@ int main(void)
   // interrupt the scanner.
   linklayer_priorities.scan_max = linklayer_priorities.adv_min + 1;
   // Start application
-  appMain(&config);
+  appMain(&config);////
 }
 
 /** @} (end addtogroup app) */

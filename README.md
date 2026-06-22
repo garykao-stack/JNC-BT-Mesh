@@ -36,6 +36,22 @@
 2. bin檔會產生在專案資料夾中的 「IAR ARM - Default」資料夾中
 &emsp;&emsp;![檔名為JNC-BT-Mesh.bin](doc/img/binfile.PNG)
 
+VSCode 一鍵編譯快捷鍵（選用）
+---
+除了在 Simplicity Studio 按 `Ctrl+B`，也可以在 VSCode 用快捷鍵編譯（背後執行的是同一個 `IAR ARM - Default/Makefile`）：
+
+| 快捷鍵 | 功能 | 說明 |
+| --- | --- | --- |
+| `Ctrl + Shift + B` | 編譯 (make all) | 增量編譯，只重編改過的檔，**最快**。沒改檔會顯示 `Nothing to be done`。 |
+| `Ctrl + Alt + B`   | 清除後重建 (make clean all) | 從零完整重編，會跑完整編譯過程並產生新的 `.bin`（約 1～3 分鐘）。 |
+
+- 編譯過程顯示在 VSCode 下方**終端機**；錯誤/警告會列在 **「問題 (Problems)」面板**，可點擊跳到對應程式行。
+- 也可從選單 **「終端機 Terminal」→「執行工作 Run Task」** 選擇要跑的編譯工作。
+- ⚠️ 此功能需要兩個**本機設定檔**（不會隨 git 同步，每台電腦各設定一次）：
+    - `.vscode/tasks.json`：定義上述兩個編譯工作（含 make 指令、IAR 8.3 與 msys 路徑）。
+    - VSCode 使用者 `keybindings.json`：把 `Ctrl+Alt+B` 綁到「清除後重建」。
+- 命令列建置指令與設定細節，請參閱專案根目錄的 `CLAUDE.md`「Build」章節。
+
 燒錄
 ---
 1. 安裝 <a href="http://192.168.0.30:88/download/02 技術部/02 開發產品/02 醫療系統/06-藍芽網路感測及接受系統 (Skynet)/08 程式碼燒錄/Silicon Tools/commander.zip">commander</a>
