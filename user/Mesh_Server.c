@@ -2025,6 +2025,42 @@ uint16 Server_ReceiveSetting(uint8 *data,uint8 len){
 };
 
 
+//==============================================================================
+// 產品序號 (Product Serial Number) — App 透過 Mesh Sensor 模型讀寫 (與設定同一套機制)
+//   NODE_SET_SERIAL (0x8073): App 送 8 bytes 序號 → WriteSerialNumber() 存入 USERDATA；裝置回 ack(2)
+//   NODE_GET_SERIAL (0x8072): App 請求 → 裝置回 [property_id(2) | serial(8)]；未燒錄回預設 JNC00000
+//==============================================================================
+uint16 ServerReceiveSerial(uint8 *data, uint8 len)
+{
+    uint16 code = ACK_OK;     // 0 = OK
+    uint16 result;
+    if(data != NULL && len >= SERIAL_NUM_LEN){
+        if(WriteSerialNumber(data) != mscReturnOk) code = 1;   // 1 = flash 寫入失敗
+        dprint("*** ServerReceiveSerial: write serial, ack=%d\r\n", code);
+    }else{
+        code = 2;                                              // 2 = 長度不足
+        dprint("*** ServerReceiveSerial: bad len=%d (need %d)\r\n", len, SERIAL_NUM_LEN);
+    }
+    result = Cmd_ms_server_send_column_status(SENSOR_ELEMENT, pNodeEventInfo->ClientAddr,
+                 pNodeEventInfo->AppkeyIndex, 0xA5, NODE_SET_SERIAL, sizeof(code), (uint8*)&code)->result;
+    return result;
+}
+
+uint16 ServerResponseSerial(void)
+{
+    uint8 data[2 + SERIAL_NUM_LEN];
+    uint16 result;
+    *((uint16*)data) = NODE_GET_SERIAL;                        // 前 2 bytes 回傳 property id (與 SETUP_GET 一致)
+    if(IsSerialNumberProgrammed())
+        ReadSerialNumber(data + 2);                            // 已燒錄: 回實際序號
+    else
+        memcpy(data + 2, SERIAL_NUM_DEFAULT, SERIAL_NUM_LEN);  // 未燒錄: 回預設 JNC00000
+    result = Cmd_ms_server_send_column_status(SENSOR_ELEMENT, pNodeEventInfo->ClientAddr,
+                 pNodeEventInfo->AppkeyIndex, 0xA5, NODE_GET_SERIAL, sizeof(data), data)->result;
+    dprint("*** ServerResponseSerial result:0x%X\r\n", result);
+    return result;
+}
+
 
 
 //#ifdef BTM_TRANSMITTER
@@ -2121,6 +2157,14 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
             return;
         }else if(pEvent->property_id==NODE_SENSOR_SETUP_SET){
             Server_ReceiveSetting(ext->data,ext->len);
+            *pNodeEventInfo=tmpNodeEvtInfo;
+            return;
+        }else if(pEvent->property_id==NODE_SET_SERIAL){          // 寫產品序號
+            ServerReceiveSerial(ext->data,ext->len);
+            *pNodeEventInfo=tmpNodeEvtInfo;
+            return;
+        }else if(pEvent->property_id==NODE_GET_SERIAL){          // 讀產品序號
+            ServerResponseSerial();
             *pNodeEventInfo=tmpNodeEvtInfo;
             return;
         }else if(pEvent->property_id == NODE_GET_ALL_SENSOR_GEN2){

@@ -39,7 +39,24 @@ There is **no command-line build or automated test suite** — this is IAR/Simpl
 - **Bootloader / OTA images:** `create_bl_files.bat` produces GBL files (used for OTA; OTA is enabled
   by the `JNC_OTA` define in `main.c`, advertised device name `"JNC-OTA"`).
 - **Verification is on-hardware:** observe behavior via serial `printf`/`dprint()` debug output over
-  VCOM/UART, and by reading device state over Modbus. There are no unit tests to run.
+  VCOM/UART (see Debug output below), and by reading device state over Modbus. There are no unit tests to run.
+
+## Debug output (serial) — verified
+
+Firmware `printf` / `dprint()` is retargeted to **USART0 (VCOM)** by `RETARGET_SerialInit()`
+(`user/global.c`, active because `DEBUG_PORT == UART_PORT`).
+
+- **Port / pins:** USART0 — **TX = `PA0`, RX = `PA1`** (location 0). Selected by `#define VCOM_USART0`
+  in `hardware/kit/BGM13_BRD4306B/config/hal-config-board.h` (`BSP_SERIAL_APP_PORT`).
+- **Line settings:** **115200 8N1** (baud hardcoded in `hardware/kit/common/drivers/retargetserial.c`).
+- **NOT the same as the sensor bus:** the `baudrate:9600` shown in the boot banner is the
+  **RS485/Modbus sensor bus on USART2 (CMD)** — pins PF4/PF5 loc17, baud from `pMeshNodeData->BaudRate`
+  (`UsartInit()` in `user/bus_drv/bus_usart.c`), a *different* UART. `dprint`/`Printf`/`Trace` verbosity
+  is gated by `DPRINT` / `DEBUG_PRINT` in `user/global.h`.
+- **How to read it:** connect the debug TX (PA0) to a USB-UART adapter and open the COM port at
+  115200, or run `scripts/serial_monitor.ps1` (defaults to `COM6` @ 115200), or the VSCode task
+  **"序列埠監看 (Serial Monitor COM6)"**. Verified 2026-06-22 on COM6: clean boot banner
+  (`BTM001: Firmware Version ==> v1.41`, MAC/ID, `[WATCHDOG] Initialized`, `Booting Seconds` ticks).
 
 ## Release Conventions
 
@@ -96,6 +113,29 @@ Key `user/` modules:
   `RS485_Transmitter`, `water_level_mesh`.
 - **`watchdog.c` / `.h`** — WDOG0 on ULFRCO (1 kHz), default 8 s timeout, fed once per main-loop
   iteration. Any long blocking operation in the loop risks an 8 s reboot — feed or split the work.
+
+## Parameter storage (persistence) — verified
+
+Runtime parameters are stored in the **BGM13 internal flash**, NOT in the on-board 24FC512 EEPROM.
+
+- **NVM3 / "SIMEE" region** (linker block `nvm3` / section `SIMEE`, placed at the **end of the 512 KB
+  main flash** by `bgm13p32f512ga.icf`) — the main persistent store, accessed via the Bluetooth stack
+  Persistent Store API (`Cmd_flash_ps_save` / `Cmd_flash_ps_load` in `user/node_data.c`):
+  - PS key `0x4000` `PS_KEY_MESH_NODE_DATA` → `_Mesh_Node_Data` (node ID, role, baud, `SensorClass`,
+    element addr, key/index fields, `WorkingTimer`, reboot timers, `SegPPercent`…; magic `0xA5A5`).
+  - PS key `0x4001` `PS_KEY_ADJUST_VALUE` → `_AdjustValue` (temp/RH gain & offset, RS485-transmitter / G6).
+  - PS keys `0x4003`–`0x4006` → water-level calibration.
+  - The Bluetooth **Mesh stack** also keeps its own data here: provisioning, NetKey/AppKey/DeviceKey,
+    IV index, sequence number, model bindings/pub/sub.
+- **User Data flash page** (`USERDATA_BASE = 0x0FE00000`, written via `em_msc` `MSC_WriteWord`):
+  `CAL_DATA_ADDR` calibration + `CTUNE_UD_ADDR` (0x0FE00100) HFXO crystal tuning + backup.
+- **Gecko Bootloader** lives in the bootloader region `0x0FE10000` (16 KB); AppLoader at flash start.
+- **RAM only (not persisted):** `SensorData[96]` live sensor values (`WriteWlCalData`/`ReadWlCalData`
+  are empty stubs).
+- **24FC512 I2C EEPROM (I2C0 addr `0xA0`): present in code but UNUSED by current firmware.** The
+  `_MeshNodeSysData` struct + `Eeprom*` helpers in `user/bus_drv/bus_i2c.c` are legacy — `EepromInit()`
+  is never called and no application code reads/writes the EEPROM (superseded by the NVM3 PS-key scheme).
+  `I2CInit()` only sets up I2C0 for the temp/RH sensor (SHT3x/Si7021) + battery ADC.
 
 ## Configuration (compile-time, in `user/global.h`)
 

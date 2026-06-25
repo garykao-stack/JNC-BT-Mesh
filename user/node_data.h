@@ -96,6 +96,13 @@ typedef struct
 #define CTUNE_UD_ADDR               (USERDATA_BASE+0x100)
 #define CAL_DATA_BACKUP_ADDR        (CAL_DATA_ADDR+0x100+16)    // to backup calibration data
 
+// 產品序號 (Product Serial Number) — 存在 USERDATA page，可在 flash_ps_erase_all()(恢復原廠) 後保留
+#define SERIAL_NUM_UD_OFFSET        0x400                       // USERDATA page 內位移 (避開校正/CTUNE)
+#define SERIAL_NUM_UD_ADDR          (USERDATA_BASE+SERIAL_NUM_UD_OFFSET)
+#define SERIAL_NUM_LEN              8                           // 序號長度 (bytes)
+#define SERIAL_NUM_RESERVE          16                          // 預留槽位 (8 使用 + 8 保留)
+#define SERIAL_NUM_DEFAULT          "JNC00000"                  // 預設序號 (8 bytes, 未燒錄時回報此值)
+
 
 #define ONE_LEVEL_BUFF_SIZE         (12*2)
 #define ERROR_PS_KEY_TOO_LEN        0x018A      // PS data too length
@@ -124,6 +131,9 @@ Result ReadNodeData();
 bool EraseCalibrationData();
 MSC_Status_TypeDef WriteCalibrationData(uchar index,void* pBuff);
 int ReadCalibrationData(uchar index,void* pBuff);
+bool ReadSerialNumber(uint8_t *pSerial);                        // 讀序號 (SERIAL_NUM_LEN bytes)
+bool IsSerialNumberProgrammed(void);                            // 是否已寫過序號 (非全 0xFF)
+MSC_Status_TypeDef WriteSerialNumber(const uint8_t *pSerial);   // 寫序號 (整頁 RMW, 保留 CTUNE/校正)
 uchar GetMeshNodeData(uint16 key, PUCHAR pnode_data);
 Result SetMeshNodeData(uint16 key, PUCHAR pnode_data, uchar size);
 void MeshNodeSetupReset();

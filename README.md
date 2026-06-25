@@ -71,6 +71,21 @@ VSCode 一鍵編譯快捷鍵（選用）
 7. 在Flash MCU欄位中，按下Browse，並選擇bin檔(JNC-BT-Mesh.bin)
 8. 按下Flash按鈕進行燒錄
 
+Debug 訊息（序列埠）
+---
+韌體會透過 **UART 把 debug 訊息送到電腦**，可用來觀察開機資訊、運作狀態、錯誤碼等。
+
+- **訊號來源**：USART0 (VCOM)，**TX = PA0 / RX = PA1**
+- **連線參數**：**115200 bps, 8N1**（鮑率固定）
+- ⚠️ 注意：開機訊息裡顯示的 `baudrate:9600` 是 **RS485 / sensor 匯流排（USART2）** 的鮑率，**不是** debug 的鮑率。Debug 一律 **115200**。
+
+**怎麼看 debug 訊息（三選一）：**
+1. VSCode：`Ctrl+Shift+P` → `Run Task` → **「序列埠監看 (Serial Monitor COM6)」**（最方便）
+2. PowerShell：`powershell -ExecutionPolicy Bypass -File scripts\serial_monitor.ps1 -Port COM6 -Baud 115200`
+3. 任何序列埠終端機（PuTTY、Tera Term…）開啟對應 COM 埠，設 **115200 8N1**
+
+> COM 埠號依您插入的 USB-UART 而定（本機驗證為 **COM6**）。可在「裝置管理員 → 連接埠 (COM 和 LPT)」查看。
+
 更新記錄
 ---
 請參閱 [CHANGELOG.MD](CHANGELOG.md)

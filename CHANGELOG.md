@@ -1,3 +1,15 @@
+### ALL DEVICE v1.42  #
+#### 20260625 (高) #
+1. 新增產品序號 (Product Serial Number) 功能
+    - 序號長度 8 bytes (預設 "JNC00000")，另預留 8 bytes (共 16 bytes)。
+    - 儲存於晶片內部 USERDATA flash page (位址 0x0FE00400)，恢復原廠 (flash_ps_erase_all) / 重燒韌體皆不會被清除；以整頁 read-modify-write 寫入，保留同頁的 CTUNE / 校正資料。
+    - App 可透過藍牙 (Mesh Sensor model，與「變數設定」相同傳輸方式) 讀寫:
+        - 讀序號: Property ID NODE_GET_SERIAL (0x8072)
+        - 寫序號: Property ID NODE_SET_SERIAL (0x8073)
+    - 未燒錄序號時讀取回報預設值 "JNC00000"。
+    - App 端交接文件: doc/Serial_Number_App_Handoff.md。
+2. 新增開發輔助文件與工具: CLAUDE.md / README 補上 IAR 編譯快捷鍵與序列埠 (USART0 PA0/PA1 @115200) Debug 說明、scripts/serial_monitor.ps1 序列埠監看工具。
+
 ### ALL DEVICE v1.41  #
 #### 20260306 (明) #
 1. 增加看門狗 watchdog.c / watchdog.h，目前設定超時八秒重啟

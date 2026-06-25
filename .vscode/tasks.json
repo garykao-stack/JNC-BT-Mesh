@@ -71,6 +71,15 @@
           "message": 5
         }
       }
+    },
+    {
+      // 序列埠 Debug 監看 — 開啟 COM6 即時顯示韌體 printf/dprint 訊息 (Ctrl+C 結束)
+      "label": "序列埠監看 (Serial Monitor COM6)",
+      "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File \"${workspaceFolder}/scripts/serial_monitor.ps1\" -Port COM6 -Baud 115200",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
     }
   ]
 }

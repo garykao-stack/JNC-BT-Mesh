@@ -313,6 +313,60 @@ int ReadCalibrationData(byte index,void* pBuff)
 }
 
 
+//==============================================================================
+// 產品序號 (Product Serial Number)
+//   存在 USERDATA flash page 的 SERIAL_NUM_UD_ADDR。位於 USERDATA page(非 NVM3 PS)，
+//   所以「恢復原廠」呼叫 Cmd_flash_ps_erase_all() 時序號「不會」被清掉。
+//   因為 flash 一次只能抹除整頁(2KB)，WriteSerialNumber() 採「整頁 read-modify-write」：
+//   先把整頁讀進 RAM、只改序號那幾個 byte、抹除整頁、再整頁寫回，
+//   以保留同一頁上既有的 CTUNE 與校正資料。
+//==============================================================================
+
+// 讀取序號 (SERIAL_NUM_LEN bytes) 到 pSerial
+bool ReadSerialNumber(uint8_t *pSerial)
+{
+    if(pSerial == NULL) return FALSE;
+    memcpy(pSerial, (const void*)SERIAL_NUM_UD_ADDR, SERIAL_NUM_LEN);
+    return TRUE;
+}
+
+// 是否已寫過序號 (槽位非全 0xFF 即視為已寫)
+bool IsSerialNumberProgrammed(void)
+{
+    const uint8_t *p = (const uint8_t*)SERIAL_NUM_UD_ADDR;
+    uchar i;
+    for(i=0; i<SERIAL_NUM_LEN; i++)
+        if(p[i] != 0xFF) return TRUE;
+    return FALSE;
+}
+
+// 寫入序號，並保留 USERDATA page 上其它資料 (CTUNE/校正)
+MSC_Status_TypeDef WriteSerialNumber(const uint8_t *pSerial)
+{
+    // 整頁 RAM 鏡像 (4-byte 對齊；2KB 太大不放 stack，用 static)
+    static uint32_t page_buf[FLASH_PAGE_SIZE/4];
+    MSC_Status_TypeDef ret_code;
+
+    if(pSerial == NULL) return mscReturnInvalidAddr;
+
+    // 1. 把整頁 USERDATA 讀進 RAM (保留 CTUNE+校正原值)
+    memcpy(page_buf, (const void*)USERDATA_BASE, FLASH_PAGE_SIZE);
+
+    // 2. 在 RAM 鏡像裡只改寫序號槽位
+    memcpy((uint8_t*)page_buf + SERIAL_NUM_UD_OFFSET, pSerial, SERIAL_NUM_LEN);
+
+    // 3. 抹除整頁，再把整頁寫回
+    MSC_Init();
+    ret_code = MSC_ErasePage((uint32_t*)USERDATA_BASE);
+    if(ret_code == mscReturnOk)
+        ret_code = MSC_WriteWord((uint32_t*)USERDATA_BASE, page_buf, FLASH_PAGE_SIZE);
+    MSC_Deinit();
+
+    if(ret_code != mscReturnOk) UD_Flash_Error(ret_code);
+    return ret_code;
+}
+
+
 
 
 // index = ic numder

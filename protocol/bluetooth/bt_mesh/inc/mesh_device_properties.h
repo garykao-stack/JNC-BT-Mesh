@@ -1127,6 +1127,10 @@ typedef enum mesh_device_properties_e {
   NODE_SENSOR_SETUP_GET                         = 0x8070,     // for Sensor Server Setup Set
   NODE_SENSOR_SETUP_SET                         = 0x8071,     // for Sensor Server Setup Get
 
+//Product Serial Number (8 bytes) — App read/write
+  NODE_GET_SERIAL                               = 0x8072,     // 讀產品序號: 裝置回 [property_id(2) | serial(8)]
+  NODE_SET_SERIAL                               = 0x8073,     // 寫產品序號: App 送 serial(8); 裝置回 ack(2)
+
 // for AIP Power Percent
   AUTO_POWER_0           = 0x8100,
   AUTO_POWER_1           = 0x8101,
