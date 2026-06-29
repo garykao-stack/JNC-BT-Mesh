@@ -236,6 +236,15 @@ uint32 EvtMeshSensorInitProc(PCmdPacket pEvent)
         printf("Node1 is provisioned. Mesh Node ID:0x%x, %d, IVI:%d(0x%X), SeqNo:0x%X\r\n",
                 pMeshNodeData->MeshNodeID,pMeshNodeData->MeshNodeID, pMeshNodeData->IvIndex, pMeshNodeData->IvIndex,seq_remain->count);
         MeshNodeModelInit();
+        /* v1.45: 中繼端(Client)開機主動把 appkey 重綁到 Sensor Server/Setup Server,
+         * 確保即使 App 設成 client 時未綁/解除了 server model 綁定,中繼端仍能接收序號 column-get(0x8072/0x8073)。
+         * (診斷版用 printf 顯示綁定結果 0=成功; 並用來觀察此重綁是否會觸發 model_config_changed 角色翻轉) */
+        if(NodeRole == NR_CLIENT){
+            SensorServerModelInitForClient();   // 啟用 sensor server model 收 get
+            uint16 rb1 = Cmd_mt_bind_local_model_app(SENSOR_ELEMENT, pMeshNodeData->AppkeyIndex, 0xFFFF, MODEL_ID_SERVER)->result;
+            uint16 rb2 = Cmd_mt_bind_local_model_app(SENSOR_ELEMENT, pMeshNodeData->AppkeyIndex, 0xFFFF, MODEL_ID_SETUP_SERVER)->result;
+            dprint("[CLIENT SERIAL] rebind appkey=%d 0x1100=0x%X 0x1101=0x%X\r\n", pMeshNodeData->AppkeyIndex, rb1, rb2);
+        }
         SetTxPower(TX_POWER_LO);
         SetEventTaskTimer(TD_GET_SENSOR_INFO,200,TIMER_EVENT_ONCE);        
 #if BT_RSSI
@@ -456,7 +465,7 @@ uint32 EvtMeshNodeModelConfigChangedProc(PCmdPacket pCmdEvent)
     if(pEvent->model_id == MODEL_ID_SERVER)
         pMeshNodeData->MeshNodeRole = NR_SERVER;
     else if(pEvent->model_id == MODEL_ID_SETUP_SERVER)
-        pMeshNodeData->MeshNodeRole = NR_SETUP_SERVER;    
+        pMeshNodeData->MeshNodeRole = NR_SETUP_SERVER;
     else if(pEvent->model_id == MODEL_ID_CLIENT)
         pMeshNodeData->MeshNodeRole = NR_CLIENT;
     //pMeshNodeData->RelayEnabled=(pEvent->mesh_node_config_state==mesh_node_relay);

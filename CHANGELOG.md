@@ -1,3 +1,20 @@
+### ALL DEVICE v1.45  #
+#### 20260629 (高) #
+1. 讓「中繼端 / Sensor Client」也能被 App 讀/寫產品序號 (0x8072 / 0x8073)。【已上機驗證通過】
+    - 問題：v1.44 起感測端(Server)序號讀寫正常，但中繼端(Client)讀寫序號全部逾時。
+    - 根因（實測 COM6 釐清，修正交接文件的前提）：DCD 為靜態，每台裝置(不分角色)都已含 Sensor Server 0x1100 / Setup Server 0x1101 / Sensor Client 0x1102（見 `dcd.c`）。中繼端讀不到序號是因為**同時缺兩樣**：
+        (1) 開機沒 init Sensor Server 的 BGAPI class，且沒呼叫 `mesh_lib_sensor_server_init()` 啟用 model → 協議棧不把序號 Sensor Column Get (0x8233) 事件送上來；
+        (2) appkey 沒綁到 0x1100（實測 App 把裝置設成中繼端時，0x1100 並未綁定 / 被解除）→ 即使開了窗口，訊息也在綁定關卡被丟棄。
+    - 修正（路線1，不動 DCD、不動角色判定邏輯、App 端零改動）：
+        a. `app.c`：中繼端也呼叫 `gecko_bgapi_class_mesh_sensor_server_init()` + `..._setup_server_init()`，開啟收命令的 BGAPI class。
+        b. `sensor_server.c` 新增 `SensorServerModelInitForClient()`（呼叫 `mesh_lib_sensor_server_init()` 啟用 sensor server model 收 get），中繼端開機呼叫；不做 people/temperature 感測器初始化、不發佈感測資料，故不變成感測端。
+        c. `mesh_event.c` `EvtMeshSensorInitProc`：中繼端開機主動把 appkey 重綁到 0x1100/0x1101（`Cmd_mt_bind_local_model_app`），確保即使 App 未綁 server model 也能收序號。實測此本地重綁**不會觸發 `model_config_changed` 角色翻轉**，中繼端角色維持 Client。
+        d. `Mesh_Server.c` `EvtGetRequestProc`：中繼端只放行 `NODE_GET_SERIAL`/`NODE_SET_SERIAL`，其餘 sensor get 一律忽略（避免中繼端誤回空感測資料）。
+    - 不動角色判定: `EvtMeshNodeModelConfigChangedProc` 維持原邏輯(角色=App 最後綁定的 model),App 可正常雙向切換感測端/中繼端。
+    - 序號讀寫格式與感測端完全相同（property 0x8072/0x8073，8-byte 序號，存 USERDATA flash）。
+    - 上機驗證(COM6)：中繼端(role=2) 收到 `property:0x8072` 讀序號 → `ServerResponseSerial result:0x0`；`property:0x8073` 寫序號亦正常；App 端讀/寫成功。
+    - 交接文件：`doc/Serial_AllDevices_Firmware_Handoff.md`。
+
 ### ALL DEVICE v1.44  #
 #### 20260629 (高) #
 1. 修正「組網後進功能設定，App 讀不到裝置功能 / sensor 讀取無回應」問題。

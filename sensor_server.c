@@ -187,6 +187,14 @@ void SensorServerNodeInit(void)
    // NodeSleeping(ON); NodeProxy(OFF);// while(1);
 }
 
+/* v1.45: 中繼端(Client)只啟用 sensor server model 以接收序號 column-get(0x8072/0x8073),
+ * 不做 people/temperature 感測器初始化、不發佈感測資料(那是感測端才需要)。 */
+void SensorServerModelInitForClient(void)
+{
+    uint16_t result = mesh_lib_sensor_server_init(SENSOR_ELEMENT, NUMBER_OF_SENSORS, descriptors);
+    dprint("[CLIENT SERIAL] sensor_server_init result=0x%X\r\n", result);
+}
+
 uint16 ModbusReg0=0x1001,ModbusReg1=0x2002,ModbusReg2=0x3003,ModbusReg3=0x4004;
 
 //

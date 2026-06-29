@@ -191,7 +191,13 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
 
     if(NodeRole == NR_CLIENT){
          gecko_bgapi_class_mesh_sensor_client_init();
-
+         /* v1.45: 中繼端(Client)也註冊 Sensor Server / Setup Server 的「收命令」窗口,
+          * 讓 App 能對中繼端讀/寫產品序號(Sensor Column Get 0x8233, property 0x8072/0x8073)。
+          * DCD 本來就含 0x1100/0x1101(見 dcd.c),這裡只是把收命令的 BGAPI class 開起來;
+          * 不呼叫 SensorServerNodeInit()(不發佈感測資料、不當感測端),
+          * 且 EvtGetRequestProc 對中繼端只放行序號讀寫,其餘 sensor get 一律忽略。 */
+         gecko_bgapi_class_mesh_sensor_server_init();
+         gecko_bgapi_class_mesh_sensor_setup_server_init();
     }else{
          gecko_bgapi_class_mesh_sensor_server_init();
          gecko_bgapi_class_mesh_sensor_setup_server_init();

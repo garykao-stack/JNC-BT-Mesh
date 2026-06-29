@@ -122,7 +122,7 @@
 #endif
 
 #if defined(JNC_BT_MESH)
-  #define FW_VER              144
+  #define FW_VER              145
   #define HW_VER              110
   #define DEVICE_NAME         "JNC-BT-Mesh"SPACMARK
   #define MANUFACTORY_NAME    "JNC"

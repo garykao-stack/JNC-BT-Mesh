@@ -2112,6 +2112,15 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
     pNodeEventInfo->AppkeyIndex = pEvent->appkey_index;
     pNodeEventInfo->Flags       = pEvent->flags;
     pNodeEventInfo->PropertyID  = pEvent->property_id;
+    /* v1.45: 中繼端(Client)只開「序號讀寫」窗口。中繼端為了讀寫序號才在 app.c 註冊了
+     * Sensor Server 收命令窗口,但它不是感測端,不應回應其它 sensor get(感測值/資訊/設定),
+     * 否則會回傳空資料或誤導 App。故對中繼端只放行 NODE_GET_SERIAL / NODE_SET_SERIAL。 */
+    if(NodeRole == NR_CLIENT
+       && pEvent->property_id != NODE_GET_SERIAL
+       && pEvent->property_id != NODE_SET_SERIAL){
+        *pNodeEventInfo=tmpNodeEvtInfo;   // 還原 event info,避免影響中繼端自身運作
+        return;
+    }
     uint8array* ext=0;
 
     if(IgnoreBroadcastCmdMs && pEvent->server_address==0xC000){

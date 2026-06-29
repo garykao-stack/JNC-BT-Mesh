@@ -35,6 +35,10 @@ extern uchar DeviceModBusID;
  ******************************************************************************/
 void SensorServerNodeInit(void);
 
+/* v1.45: 給中繼端(Client)用的精簡 sensor server model 啟用 — 只 init model 讓它能收
+ * 序號 column-get(0x8072/0x8073),不做感測器(people/temp)初始化、不發佈感測資料。 */
+void SensorServerModelInitForClient(void);
+
 /***************************************************************************//**
  *  Handling of mesh sensor server events.
  *  It handles:
