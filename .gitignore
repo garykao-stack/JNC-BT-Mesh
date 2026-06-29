@@ -6,3 +6,7 @@
 /.vscode/*
 !/.vscode/tasks.json
 /iar/.vscode
+
+# 診斷擷取檔 (COM6 / logcat / 螢幕截圖)，非原始碼
+/scripts/*.txt
+/scripts/*.png

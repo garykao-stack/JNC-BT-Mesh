@@ -156,9 +156,11 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
 			);
 
 
-    // Initialize watchdog - 8 second timeout with warning DISABLED for testing
+    // Initialize watchdog - 16 second timeout. RS485 sensor detection (CheckRs485Connect)
+    // can legitimately block ~18s when no sensor responds; it now feeds the watchdog
+    // per retry, but 16s gives margin for any other long operation.
     watchdog_config_t wdog_config = {
-        .timeout_period = WDOG_PERIOD_8S,
+        .timeout_period = WDOG_PERIOD_16S,
         .warning_percent = WDOG_WARNING_NEVER,
         .enable_warning = false,
         .run_in_debug = false,
@@ -232,15 +234,20 @@ void appMain(gecko_configuration_t *pConfig)
                 if(BleMeshEventProc(pEvent,MeshEventFun) == FALSE)
                     EventIDtoStringProc(pEvent);
         }
+
+        /* Feed watchdog EVERY loop iteration — MUST be before CheckRunDevTask()'s
+         * early-continue. An unprovisioned node (組網中) takes the continue below,
+         * so leaving the feed after this point starves the watchdog throughout
+         * provisioning and forces an 8s reboot mid-handshake (mesh 組網 instability). */
+        watchdog_feed();
+
         if(!CheckRunDevTask()) continue;
 
         //dprint("===\r\nMax Sensor Info Size:%d\r\n===\r\n",sizeof(_SensorInfo));
 
         //dprint("Node Role:%d\r\n",NodeRole);
         
-        /* Feed watchdog to prevent timeout reboot */
-        //if(BootingSeconds<60)
-            watchdog_feed();
+        /* watchdog is now fed earlier (above), before CheckRunDevTask()'s continue */
         
         UsartClientProc();
         if(NodeRole == NR_CLIENT)

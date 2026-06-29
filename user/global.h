@@ -112,7 +112,7 @@
  *							Debug
  *-------------------------------------------------------------*/
 //#define DEBUG_PRINT
-#define DPRINT 1			// dprint, 0:disabled, 1:enabled
+#define DPRINT 0			// dprint, 0:disabled, 1:enabled
 #define TRANSDEBUG 0
 
 #if NODE_DISCONNECT_DETECT_COUNT>0
@@ -122,7 +122,7 @@
 #endif
 
 #if defined(JNC_BT_MESH)
-  #define FW_VER              142
+  #define FW_VER              143
   #define HW_VER              110
   #define DEVICE_NAME         "JNC-BT-Mesh"SPACMARK
   #define MANUFACTORY_NAME    "JNC"

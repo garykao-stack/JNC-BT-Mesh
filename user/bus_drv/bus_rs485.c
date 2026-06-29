@@ -10,6 +10,7 @@
 #include "SHT3x.h"
 #include "G6_BT_Mesh.h"
 #include "SGPxx.h"
+#include "watchdog.h"
 #include <stdbool.h>
 
 
@@ -309,6 +310,7 @@ bool CheckRs485Connect(int16 connectTryCount)
     //for(loop=0; loop<15; loop++) //try 15 time for reading module name
     for(loop=0; loop<connectTryCount; loop++) //try 15 time for reading module name
         {
+         watchdog_feed();  // RS485 偵測為合法長操作(沒接 sensor 時可達 ~18s)，每輪餵狗，避免被看門狗中途重啟
          CHECK_RS485_CMD(modbus_cmd,8); //command-1 take 200+15ms
          CHECK_RS485_CMD(modbus_cmd1,8);//command-2 take 200+15ms
         if(UsartGetRxCounter() != 0){ //leave detecting process if there is data has been received.

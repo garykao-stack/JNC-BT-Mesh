@@ -111,8 +111,14 @@ Key `user/` modules:
 - **Comm glue:** `ble_comm`, `ble_event`, `mesh_event`, `cmd_to_bt_mesh`, `jnc_cmd`, `com_port`.
 - **Feature modules:** `MeshFeatures`, `ivi_features`, `G6_BT_Mesh`, `A308_Server`,
   `RS485_Transmitter`, `water_level_mesh`.
-- **`watchdog.c` / `.h`** — WDOG0 on ULFRCO (1 kHz), default 8 s timeout, fed once per main-loop
-  iteration. Any long blocking operation in the loop risks an 8 s reboot — feed or split the work.
+- **`watchdog.c` / `.h`** — WDOG0 on ULFRCO (1 kHz), **16 s timeout since v1.43** (was 8 s in
+  v1.41–v1.42; 8 s was too short for the RS485 sensor detection in `CheckRs485Connect`, which can
+  block ~18 s when no sensor responds → caused a ~30 s reboot loop). Fed once per main-loop iteration
+  (before `CheckRs485Connect()`'s early-`continue`, so unprovisioned/組網 nodes are also fed) **and
+  inside `CheckRs485Connect`'s detection loop**. Any long blocking operation in the loop risks a
+  reboot — call `watchdog_feed()` inside it or split the work. WDOG is frozen in EM2/EM3 deep sleep
+  (no `EM2RUN`/`EM3RUN` set), so sleeping servers are not rebooted. See
+  `doc/Watchdog_Mesh_Instability_Report.md`.
 
 ## Parameter storage (persistence) — verified
 

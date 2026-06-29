@@ -1,3 +1,14 @@
+### ALL DEVICE v1.43  #
+#### 20260629 (高) #
+1. 修正 v1.41 看門狗導致的「重啟迴圈」問題（組網/連線不穩的主因）。
+    - 原因：v1.41 新增的 8 秒看門狗，遇到 RS485 感測器偵測（`CheckRs485Connect`，無 sensor 回應時可阻塞達 ~18 秒）的長阻塞會逾時重啟 → 裝置每 ~30 秒重啟一次。
+    - 修正：
+        a. 看門狗超時 8s → 16s。
+        b. 在 `CheckRs485Connect` 偵測迴圈內每輪餵狗，使合法的慢偵測不會餓死看門狗。
+        c. 主迴圈在「未配對(組網中)」期間也餵狗（移到 `CheckRs485Connect` 的 continue 之前）。
+    - 實測：100 秒 soak 0 重啟（修正前每 ~30 秒重啟一次）。詳見 `doc/Watchdog_Mesh_Instability_Report.md`。
+2. 【已知未修問題】Auto Scan 模式且未接 sensor 時，每 ~60 秒喚醒的感測器偵測會卡住 BLE → 進「功能設定」時偶發「與網路斷線」(BLE 監督逾時 status=8)。與看門狗無關，程式碼 v1.40 即存在。規避：該節點設為「DI 模式 / 指定型號」(非 Auto Scan)。
+
 ### ALL DEVICE v1.42  #
 #### 20260625 (高) #
 1. 新增產品序號 (Product Serial Number) 功能
