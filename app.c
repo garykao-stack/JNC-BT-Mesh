@@ -32,6 +32,8 @@
 
 /* Watchdog driver */
 #include "watchdog.h"
+/* RMU — 開機重置原因診斷 (區分 看門狗 vs sys_reset) */
+#include "em_rmu.h"
 
 /***************************************************************************//**
  * @addtogroup Application
@@ -120,6 +122,24 @@ void BleMeshNodeInit(gecko_configuration_t *pConfig)
 #else 
         printf("%s: Firmware Version ==> v%1.2f \r\n", MODEL_NAME, FW_VER/100.0);
 #endif
+    /* === 重置原因診斷 (printf, DPRINT=0 也會印) ===
+     * 用來區分: WDOG = 看門狗逾時重開(主迴圈被卡死, 真 bug);
+     *           SYSREQ = Cmd_sys_reset(), 即設計內「設定/組網套用」重開(正常);
+     *           POR/PIN = 上電/按鍵重置. */
+    {
+        uint32_t rstcause = RMU_ResetCauseGet();
+        RMU_ResetCauseClear();
+        printf("[RESET CAUSE] 0x%08lX =>", (unsigned long)rstcause);
+        if (rstcause & RMU_RSTCAUSE_PORST)     printf(" POR");
+        if (rstcause & RMU_RSTCAUSE_EXTRST)    printf(" PIN");
+        if (rstcause & RMU_RSTCAUSE_SYSREQRST) printf(" SYSREQ(sys_reset)");
+        if (rstcause & RMU_RSTCAUSE_WDOGRST)   printf(" WDOG(watchdog!)");
+        if (rstcause & RMU_RSTCAUSE_LOCKUPRST) printf(" LOCKUP");
+#if defined(RMU_RSTCAUSE_EM4RST)
+        if (rstcause & RMU_RSTCAUSE_EM4RST)    printf(" EM4");
+#endif
+        printf("\r\n");
+    }
     sensor_index = SensorClassChange(pMeshNodeData->SensorClass,CLASS_TO_UTILITY);
     //msg_mn_get_element_addr_rsp* r_addr=Cmd_mn_get_element_addr(0);
 

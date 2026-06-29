@@ -640,7 +640,7 @@ void ServerGetInfoProc()
                         ToWaitingStage(SNS_WAIT_GET_INFO,WAIT_MS(1000));
                         return;
                     }
-                    else if(pFunSensor==GetRelay /*&& !pMeshNodeData->RelayEnabled*/){ /*不論是否開啟Relay功能，都要嘗試讀取設備*/
+                    else if(pFunSensor==GetRelay && !GetMeshNodeStatus(BLE_LINK_STATUS)){ /*不論是否開啟Relay功能，都要嘗試讀取設備；但 App/BLE 連線中時跳過此阻塞掃描(~18s)，避免餓死 BLE 導致設定時「與網路斷線」(option B)。連線結束後下次喚醒自動恢復重掃。*/
                         CheckRs485Device(3);
                         if(pFunSensor!=GetRelay) break; /*初次讀取到Sensor種類，保持SNS_GET_INFO階段以讀取數值*/
                     }
@@ -2224,7 +2224,7 @@ void EvtGetRequestProc(PCmdPacket pCmdEvent)
         ResponseBtmMeshInfo();
         *pNodeEventInfo=tmpNodeEvtInfo;
         //SetNodeStatus(NS_GET_INFO_ACT,ON);  // Mesh set event active
-    }    
+    }
     else if(pEvent->property_id >= BTM_G6_CMD_START && pEvent->property_id <= BTM_G6_CMD_END){//Trace("G6-Setup");
         SetNodeStatus(NS_SET_NODE_ACT,ON);  // Mesh set event active
     }

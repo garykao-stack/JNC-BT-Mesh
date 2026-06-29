@@ -429,6 +429,15 @@ uint32 EvtMeshNodeKeyAddedProc(PCmdPacket pCmdEvent)
     else
         {//TraceDec2("Add appkey index",p_key_added->index,p_key_added->netkey_index);
         pMeshNodeData->AppkeyIndex = p_key_added->index;    // appkey_index
+        /* 韌體自綁 appkey 到 sensor server / setup server 模型。
+         * 原本 SetServerAllModel() 被停用、完全依賴 App 綁定；實測 App 未綁到 sensor model
+         * → 功能讀取(NODE_GET_BTM_INFO 等 app-key sensor get)被協議棧丟棄、功能欄空白。
+         * 在此 appkey 一加入就自綁，讓裝置不依賴 App、也不需重開即可回應功能讀取。 */
+        if(NodeRole != NR_CLIENT){
+            Cmd_mt_bind_local_model_app(SENSOR_ELEMENT, p_key_added->index, 0xFFFF, MODEL_ID_SERVER);
+            Cmd_mt_bind_local_model_app(SENSOR_ELEMENT, p_key_added->index, 0xFFFF, MODEL_ID_SETUP_SERVER);
+            dprint("self-bind appkey%d -> sensor server models\r\n", p_key_added->index);
+        }
         }
     //Trace1("Add key Netkey Index",p_key_added->netkey_index);
     WriteNodeData();

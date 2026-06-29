@@ -1,3 +1,13 @@
+### ALL DEVICE v1.44  #
+#### 20260629 (高) #
+1. 修正「組網後進功能設定，App 讀不到裝置功能 / sensor 讀取無回應」問題。
+    - 原因：韌體原本依賴 App 端把 appkey 綁定到 Sensor Server model（自綁的 `SetServerAllModel()` 被停用）。實測 App 未把 appkey 綁到 sensor model → 走 app key 的 sensor 讀取（功能資訊 `NODE_GET_BTM_INFO`、序號、設定、感測值等）被協議棧丟棄、收不到 → 功能欄空白 / 讀取逾時。（走 device key 的 Config 訊息如 relay/DCD 不受影響，故易誤判。）
+    - 修正：appkey 加入時（`EvtMeshNodeKeyAddedProc`）韌體自綁 appkey 到 Sensor Server (0x1100) 與 Setup Server (0x1101) 模型，裝置不再依賴 App 綁定、也不需重開即可回應功能/感測讀取。
+    - 實測（雙邊 log）：修正前裝置完全收不到 sensor get（COM6 0 次請求、App 端讀取逾時）；修正後裝置正常收到並回應（`ServerResponseSerial` / `BTM_INFO` / `GET_ALL_SENSOR` 皆回，App 端讀取 error null）。
+    - 備註：「組網後功能欄自動顯示『感測端』」屬 App 端行為（功能由 App 指派並記憶，非從裝置自動讀回；裝置回應裡無『角色』欄位），韌體端無法代為自動帶入，仍需在 App 設定一次功能。
+2. 開機加印「重置原因」診斷（`[RESET CAUSE] ... POR/PIN/SYSREQ/WDOG`，用 printf，DPRINT=0 也會印），可在現場快速分辨「設計內 sys_reset（設定/組網套用重開）」與「看門狗逾時重開」。
+3. Server 在 App/BLE 連線中時，跳過 Auto Scan 的阻塞式 RS485 偵測掃描（`CheckRs485Device`），避免掃描餓死 BLE 造成連線中「與網路斷線」（對應 v1.43 條列 2 的已知問題；連線結束後下次喚醒自動恢復重掃）。
+
 ### ALL DEVICE v1.43  #
 #### 20260629 (高) #
 1. 修正 v1.41 看門狗導致的「重啟迴圈」問題（組網/連線不穩的主因）。
